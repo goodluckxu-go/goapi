@@ -8,8 +8,8 @@ go get github.com/goodluckxu-go/goapi
 main.go入口文件
 ~~~go
 import (
-"github.com/goodluckxu-go/goapi"
-"github.com/goodluckxu-go/goapi/app"
+	"github.com/goodluckxu-go/goapi"
+	"github.com/goodluckxu-go/goapi/app"
 )
 
 func main() {
