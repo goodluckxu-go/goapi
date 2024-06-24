@@ -197,7 +197,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 				bodyMediaType = formUrlencoded
 			}
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, inputField.deepTypes, inputField.inTypeVal)
+			h.setChildSchema(childSchema, inputField.deepTypes, 1, inputField.inTypeVal)
 			bodyProperties[inputField.inTypeVal] = childSchema
 			if inputField.mediaTypes[0].required {
 				bodyRequireds = append(bodyRequireds, inputField.inTypeVal)
@@ -205,7 +205,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 		case inTypeFile:
 			bodyMediaType = formMultipart
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, inputField.deepTypes, inputField.inTypeVal)
+			h.setChildSchema(childSchema, inputField.deepTypes, 1, inputField.inTypeVal)
 			bodyProperties[inputField.inTypeVal] = childSchema
 			if inputField.mediaTypes[0].required {
 				bodyRequireds = append(bodyRequireds, inputField.inTypeVal)
@@ -217,7 +217,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 			}
 			for _, mediaType := range inputField.mediaTypes {
 				childSchema := &openapi.Schema{}
-				h.setChildSchema(childSchema, inputField.deepTypes, mediaType._type)
+				h.setChildSchema(childSchema, inputField.deepTypes, len(inputField.mediaTypes), mediaType._type)
 				bodyContent[string(typeToMediaTypeMap[mediaType._type])] = &openapi.MediaType{
 					Schema: childSchema,
 				}
@@ -256,7 +256,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 		responseContent := map[string]*openapi.MediaType{}
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, resp.deepTypes, mediaType._type)
+			h.setChildSchema(childSchema, resp.deepTypes, len(resp.mediaTypes), mediaType._type)
 			responseContent[string(typeToMediaTypeMap[mediaType._type])] = &openapi.MediaType{
 				Schema: childSchema,
 			}
@@ -275,7 +275,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 		responseContent := map[string]*openapi.MediaType{}
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, resp.deepTypes, mediaType._type)
+			h.setChildSchema(childSchema, resp.deepTypes, len(resp.mediaTypes), mediaType._type)
 			responseContent[string(typeToMediaTypeMap[mediaType._type])] = &openapi.MediaType{
 				Schema: childSchema,
 			}
@@ -382,7 +382,7 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[str
 				continue
 			}
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, v1.deepTypes, mediaType._type)
+			h.setChildSchema(childSchema, v1.deepTypes, len(v1.mediaTypes), mediaType._type)
 			childSchema.Enum = v1.tag.enum
 			childSchema.Default = v1.tag._default
 			childSchema.Example = v1.tag.example
@@ -493,7 +493,7 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type) (rs typeInfo) {
 	return
 }
 
-func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo, mediaType string) {
+func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo, mediaTypeCount int, mediaType string) {
 	if len(types) == 0 {
 		return
 	}
@@ -504,21 +504,20 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 	switch tyInfo._type.Kind() {
 	case reflect.Map:
 		childSchema := &openapi.Schema{}
-		h.setChildSchema(childSchema, types, mediaType)
+		h.setChildSchema(childSchema, types, mediaTypeCount, mediaType)
 		schema.Properties = map[string]*openapi.Schema{
 			"string": childSchema,
 		}
 	case reflect.Slice:
 		childSchema := &openapi.Schema{}
-		h.setChildSchema(childSchema, types, mediaType)
+		h.setChildSchema(childSchema, types, mediaTypeCount, mediaType)
 		schema.Items = childSchema
 	case reflect.Struct:
 		key := fmt.Sprintf("%v.%v", tyInfo._type.PkgPath(), tyInfo._type.Name())
 		if key != "." {
 			stInfo := h.structs[key]
-			schemas := h.schemas[stInfo.openapiName]
 			schemaKey := stInfo.openapiName
-			if len(schemas) > 1 && mediaType != xmlType {
+			if mediaTypeCount > 1 && mediaType != xmlType {
 				schemaKey = stInfo.openapiName + "_" + mediaType
 			}
 			schema.Ref = "#/components/schemas/" + schemaKey

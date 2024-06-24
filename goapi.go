@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"encoding/json"
+	"github.com/goodluckxu-go/goapi/lang"
 	"github.com/goodluckxu-go/goapi/openapi"
 	"github.com/goodluckxu-go/goapi/swagger"
 	"net/http"
@@ -34,11 +35,16 @@ type API struct {
 	OpenAPITags           []*openapi.Tag
 	docsPath              string
 	exceptFunc            func(httpCode int, detail string) Response
+	lang                  Lang
 }
 
 func (a *API) HTTPExceptionHandler(f func(httpCode int, detail string) Response) {
 	a.httpExceptionResponse = f(0, "")
 	a.exceptFunc = f
+}
+
+func (a *API) SetLang(lang Lang) {
+	a.lang = lang
 }
 
 func (a *API) SetResponseMediaType(mediaTypes ...MediaType) {
@@ -81,7 +87,7 @@ func (a *API) Run(addr ...string) error {
 	} else {
 		a.app.Init()
 	}
-	newHandlerServer(a.app, handle.list, a.exceptFunc, handle.structs).Handle()
+	newHandlerServer(a.lang, a.app, handle.list, a.exceptFunc, handle.structs).Handle()
 
 	return a.app.Run(addr...)
 }
@@ -98,6 +104,9 @@ func (a *API) init() {
 			}
 		}
 		a.httpExceptionResponse = a.exceptFunc(0, "")
+	}
+	if a.lang == nil {
+		a.lang = &lang.EN{}
 	}
 }
 

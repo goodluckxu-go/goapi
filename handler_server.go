@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/goodluckxu-go/goapi/lang"
 	"github.com/shopspring/decimal"
 	"io"
 	"mime/multipart"
@@ -16,11 +15,13 @@ import (
 )
 
 func newHandlerServer(
+	lang Lang,
 	app APP, paths []pathInfo,
 	exceptFunc func(httpCode int, detail string) Response,
 	structs map[string]*structInfo,
 ) *handlerServer {
 	return &handlerServer{
+		lang:       lang,
 		app:        app,
 		paths:      paths,
 		exceptFunc: exceptFunc,
@@ -29,6 +30,7 @@ func newHandlerServer(
 }
 
 type handlerServer struct {
+	lang       Lang
 	app        APP
 	paths      []pathInfo
 	pathMap    map[string]string
@@ -211,7 +213,7 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 				}
 				if err != nil || cookie.Value == "" {
 					if field.mediaTypes[0].required {
-						HTTPException(validErrorCode, fmt.Sprintf(i18n[lang.Required], name))
+						HTTPException(validErrorCode, h.lang.Required(name))
 					}
 					return
 				}
@@ -308,14 +310,14 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 		case inTypeBody:
 			if bodyBytes, err := io.ReadAll(req.Body); err == nil {
 				if len(bodyBytes) == 0 {
-					HTTPException(validErrorCode, fmt.Sprintf(i18n[lang.Required], "body"))
+					HTTPException(validErrorCode, h.lang.Required("body"))
 				}
 				childField := h.getChildFieldVal(inputValue, field.deepIdx)
 				if err = h.setBody(req, childField, bodyBytes); err != nil {
 					HTTPException(validErrorCode, err.Error())
 				}
 			} else {
-				HTTPException(validErrorCode, fmt.Sprintf(i18n[lang.Required], "body"))
+				HTTPException(validErrorCode, h.lang.Required("body"))
 			}
 		case inTypeSecurityHTTPBearer:
 			authorization := req.Header.Get("Authorization")
@@ -368,7 +370,7 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 					}
 					if err != nil || cookie.Value == "" {
 						if field.mediaTypes[0].required {
-							HTTPException(validErrorCode, fmt.Sprintf(i18n[lang.Required], name))
+							HTTPException(validErrorCode, h.lang.Required(name))
 						}
 						return
 					}
@@ -445,7 +447,7 @@ func (h *handlerServer) handleValue(inputValue reflect.Value, field fieldInfo, v
 	required := field.mediaTypes[0].required
 	if values == nil {
 		if required {
-			err = fmt.Errorf(i18n[lang.Required], name)
+			err = fmt.Errorf(h.lang.Required(name))
 		}
 		return
 	}
@@ -456,14 +458,14 @@ func (h *handlerServer) handleValue(inputValue reflect.Value, field fieldInfo, v
 	if fType.Kind() == reflect.Slice {
 		if len(values) == 0 {
 			if required {
-				err = fmt.Errorf(i18n[lang.Required], name)
+				err = fmt.Errorf(h.lang.Required(name))
 			}
 			return
 		}
 	} else {
 		if len(values) == 0 || values[0] == "" {
 			if required {
-				err = fmt.Errorf(i18n[lang.Required], name)
+				err = fmt.Errorf(h.lang.Required(name))
 			}
 			return
 		}
@@ -612,7 +614,7 @@ func (h *handlerServer) setValue(fVal reflect.Value, values []string, name strin
 			}
 			for _, count := range valCount {
 				if count > 1 {
-					err = fmt.Errorf(i18n[lang.Unique], name)
+					err = fmt.Errorf(h.lang.Unique(name))
 					return
 				}
 			}
@@ -631,29 +633,29 @@ func (h *handlerServer) setValue(fVal reflect.Value, values []string, name strin
 
 func (h *handlerServer) validFloat64(f float64, name string, tag *fieldTagInfo) (err error) {
 	if tag.lt != nil && f >= *tag.lt {
-		err = fmt.Errorf(i18n[lang.Lt], name, *tag.lt)
+		err = fmt.Errorf(h.lang.Lt(name, *tag.lt))
 		return
 	}
 	if tag.lte != nil && f > *tag.lte {
-		err = fmt.Errorf(i18n[lang.Lte], name, *tag.lte)
+		err = fmt.Errorf(h.lang.Lte(name, *tag.lte))
 		return
 	}
 	if tag.gt != nil && f <= *tag.gt {
-		err = fmt.Errorf(i18n[lang.Gt], name, *tag.gt)
+		err = fmt.Errorf(h.lang.Gt(name, *tag.gt))
 		return
 	}
 	if tag.gte != nil && f < *tag.gte {
-		err = fmt.Errorf(i18n[lang.Gte], name, *tag.gte)
+		err = fmt.Errorf(h.lang.Gte(name, *tag.gte))
 		return
 	}
 	if tag.multiple != nil {
 		if *tag.multiple == 0 {
-			err = fmt.Errorf(i18n[lang.MultipleOf], name, *tag.multiple)
+			err = fmt.Errorf(h.lang.MultipleOf(name, *tag.multiple))
 			return
 		}
 		rs, _ := decimal.NewFromFloat(f).Div(decimal.NewFromFloat(*tag.multiple)).Float64()
 		if rs != float64(int64(rs)) {
-			err = fmt.Errorf(i18n[lang.MultipleOf], name, *tag.multiple)
+			err = fmt.Errorf(h.lang.MultipleOf(name, *tag.multiple))
 			return
 		}
 	}
@@ -662,7 +664,7 @@ func (h *handlerServer) validFloat64(f float64, name string, tag *fieldTagInfo) 
 		enum = append(enum, v.(float64))
 	}
 	if len(enum) > 0 && !inArray(f, enum) {
-		err = fmt.Errorf(i18n[lang.Enum], name, enum)
+		err = fmt.Errorf(h.lang.Enum(name, tag.enum))
 		return
 	}
 	return
@@ -673,7 +675,7 @@ func (h *handlerServer) validString(s string, name string, tag *fieldTagInfo) (e
 		return
 	}
 	if tag.regexp != "" && !regexp.MustCompile(tag.regexp).MatchString(s) {
-		err = fmt.Errorf(i18n[lang.Regexp], name, tag.regexp)
+		err = fmt.Errorf(h.lang.Regexp(name, tag.regexp))
 		return
 	}
 	var enum []string
@@ -681,7 +683,7 @@ func (h *handlerServer) validString(s string, name string, tag *fieldTagInfo) (e
 		enum = append(enum, v.(string))
 	}
 	if len(enum) > 0 && !inArray(s, enum) {
-		err = fmt.Errorf(i18n[lang.Enum], name, enum)
+		err = fmt.Errorf(h.lang.Enum(name, tag.enum))
 		return
 	}
 	return
@@ -689,11 +691,11 @@ func (h *handlerServer) validString(s string, name string, tag *fieldTagInfo) (e
 
 func (h *handlerServer) validLen(l int, name string, tag *fieldTagInfo) (err error) {
 	if tag.min > 0 && uint64(l) < tag.min {
-		err = fmt.Errorf(i18n[lang.Min], name, tag.min)
+		err = fmt.Errorf(h.lang.Min(name, tag.min))
 		return
 	}
 	if tag.max != nil && uint64(l) > *tag.max {
-		err = fmt.Errorf(i18n[lang.Max], name, *tag.max)
+		err = fmt.Errorf(h.lang.Max(name, *tag.max))
 		return
 	}
 	return
@@ -771,7 +773,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vFloat := float64(v.Int())
 				if vFloat == 0 {
 					if mType.required {
-						err = fmt.Errorf(i18n[lang.Required], name)
+						err = fmt.Errorf(h.lang.Required(name))
 						return
 					}
 					continue
@@ -783,7 +785,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vFloat := float64(v.Uint())
 				if vFloat == 0 {
 					if mType.required {
-						err = fmt.Errorf(i18n[lang.Required], name)
+						err = fmt.Errorf(h.lang.Required(name))
 						return
 					}
 					continue
@@ -795,7 +797,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vFloat := v.Float()
 				if vFloat == 0 {
 					if mType.required {
-						err = fmt.Errorf(i18n[lang.Required], name)
+						err = fmt.Errorf(h.lang.Required(name))
 						return
 					}
 					continue
@@ -807,7 +809,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vStr := v.String()
 				if v.String() == "" {
 					if mType.required {
-						err = fmt.Errorf(i18n[lang.Required], name)
+						err = fmt.Errorf(h.lang.Required(name))
 						return
 					}
 					continue
@@ -819,7 +821,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vLen := v.Len()
 				if vLen == 0 {
 					if mType.required {
-						err = fmt.Errorf(i18n[lang.Required], name)
+						err = fmt.Errorf(h.lang.Required(name))
 						return
 					}
 					continue
@@ -834,7 +836,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 					}
 					for _, count := range valCount {
 						if count > 1 {
-							err = fmt.Errorf(i18n[lang.Unique], name)
+							err = fmt.Errorf(h.lang.Unique(name))
 							return
 						}
 					}
@@ -843,7 +845,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vLen := len(v.MapKeys())
 				if vLen == 0 {
 					if mType.required {
-						err = fmt.Errorf(i18n[lang.Required], name)
+						err = fmt.Errorf(h.lang.Required(name))
 						return
 					}
 					continue

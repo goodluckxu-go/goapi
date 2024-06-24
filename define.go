@@ -1,7 +1,6 @@
 package goapi
 
 import (
-	"github.com/goodluckxu-go/goapi/lang"
 	"mime/multipart"
 	"net/http"
 	"reflect"
@@ -82,14 +81,3 @@ var securityTypes = []reflect.Type{
 var typeFile = reflect.TypeOf(&multipart.FileHeader{})
 var typeFiles = reflect.TypeOf([]*multipart.FileHeader{})
 var typeCookie = reflect.TypeOf(&http.Cookie{})
-
-var i18n = lang.EnLang
-
-func SetLang(l string) {
-	switch l {
-	case "zh":
-		i18n = lang.ZhLang
-	case "en":
-		i18n = lang.EnLang
-	}
-}
