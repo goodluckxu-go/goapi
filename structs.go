@@ -31,6 +31,7 @@ type pathInfo struct {
 	tags      []string
 	res       *fieldInfo // response
 	exceptRes *fieldInfo // exception response
+	isDocs    bool
 }
 
 type structInfo struct {

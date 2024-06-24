@@ -19,31 +19,56 @@ func newHandlerOpenAPI(api *API, paths []pathInfo, structs map[string]*structInf
 			Servers: api.OpenAPIServers,
 			Tags:    api.OpenAPITags,
 		},
-		structs: structs,
-		schemas: map[string]map[string]*openapi.Schema{},
+		structs:         structs,
+		schemas:         map[string]map[string]*openapi.Schema{},
+		relationSchemas: map[string][]string{},
+		useSchemas:      map[string]struct{}{},
 	}
 }
 
 type handlerOpenAPI struct {
-	api     *API
-	paths   []pathInfo
-	openapi *openapi.OpenAPI
-	structs map[string]*structInfo
-	schemas map[string]map[string]*openapi.Schema
+	api             *API
+	paths           []pathInfo
+	openapi         *openapi.OpenAPI
+	structs         map[string]*structInfo
+	schemas         map[string]map[string]*openapi.Schema
+	relationSchemas map[string][]string
+	useSchemas      map[string]struct{}
 }
 
 func (h *handlerOpenAPI) Handle() *openapi.OpenAPI {
-	h.handleSchemas()
+	h.handleStructs()
 	h.handlePaths()
+	h.handleUseSchemas()
+	h.handleSchemas()
 	if err := h.openapi.Validate(); err != nil {
 		panic(err)
 	}
 	return h.openapi
 }
 
+func (h *handlerOpenAPI) handleUseSchemas() {
+	handleSchemas := h.useSchemas
+	for len(handleSchemas) > 0 {
+		newHandleSchemas := map[string]struct{}{}
+		for k, _ := range handleSchemas {
+			for _, v := range h.relationSchemas[k] {
+				if _, ok := h.useSchemas[v]; !ok {
+					newHandleSchemas[v] = struct{}{}
+				}
+				h.useSchemas[v] = struct{}{}
+			}
+		}
+		handleSchemas = newHandleSchemas
+	}
+}
+
 func (h *handlerOpenAPI) handlePaths() {
 	h.openapi.Paths = &openapi.Paths{}
 	for _, path := range h.paths {
+		if !path.isDocs {
+			continue
+		}
 		h.setSecuritySchemes(path)
 		pathItem := &openapi.PathItem{}
 		if h.openapi.Paths.Value(path.path) != nil {
@@ -178,7 +203,6 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 				bodyRequireds = append(bodyRequireds, inputField.inTypeVal)
 			}
 		case inTypeFile:
-			fmt.Println(inputField.deepTypes, inputField.inTypeVal)
 			bodyMediaType = formMultipart
 			childSchema := &openapi.Schema{}
 			h.setChildSchema(childSchema, inputField.deepTypes, inputField.inTypeVal)
@@ -187,6 +211,10 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 				bodyRequireds = append(bodyRequireds, inputField.inTypeVal)
 			}
 		case inTypeBody:
+			lastType := inputField.deepTypes[len(inputField.deepTypes)-1]
+			if lastType.isStruct {
+				h.useSchemas[fmt.Sprintf("%v.%v", lastType._type.PkgPath(), lastType._type.Name())] = struct{}{}
+			}
 			for _, mediaType := range inputField.mediaTypes {
 				childSchema := &openapi.Schema{}
 				h.setChildSchema(childSchema, inputField.deepTypes, mediaType._type)
@@ -221,6 +249,10 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 	responses := &openapi.Responses{}
 	if path.res != nil {
 		resp := path.res
+		lastType := resp.deepTypes[len(resp.deepTypes)-1]
+		if lastType.isStruct {
+			h.useSchemas[fmt.Sprintf("%v.%v", lastType._type.PkgPath(), lastType._type.Name())] = struct{}{}
+		}
 		responseContent := map[string]*openapi.MediaType{}
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
@@ -236,6 +268,10 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 	}
 	if path.exceptRes != nil {
 		resp := path.exceptRes
+		lastType := resp.deepTypes[len(resp.deepTypes)-1]
+		if lastType.isStruct {
+			h.useSchemas[fmt.Sprintf("%v.%v", lastType._type.PkgPath(), lastType._type.Name())] = struct{}{}
+		}
 		responseContent := map[string]*openapi.MediaType{}
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
@@ -298,9 +334,13 @@ func (h *handlerOpenAPI) handleSchemas() {
 	if h.openapi.Components == nil {
 		h.openapi.Components = &openapi.Components{}
 	}
-	h.handleStructs()
+
 	for k, v := range h.structs {
 		if strings.HasPrefix(k, prefixTempStruct) {
+			continue
+		}
+		useKey := fmt.Sprintf("%v.%v", v.pkg, v.name)
+		if _, ok := h.useSchemas[useKey]; !ok {
 			continue
 		}
 		if h.schemas[v.openapiName] == nil {
@@ -382,9 +422,16 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[str
 func (h *handlerOpenAPI) handleStructs() {
 	nameBaseCountMap := map[string]int{}
 	nameExtCountMap := map[string]int{}
-	for k, _ := range h.structs {
+	for k, v := range h.structs {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
+		}
+		useKey := fmt.Sprintf("%v.%v", v.pkg, v.name)
+		for _, field := range v.fields {
+			if field._struct != nil {
+				h.relationSchemas[useKey] = append(h.relationSchemas[useKey],
+					fmt.Sprintf("%v.%v", field._struct.pkg, field._struct.name))
+			}
 		}
 		nameBaseCountMap[k]++
 		nameExtCountMap[filepath.Ext(k)[1:]]++

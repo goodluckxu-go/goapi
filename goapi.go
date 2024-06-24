@@ -13,7 +13,8 @@ func GoAPI(app APP, isDocs bool, docsPath ...string) *API {
 		dPath = docsPath[0]
 	}
 	return &API{
-		app: app,
+		app:    app,
+		isDocs: isDocs,
 		OpenAPIInfo: &openapi.Info{
 			Title:   "GoAPI",
 			Version: "1.0.0",
@@ -28,6 +29,7 @@ type API struct {
 	httpExceptionResponse Response
 	responseMediaTypes    []MediaType
 	OpenAPIInfo           *openapi.Info
+	isDocs                bool
 	OpenAPIServers        []*openapi.Server
 	OpenAPITags           []*openapi.Tag
 	docsPath              string
@@ -72,9 +74,13 @@ func (a *API) Run(addr ...string) error {
 	a.init()
 	handle := newHandler(a)
 	handle.Handle()
-	api := newHandlerOpenAPI(a, handle.list, handle.structs).Handle()
-	a.app.Init()
-	a.swagger(a.app, api)
+	if a.isDocs {
+		api := newHandlerOpenAPI(a, handle.list, handle.structs).Handle()
+		a.app.Init()
+		a.swagger(a.app, api)
+	} else {
+		a.app.Init()
+	}
 	newHandlerServer(a.app, handle.list, a.exceptFunc, handle.structs).Handle()
 
 	return a.app.Run(addr...)

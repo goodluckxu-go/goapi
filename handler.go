@@ -210,6 +210,7 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo) {
 		method := routerType.Method(i)
 		pInfo := pathInfo{
 			funcValue: method,
+			isDocs:    router.isDocs,
 		}
 		numIn := method.Type().NumIn()
 		var params []any
