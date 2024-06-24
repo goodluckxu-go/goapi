@@ -338,6 +338,9 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[str
 	requiredMap = map[string][]string{}
 	for _, v1 := range fields {
 		for _, mediaType := range v1.mediaTypes {
+			if mediaType.name == "-" {
+				continue
+			}
 			childSchema := &openapi.Schema{}
 			h.setChildSchema(childSchema, v1.deepTypes, mediaType._type)
 			childSchema.Enum = v1.tag.enum
@@ -390,7 +393,7 @@ func (h *handlerOpenAPI) handleStructs() {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
 		}
-		v.openapiName = k
+		v.openapiName = strings.Replace(k, "/", ".", -1)
 		nameBase := filepath.Base(k)
 		nameExt := filepath.Ext(k)[1:]
 		if nameExtCountMap[nameExt] == 1 {

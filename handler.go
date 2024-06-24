@@ -88,8 +88,12 @@ func (h *handler) handleStructs() {
 			}
 			numField := sType.NumField()
 			oldStruct := h.structs[key]
+			idx := 0
 			for i := 0; i < numField; i++ {
 				field := sType.Field(i)
+				if field.Name[0] < 'A' || field.Name[0] > 'Z' {
+					continue
+				}
 				childTypes := h.parseType(field.Type)
 				lastChildType := childTypes[len(childTypes)-1]
 				fFile := fieldInfo{
@@ -103,7 +107,7 @@ func (h *handler) handleStructs() {
 				var mTypes []mediaTypeInfo
 				oldTypeMap := map[string]bool{}
 				if oldStruct != nil {
-					oldTypes := oldStruct.fields[i].mediaTypes
+					oldTypes := oldStruct.fields[idx].mediaTypes
 					for _, v := range oldTypes {
 						oldTypeMap[v._type] = true
 					}
@@ -182,6 +186,7 @@ func (h *handler) handleStructs() {
 					})
 				}
 				stInfo.fields = append(stInfo.fields, fFile)
+				idx++
 			}
 			h.structs[key] = stInfo
 		}
