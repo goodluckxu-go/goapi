@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
@@ -256,6 +257,10 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo) {
 			}
 		}
 		respType := routerType.Method(i).Type().Out(0)
+		if respType.Implements(typeResponse) {
+			resp := reflect.New(respType.Elem()).Interface().(Response)
+			respType = reflect.TypeOf(resp.GetBody())
+		}
 		resp := fieldInfo{
 			_type:     respType,
 			deepTypes: h.parseType(respType),
@@ -305,11 +310,11 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					panic("The parameters must have a path and method present")
 				}
 				methods := strings.Split(method, ",")
-				if !h.isMethod(methods) {
-					panic("The method in the parameter does not exist " + strings.Join(methods, ", "))
-				}
 				for k, v := range methods {
 					methods[k] = strings.ToUpper(v)
+				}
+				if !h.isMethod(methods) {
+					panic("The method in the parameter does not exist " + strings.Join(methods, ", "))
 				}
 				summary := field.Tag.Get("summary")
 				desc := field.Tag.Get("desc")
@@ -534,7 +539,8 @@ func (h *handler) isNormalType(fType reflect.Type) bool {
 func (h *handler) isMethod(methods []string) bool {
 	for _, method := range methods {
 		switch method {
-		case "get", "put", "post", "delete", "options", "head", "patch", "trace":
+		case http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete, http.MethodOptions, http.MethodHead,
+			http.MethodPatch, http.MethodTrace:
 		default:
 			return false
 		}

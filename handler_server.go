@@ -148,13 +148,24 @@ func (h *handlerServer) handlePath(req *http.Request, writer http.ResponseWriter
 	inputs = append(inputs, h.handleInputFields(req, path.inTypes[len(path.inTypes)-1], path.inputFields))
 	ctx.routerFunc = func() {
 		rs := path.funcValue.Call(inputs)
+		if len(rs) != 1 {
+			return
+		}
+		if rs[0].Type().Implements(typeResponse) {
+			resp := rs[0].Interface().(Response)
+			httpRes.HttpCode = resp.GetHttpCode()
+			for k, v := range resp.GetHeaders() {
+				httpRes.Header[k] = v
+			}
+			httpRes.Body = resp.GetBody()
+		} else {
+			httpRes.Body = rs[0].Interface()
+		}
 		for k, v := range httpRes.Header {
 			writer.Header().Set(k, v)
 		}
-		if len(rs) == 1 {
-			httpRes.Body = rs[0].Interface()
-			_, _ = writer.Write(httpRes.Bytes())
-		}
+		writer.WriteHeader(httpRes.GetHttpCode())
+		_, _ = writer.Write(httpRes.Bytes())
 	}
 	ctx.Next()
 	done <- struct{}{}

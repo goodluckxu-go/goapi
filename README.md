@@ -159,5 +159,8 @@ func (h *AdminAuth) ApiKey() {
 - unique
     - The value of the array is unique
     - Limit **array** type
+## Response annotation
+- if response is an implementation of the goapi.Response interface, you can set the http Code and header
+- else do not set the header, and set the HTTP code to 200
 ## About
 Generate documentation using an API similar to FastAPI in Python

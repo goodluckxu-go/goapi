@@ -72,6 +72,8 @@ var securityTypeHTTPBearer = reflect.TypeOf(new(HTTPBearer)).Elem()
 var securityTypeHTTPBasic = reflect.TypeOf(new(HTTPBasic)).Elem()
 var securityTypeApiKey = reflect.TypeOf(new(ApiKey)).Elem()
 
+var typeResponse = reflect.TypeOf(new(Response)).Elem()
+
 var securityTypes = []reflect.Type{
 	securityTypeHTTPBearer,
 	securityTypeHTTPBasic,
