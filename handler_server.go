@@ -841,6 +841,9 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 						}
 					}
 				}
+				if err = h.validBody(v, mediaType); err != nil {
+					return
+				}
 			case reflect.Map:
 				vLen := len(v.MapKeys())
 				if vLen == 0 {
@@ -851,6 +854,13 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 					continue
 				}
 				if err = h.validLen(vLen, name, field.tag); err != nil {
+					return
+				}
+				if err = h.validBody(v, mediaType); err != nil {
+					return
+				}
+			case reflect.Struct:
+				if err = h.validBody(v, mediaType); err != nil {
 					return
 				}
 			default:
