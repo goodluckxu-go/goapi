@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/goodluckxu-go/goapi/openapi"
 	"net/http"
-	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -420,8 +420,8 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[str
 }
 
 func (h *handlerOpenAPI) handleStructs() {
-	nameBaseCountMap := map[string]int{}
-	nameExtCountMap := map[string]int{}
+	nameMap := map[string]map[string]struct{}{}
+	nameBaseMap := map[string]map[string]struct{}{}
 	for k, v := range h.structs {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
@@ -433,23 +433,47 @@ func (h *handlerOpenAPI) handleStructs() {
 					fmt.Sprintf("%v.%v", field._struct.pkg, field._struct.name))
 			}
 		}
-		nameBaseCountMap[k]++
-		nameExtCountMap[filepath.Ext(k)[1:]]++
+		pkg, name, baseName := h.parseOpenapiName(k)
+		if nameMap[name] == nil {
+			nameMap[name] = map[string]struct{}{}
+		}
+		nameMap[name][pkg] = struct{}{}
+		if nameBaseMap[baseName] == nil {
+			nameBaseMap[baseName] = map[string]struct{}{}
+		}
+		nameBaseMap[baseName][name] = struct{}{}
 	}
 	for k, v := range h.structs {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
 		}
 		v.openapiName = strings.Replace(k, "/", ".", -1)
-		nameBase := filepath.Base(k)
-		nameExt := filepath.Ext(k)[1:]
-		if nameExtCountMap[nameExt] == 1 {
-			v.openapiName = nameExt
-		} else if nameBaseCountMap[nameBase] == 1 {
-			v.openapiName = nameBase
+		_, name, baseName := h.parseOpenapiName(k)
+		if len(nameBaseMap[baseName]) == 1 {
+			v.openapiName = baseName
+		} else if len(nameMap[name]) == 1 {
+			v.openapiName = name
 		}
 		h.structs[k] = v
 	}
+}
+
+func (h *handlerOpenAPI) parseOpenapiName(s string) (pkg, name, baseName string) {
+	idx := strings.Index(s, ".")
+	if idx == -1 {
+		name = s
+		return
+	}
+	pkg = s[:idx]
+	name = s[idx+1:]
+	baseName = name
+	lIdx := strings.Index(name, "[")
+	rIdx := strings.LastIndex(name, "]")
+	if lIdx != -1 && rIdx != -1 && lIdx < rIdx {
+		baseName = name[:lIdx]
+		name = regexp.MustCompile(`(\w+\[)\w+\.(.*?)`).ReplaceAllString(name, "$1$2")
+	}
+	return
 }
 
 func (h *handlerOpenAPI) convertType(fType reflect.Type) (rs typeInfo) {

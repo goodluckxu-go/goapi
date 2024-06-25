@@ -20,8 +20,8 @@ type handler struct {
 
 func (h *handler) Handle() {
 	var middlewares []Middleware
-	for _, handler := range h.api.handlers {
-		switch val := handler.(type) {
+	for _, hd := range h.api.handlers {
+		switch val := hd.(type) {
 		case *includeRouter:
 			middlewares = append(middlewares, val.middlewares...)
 			list := h.handleIncludeRouter(val)
