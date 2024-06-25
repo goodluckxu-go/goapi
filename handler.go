@@ -577,14 +577,14 @@ func (h *handler) handleSecurity(fType reflect.Type, fName string, deepIdx []int
 		switch securityType {
 		case securityTypeHTTPBearer:
 			list = append(list, fieldInfo{
-				name:    fName,
+				name:    fType.Elem().Name(),
 				_type:   fType,
 				inType:  inTypeSecurityHTTPBearer,
 				deepIdx: deepIdx,
 			})
 		case securityTypeHTTPBasic:
 			list = append(list, fieldInfo{
-				name:    fName,
+				name:    fType.Elem().Name(),
 				_type:   fType,
 				inType:  inTypeSecurityHTTPBasic,
 				deepIdx: deepIdx,
