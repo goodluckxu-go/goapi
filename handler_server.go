@@ -15,138 +15,101 @@ import (
 )
 
 func newHandlerServer(
-	lang Lang,
-	app APP, paths []pathInfo,
-	exceptFunc func(httpCode int, detail string) Response,
-	structs map[string]*structInfo,
+	api *API,
+	handle *handler,
 ) *handlerServer {
 	return &handlerServer{
-		lang:       lang,
-		app:        app,
-		paths:      paths,
-		exceptFunc: exceptFunc,
-		structs:    structs,
+		api:    api,
+		handle: handle,
 	}
 }
 
 type handlerServer struct {
-	lang       Lang
-	app        APP
-	paths      []pathInfo
-	pathMap    map[string]string
-	exceptFunc func(httpCode int, detail string) Response
-	structs    map[string]*structInfo
+	api     *API
+	handle  *handler
+	pathMap map[string]string
 }
 
 func (h *handlerServer) Handle() {
-	for _, path := range h.paths {
+	for _, path := range h.handle.paths {
 		for _, method := range path.methods {
 			h.handlePaths(method, path)
 		}
 	}
+	h.api.app.Handle(func(ctx *Context) {
+		ctx = &Context{
+			Request: ctx.Request,
+			Writer:  &ResponseWriter{ResponseWriter: ctx.Writer},
+		}
+		isFind := false
+		for _, router := range h.api.routers {
+			if router.Method == ctx.Request.Method && router.IsMatch(ctx.Request.URL.Path) {
+				router.Handler(ctx)
+				isFind = true
+			}
+		}
+		if !isFind {
+			done := make(chan struct{})
+			go h.handlePath(ctx, nil, done)
+			<-done
+		}
+	})
 }
 
 func (h *handlerServer) handlePaths(method string, path pathInfo) {
-	switch method {
-	case http.MethodGet:
-		h.app.GET(path.path, func(req *http.Request, writer http.ResponseWriter) {
+	h.api.routers = append(h.api.routers, &AppRouter{
+		Path:   path.path,
+		Method: method,
+		Handler: func(ctx *Context) {
 			done := make(chan struct{})
-			go h.handlePath(req, writer, path, done)
+			go h.handlePath(ctx, &path, done)
 			<-done
-		})
-	case http.MethodPut:
-		h.app.PUT(path.path, func(req *http.Request, writer http.ResponseWriter) {
-			done := make(chan struct{})
-			go h.handlePath(req, writer, path, done)
-			<-done
-		})
-	case http.MethodPost:
-		h.app.POST(path.path, func(req *http.Request, writer http.ResponseWriter) {
-			done := make(chan struct{})
-			go h.handlePath(req, writer, path, done)
-			<-done
-		})
-	case http.MethodDelete:
-		h.app.DELETE(path.path, func(req *http.Request, writer http.ResponseWriter) {
-			done := make(chan struct{})
-			go h.handlePath(req, writer, path, done)
-			<-done
-		})
-	case http.MethodOptions:
-		h.app.OPTIONS(path.path, func(req *http.Request, writer http.ResponseWriter) {
-			done := make(chan struct{})
-			go h.handlePath(req, writer, path, done)
-			<-done
-		})
-	case http.MethodHead:
-		h.app.HEAD(path.path, func(req *http.Request, writer http.ResponseWriter) {
-			done := make(chan struct{})
-			go h.handlePath(req, writer, path, done)
-			<-done
-		})
-	case http.MethodPatch:
-		h.app.PATCH(path.path, func(req *http.Request, writer http.ResponseWriter) {
-			done := make(chan struct{})
-			go h.handlePath(req, writer, path, done)
-			<-done
-		})
-	case http.MethodTrace:
-		h.app.TRACE(path.path, func(req *http.Request, writer http.ResponseWriter) {
-			done := make(chan struct{})
-			go h.handlePath(req, writer, path, done)
-			<-done
-		})
-	}
+		},
+	})
 }
 
-func (h *handlerServer) handlePath(req *http.Request, writer http.ResponseWriter, path pathInfo, done chan struct{}) {
-	mediaType := req.URL.Query().Get("media_type")
-	if (mediaType != jsonType && mediaType != xmlType) || len(path.res.mediaTypes) == 1 {
-		mediaType = path.res.mediaTypes[0]._type
+func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struct{}) {
+	ctx.Log = h.api.log
+	mediaType := ctx.Request.URL.Query().Get("media_type")
+	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
+		mediaType = mediaTypeToTypeMap[h.api.responseMediaTypes[0]]
 	}
+	defer func() {
+		if er := recover(); er != nil {
+			h.handleException(ctx.Writer, er, mediaType)
+			done <- struct{}{}
+		}
+	}()
 	httpRes := &HTTPResponse[any]{
 		HttpCode: 200,
 		Header: map[string]string{
 			"Content-Type": string(typeToMediaTypeMap[mediaType]),
 		},
 	}
-	defer func() {
-		if err := recover(); err != nil {
-			errStr := fmt.Sprintf("%v", err)
-			var res exceptInfo
-			err = json.Unmarshal([]byte(errStr), &res)
-			if err != nil {
-				exceptRes := h.exceptFunc(http.StatusInternalServerError, errStr)
-				httpRes.HttpCode = http.StatusInternalServerError
-				httpRes.Body = exceptRes.GetBody()
-			} else {
-				exceptRes := h.exceptFunc(res.HttpCode, res.Detail)
-				for k, v := range res.Header {
-					httpRes.Header[k] = v
-				}
-				httpRes.HttpCode = exceptRes.GetHttpCode()
-				httpRes.Body = exceptRes.GetBody()
-			}
-			writer.WriteHeader(httpRes.GetHttpCode())
-			for k, v := range httpRes.GetHeaders() {
-				writer.Header().Set(k, v)
-			}
-			_, _ = writer.Write(httpRes.Bytes())
-			done <- struct{}{}
-		}
-	}()
-	h.pathMap, _ = h.getPaths(path.path, req.URL.Path)
-	var inputs []reflect.Value
-	ctx := &Context{
-		Request:     req,
-		Writer:      writer,
-		middlewares: path.middlewares,
+	if path == nil {
+		ctx.middlewares = append([]Middleware{notFind()}, h.handle.middlewares...)
+		ctx.Next()
+		done <- struct{}{}
+		return
 	}
+	h.pathMap, _ = h.getPaths(path.path, ctx.Request.URL.Path)
+	var inputs []reflect.Value
+	ctx.middlewares = path.middlewares
 	if len(path.inTypes) == 2 {
 		inputs = append(inputs, reflect.ValueOf(ctx))
 	}
-	inputs = append(inputs, h.handleInputFields(req, path.inTypes[len(path.inTypes)-1], path.inputFields))
-	ctx.routerFunc = func() {
+	inputFields, err := h.handleInputFields(ctx.Request, path.inTypes[len(path.inTypes)-1], path.inputFields)
+	inputs = append(inputs, inputFields)
+	ctx.routerFunc = func(done chan struct{}) {
+		defer func() {
+			if er := recover(); er != nil {
+				h.handleException(ctx.Writer, er, mediaType)
+				done <- struct{}{}
+			}
+		}()
+		if err != nil {
+			HTTPException(validErrorCode, err.Error())
+		}
 		rs := path.funcValue.Call(inputs)
 		if len(rs) != 1 {
 			return
@@ -162,17 +125,46 @@ func (h *handlerServer) handlePath(req *http.Request, writer http.ResponseWriter
 			httpRes.Body = rs[0].Interface()
 		}
 		for k, v := range httpRes.Header {
-			writer.Header().Set(k, v)
+			ctx.Writer.Header().Set(k, v)
 		}
-		writer.WriteHeader(httpRes.GetHttpCode())
-		_, _ = writer.Write(httpRes.Bytes())
+		ctx.Writer.WriteHeader(httpRes.GetHttpCode())
+		_, _ = ctx.Writer.Write(httpRes.Bytes())
+		done <- struct{}{}
 	}
 	ctx.Next()
 	done <- struct{}{}
-	return
 }
 
-func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.Type, fields []fieldInfo) (inputValue reflect.Value) {
+func (h *handlerServer) handleException(writer http.ResponseWriter, err any, mediaType string) {
+	httpRes := &HTTPResponse[any]{
+		HttpCode: 200,
+		Header: map[string]string{
+			"Content-Type": string(typeToMediaTypeMap[mediaType]),
+		},
+	}
+	errStr := fmt.Sprintf("%v", err)
+	var res exceptInfo
+	err = json.Unmarshal([]byte(errStr), &res)
+	if err != nil {
+		exceptRes := h.api.exceptFunc(http.StatusInternalServerError, errStr)
+		httpRes.HttpCode = http.StatusInternalServerError
+		httpRes.Body = exceptRes.GetBody()
+	} else {
+		exceptRes := h.api.exceptFunc(res.HttpCode, res.Detail)
+		for k, v := range res.Header {
+			httpRes.Header[k] = v
+		}
+		httpRes.HttpCode = exceptRes.GetHttpCode()
+		httpRes.Body = exceptRes.GetBody()
+	}
+	writer.WriteHeader(httpRes.GetHttpCode())
+	for k, v := range httpRes.GetHeaders() {
+		writer.Header().Set(k, v)
+	}
+	_, _ = writer.Write(httpRes.Bytes())
+}
+
+func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.Type, fields []fieldInfo) (inputValue reflect.Value, err error) {
 	inputValue = reflect.New(inputTypes).Elem()
 	var formType MediaType
 	for _, field := range fields {
@@ -184,12 +176,12 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 	}
 	switch formType {
 	case formUrlencoded:
-		if err := req.ParseForm(); err != nil {
-			HTTPException(422, err.Error())
+		if err = req.ParseForm(); err != nil {
+			return
 		}
 	case formMultipart:
-		if err := req.ParseMultipartForm(32 << 20); err != nil {
-			HTTPException(422, err.Error())
+		if err = req.ParseMultipartForm(32 << 20); err != nil {
+			return
 		}
 	}
 	var securityApiKey reflect.Value
@@ -212,24 +204,25 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 					}
 				}
 			}
-			if err := h.handleValue(inputValue, field, values); err != nil {
-				HTTPException(validErrorCode, err.Error())
+			if err = h.handleValue(inputValue, field, values); err != nil {
+				return
 			}
 		case inTypeCookie:
-			cookie, err := req.Cookie(field.inTypeVal)
+			cookie, er := req.Cookie(field.inTypeVal)
 			if field._type == typeCookie {
 				name := field.tag.desc
 				if name == "" {
 					name = field.inTypeVal
 				}
-				if err != nil || cookie.Value == "" {
+				if er != nil || cookie.Value == "" {
 					if field.mediaTypes[0].required {
-						HTTPException(validErrorCode, h.lang.Required(name))
+						err = fmt.Errorf(h.api.lang.Required(name))
+						return
 					}
 					return
 				}
 				if err = h.validString(cookie.Value, name, field.tag); err != nil {
-					HTTPException(validErrorCode, err.Error())
+					return
 				}
 			} else {
 				var values []string
@@ -248,13 +241,13 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 					}
 				}
 				if err = h.handleValue(inputValue, field, values); err != nil {
-					HTTPException(validErrorCode, err.Error())
+					return
 				}
 			}
 		case inTypeQuery:
 			values := req.URL.Query()[field.inTypeVal]
-			if err := h.handleValue(inputValue, field, values); err != nil {
-				HTTPException(validErrorCode, err.Error())
+			if err = h.handleValue(inputValue, field, values); err != nil {
+				return
 			}
 		case inTypePath:
 			value := h.pathMap[field.inTypeVal]
@@ -273,8 +266,8 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 					}
 				}
 			}
-			if err := h.handleValue(inputValue, field, values); err != nil {
-				HTTPException(validErrorCode, err.Error())
+			if err = h.handleValue(inputValue, field, values); err != nil {
+				return
 			}
 		case inTypeForm:
 			value := ""
@@ -301,8 +294,8 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 					}
 				}
 			}
-			if err := h.handleValue(inputValue, field, values); err != nil {
-				HTTPException(validErrorCode, err.Error())
+			if err = h.handleValue(inputValue, field, values); err != nil {
+				return
 			}
 		case inTypeFile:
 			var files []*multipart.FileHeader
@@ -319,16 +312,18 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 				}
 			}
 		case inTypeBody:
-			if bodyBytes, err := io.ReadAll(req.Body); err == nil {
+			if bodyBytes, er := io.ReadAll(req.Body); er == nil {
 				if len(bodyBytes) == 0 {
-					HTTPException(validErrorCode, h.lang.Required("body"))
+					err = fmt.Errorf(h.api.lang.Required("body"))
+					return
 				}
 				childField := h.getChildFieldVal(inputValue, field.deepIdx)
 				if err = h.setBody(req, childField, bodyBytes); err != nil {
-					HTTPException(validErrorCode, err.Error())
+					return
 				}
 			} else {
-				HTTPException(validErrorCode, h.lang.Required("body"))
+				err = fmt.Errorf(h.api.lang.Required("body"))
+				return
 			}
 		case inTypeSecurityHTTPBearer:
 			authorization := req.Header.Get("Authorization")
@@ -369,24 +364,25 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 						}
 					}
 				}
-				if err := h.handleValue(inputValue, field, values); err != nil {
-					HTTPException(validErrorCode, err.Error())
+				if err = h.handleValue(inputValue, field, values); err != nil {
+					return
 				}
 			case inTypeCookie:
-				cookie, err := req.Cookie(field.inTypeVal)
+				cookie, er := req.Cookie(field.inTypeVal)
 				if field._type == typeCookie {
 					name := field.tag.desc
 					if name == "" {
 						name = field.inTypeVal
 					}
-					if err != nil || cookie.Value == "" {
+					if er != nil || cookie.Value == "" {
 						if field.mediaTypes[0].required {
-							HTTPException(validErrorCode, h.lang.Required(name))
+							err = fmt.Errorf(h.api.lang.Required(name))
+							return
 						}
 						return
 					}
 					if err = h.validString(cookie.Value, name, field.tag); err != nil {
-						HTTPException(validErrorCode, err.Error())
+						return
 					}
 				} else {
 					var values []string
@@ -405,13 +401,13 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 						}
 					}
 					if err = h.handleValue(inputValue, field, values); err != nil {
-						HTTPException(validErrorCode, err.Error())
+						return
 					}
 				}
 			case inTypeQuery:
 				values := req.URL.Query()[field.inTypeVal]
-				if err := h.handleValue(inputValue, field, values); err != nil {
-					HTTPException(validErrorCode, err.Error())
+				if err = h.handleValue(inputValue, field, values); err != nil {
+					return
 				}
 			}
 		}
@@ -458,7 +454,7 @@ func (h *handlerServer) handleValue(inputValue reflect.Value, field fieldInfo, v
 	required := field.mediaTypes[0].required
 	if values == nil {
 		if required {
-			err = fmt.Errorf(h.lang.Required(name))
+			err = fmt.Errorf(h.api.lang.Required(name))
 		}
 		return
 	}
@@ -469,14 +465,14 @@ func (h *handlerServer) handleValue(inputValue reflect.Value, field fieldInfo, v
 	if fType.Kind() == reflect.Slice {
 		if len(values) == 0 {
 			if required {
-				err = fmt.Errorf(h.lang.Required(name))
+				err = fmt.Errorf(h.api.lang.Required(name))
 			}
 			return
 		}
 	} else {
 		if len(values) == 0 || values[0] == "" {
 			if required {
-				err = fmt.Errorf(h.lang.Required(name))
+				err = fmt.Errorf(h.api.lang.Required(name))
 			}
 			return
 		}
@@ -625,7 +621,7 @@ func (h *handlerServer) setValue(fVal reflect.Value, values []string, name strin
 			}
 			for _, count := range valCount {
 				if count > 1 {
-					err = fmt.Errorf(h.lang.Unique(name))
+					err = fmt.Errorf(h.api.lang.Unique(name))
 					return
 				}
 			}
@@ -644,29 +640,29 @@ func (h *handlerServer) setValue(fVal reflect.Value, values []string, name strin
 
 func (h *handlerServer) validFloat64(f float64, name string, tag *fieldTagInfo) (err error) {
 	if tag.lt != nil && f >= *tag.lt {
-		err = fmt.Errorf(h.lang.Lt(name, *tag.lt))
+		err = fmt.Errorf(h.api.lang.Lt(name, *tag.lt))
 		return
 	}
 	if tag.lte != nil && f > *tag.lte {
-		err = fmt.Errorf(h.lang.Lte(name, *tag.lte))
+		err = fmt.Errorf(h.api.lang.Lte(name, *tag.lte))
 		return
 	}
 	if tag.gt != nil && f <= *tag.gt {
-		err = fmt.Errorf(h.lang.Gt(name, *tag.gt))
+		err = fmt.Errorf(h.api.lang.Gt(name, *tag.gt))
 		return
 	}
 	if tag.gte != nil && f < *tag.gte {
-		err = fmt.Errorf(h.lang.Gte(name, *tag.gte))
+		err = fmt.Errorf(h.api.lang.Gte(name, *tag.gte))
 		return
 	}
 	if tag.multiple != nil {
 		if *tag.multiple == 0 {
-			err = fmt.Errorf(h.lang.MultipleOf(name, *tag.multiple))
+			err = fmt.Errorf(h.api.lang.MultipleOf(name, *tag.multiple))
 			return
 		}
 		rs, _ := decimal.NewFromFloat(f).Div(decimal.NewFromFloat(*tag.multiple)).Float64()
 		if rs != float64(int64(rs)) {
-			err = fmt.Errorf(h.lang.MultipleOf(name, *tag.multiple))
+			err = fmt.Errorf(h.api.lang.MultipleOf(name, *tag.multiple))
 			return
 		}
 	}
@@ -675,7 +671,7 @@ func (h *handlerServer) validFloat64(f float64, name string, tag *fieldTagInfo) 
 		enum = append(enum, v.(float64))
 	}
 	if len(enum) > 0 && !inArray(f, enum) {
-		err = fmt.Errorf(h.lang.Enum(name, tag.enum))
+		err = fmt.Errorf(h.api.lang.Enum(name, tag.enum))
 		return
 	}
 	return
@@ -686,7 +682,7 @@ func (h *handlerServer) validString(s string, name string, tag *fieldTagInfo) (e
 		return
 	}
 	if tag.regexp != "" && !regexp.MustCompile(tag.regexp).MatchString(s) {
-		err = fmt.Errorf(h.lang.Regexp(name, tag.regexp))
+		err = fmt.Errorf(h.api.lang.Regexp(name, tag.regexp))
 		return
 	}
 	var enum []string
@@ -694,7 +690,7 @@ func (h *handlerServer) validString(s string, name string, tag *fieldTagInfo) (e
 		enum = append(enum, v.(string))
 	}
 	if len(enum) > 0 && !inArray(s, enum) {
-		err = fmt.Errorf(h.lang.Enum(name, tag.enum))
+		err = fmt.Errorf(h.api.lang.Enum(name, tag.enum))
 		return
 	}
 	return
@@ -702,11 +698,11 @@ func (h *handlerServer) validString(s string, name string, tag *fieldTagInfo) (e
 
 func (h *handlerServer) validLen(l int, name string, tag *fieldTagInfo) (err error) {
 	if tag.min > 0 && uint64(l) < tag.min {
-		err = fmt.Errorf(h.lang.Min(name, tag.min))
+		err = fmt.Errorf(h.api.lang.Min(name, tag.min))
 		return
 	}
 	if tag.max != nil && uint64(l) > *tag.max {
-		err = fmt.Errorf(h.lang.Max(name, *tag.max))
+		err = fmt.Errorf(h.api.lang.Max(name, *tag.max))
 		return
 	}
 	return
@@ -760,7 +756,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 		}
 	case reflect.Struct:
 		key := fmt.Sprintf("%v.%v", val.Type().PkgPath(), val.Type().Name())
-		sInfo := h.structs[key]
+		sInfo := h.handle.structs[key]
 		for _, field := range sInfo.fields {
 			name := field.tag.desc
 			if name == "" {
@@ -784,7 +780,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vFloat := float64(v.Int())
 				if vFloat == 0 {
 					if mType.required {
-						err = fmt.Errorf(h.lang.Required(name))
+						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
 					continue
@@ -796,7 +792,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vFloat := float64(v.Uint())
 				if vFloat == 0 {
 					if mType.required {
-						err = fmt.Errorf(h.lang.Required(name))
+						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
 					continue
@@ -808,7 +804,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vFloat := v.Float()
 				if vFloat == 0 {
 					if mType.required {
-						err = fmt.Errorf(h.lang.Required(name))
+						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
 					continue
@@ -820,7 +816,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vStr := v.String()
 				if v.String() == "" {
 					if mType.required {
-						err = fmt.Errorf(h.lang.Required(name))
+						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
 					continue
@@ -832,7 +828,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vLen := v.Len()
 				if vLen == 0 {
 					if mType.required {
-						err = fmt.Errorf(h.lang.Required(name))
+						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
 					continue
@@ -847,7 +843,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 					}
 					for _, count := range valCount {
 						if count > 1 {
-							err = fmt.Errorf(h.lang.Unique(name))
+							err = fmt.Errorf(h.api.lang.Unique(name))
 							return
 						}
 					}
@@ -859,7 +855,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vLen := len(v.MapKeys())
 				if vLen == 0 {
 					if mType.required {
-						err = fmt.Errorf(h.lang.Required(name))
+						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
 					continue

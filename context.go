@@ -10,9 +10,10 @@ type Context struct {
 	Request     *http.Request
 	Writer      http.ResponseWriter
 	Values      map[string]any
+	Log         Logger
 	mux         sync.RWMutex
 	middlewares []Middleware
-	routerFunc  func()
+	routerFunc  func(done chan struct{})
 }
 
 func (c *Context) Deadline() (deadline time.Time, ok bool) {
@@ -64,14 +65,44 @@ func (c *Context) Value(key any) any {
 	return nil
 }
 
+func (c *Context) SetMiddleware(middlewares ...Middleware) {
+	c.middlewares = append(c.middlewares, middlewares...)
+}
+
 func (c *Context) Next() {
 	c.mux.RLock()
 	defer c.mux.RUnlock()
 	if len(c.middlewares) == 0 {
-		c.routerFunc()
+		if c.routerFunc != nil {
+			done := make(chan struct{})
+			go c.routerFunc(done)
+			<-done
+		}
 		return
 	}
 	middleware := c.middlewares[0]
 	c.middlewares = c.middlewares[1:]
 	middleware(c)
+}
+
+type ResponseWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *ResponseWriter) Header() http.Header {
+	return r.ResponseWriter.Header()
+}
+
+func (r *ResponseWriter) Write(b []byte) (int, error) {
+	return r.ResponseWriter.Write(b)
+}
+
+func (r *ResponseWriter) WriteHeader(statusCode int) {
+	r.ResponseWriter.WriteHeader(statusCode)
+	r.status = statusCode
+}
+
+func (r *ResponseWriter) Status() int {
+	return r.status
 }

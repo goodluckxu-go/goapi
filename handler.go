@@ -14,25 +14,26 @@ func newHandler(api *API) *handler {
 
 type handler struct {
 	api          *API
-	list         []pathInfo
+	paths        []pathInfo
 	structFields []fieldInfo
 	structs      map[string]*structInfo
+	middlewares  []Middleware
 }
 
 func (h *handler) Handle() {
-	var middlewares []Middleware
+	h.middlewares = append(h.middlewares, setLogger())
 	for _, hd := range h.api.handlers {
 		switch val := hd.(type) {
 		case *includeRouter:
-			middlewares = append(middlewares, val.middlewares...)
+			pathMiddlewares := append(h.middlewares, val.middlewares...)
 			list := h.handleIncludeRouter(val)
 			for k, v := range list {
-				v.middlewares = middlewares
+				v.middlewares = pathMiddlewares
 				list[k] = v
 			}
-			h.list = append(h.list, list...)
+			h.paths = append(h.paths, list...)
 		case Middleware:
-			middlewares = append(middlewares, val)
+			h.middlewares = append(h.middlewares, val)
 		}
 	}
 	if h.api.httpExceptionResponse != nil {
@@ -57,10 +58,10 @@ func (h *handler) Handle() {
 				mediaTypes: resp.mediaTypes,
 			})
 		}
-		for k, v := range h.list {
+		for k, v := range h.paths {
 			v.exceptRes = &resp
 			v.respMediaTypes = h.api.responseMediaTypes
-			h.list[k] = v
+			h.paths[k] = v
 		}
 	}
 	h.handleStructs()

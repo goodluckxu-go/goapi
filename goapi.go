@@ -36,6 +36,8 @@ type API struct {
 	docsPath              string
 	exceptFunc            func(httpCode int, detail string) Response
 	lang                  Lang
+	log                   Logger
+	routers               []*AppRouter
 }
 
 func (a *API) HTTPExceptionHandler(f func(httpCode int, detail string) Response) {
@@ -45,6 +47,10 @@ func (a *API) HTTPExceptionHandler(f func(httpCode int, detail string) Response)
 
 func (a *API) SetLang(lang Lang) {
 	a.lang = lang
+}
+
+func (a *API) SetLogger(log Logger) {
+	a.log = log
 }
 
 func (a *API) SetResponseMediaType(mediaTypes ...MediaType) {
@@ -81,15 +87,35 @@ func (a *API) Run(addr ...string) error {
 	handle := newHandler(a)
 	handle.Handle()
 	if a.isDocs {
-		api := newHandlerOpenAPI(a, handle.list, handle.structs).Handle()
+		api := newHandlerOpenAPI(a, handle.paths, handle.structs).Handle()
+		openapiBody, _ := json.Marshal(api)
 		a.app.Init()
-		a.swagger(a.app, api)
+		list := swagger.GetSwagger(a.docsPath, api.Info.Title, "", openapiBody)
+		for _, v := range list {
+			a.routers = append(a.routers, a.handleSwagger(v, handle.middlewares))
+		}
 	} else {
 		a.app.Init()
 	}
-	newHandlerServer(a.lang, a.app, handle.list, a.exceptFunc, handle.structs).Handle()
+	newHandlerServer(a, handle).Handle()
 
 	return a.app.Run(addr...)
+}
+
+func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) *AppRouter {
+	return &AppRouter{
+		Path:   router.Path,
+		Method: http.MethodGet,
+		Handler: func(ctx *Context) {
+			ctx.middlewares = middlewares
+			ctx.Log = a.log
+			ctx.routerFunc = func(done chan struct{}) {
+				router.Handler(ctx.Writer)
+				done <- struct{}{}
+			}
+			ctx.Next()
+		},
+	}
 }
 
 func (a *API) init() {
@@ -108,39 +134,9 @@ func (a *API) init() {
 	if a.lang == nil {
 		a.lang = &lang.EN{}
 	}
-}
-
-func (a *API) swagger(app APP, api *openapi.OpenAPI) {
-	jsonByte, _ := json.Marshal(api)
-	swagInfo := swagger.GetSwagger(a.docsPath, api.Info.Title, "")
-	app.GET(swagInfo.Index.Path, func(req *http.Request, writer http.ResponseWriter) {
-		writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = writer.Write([]byte(swagInfo.Index.Content))
-	})
-	app.GET(swagInfo.CssIndex.Path, func(req *http.Request, writer http.ResponseWriter) {
-		writer.Header().Set("Content-Type", "text/css; charset=utf-8")
-		_, _ = writer.Write([]byte(swagInfo.CssIndex.Content))
-	})
-	app.GET(swagInfo.CssSwaggerUI.Path, func(req *http.Request, writer http.ResponseWriter) {
-		writer.Header().Set("Content-Type", "text/css; charset=utf-8")
-		_, _ = writer.Write([]byte(swagInfo.CssSwaggerUI.Content))
-	})
-	app.GET(swagInfo.JsSwaggerInitializer.Path, func(req *http.Request, writer http.ResponseWriter) {
-		writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-		_, _ = writer.Write([]byte(swagInfo.JsSwaggerInitializer.Content))
-	})
-	app.GET(swagInfo.JsSwaggerUiBundle.Path, func(req *http.Request, writer http.ResponseWriter) {
-		writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-		_, _ = writer.Write([]byte(swagInfo.JsSwaggerUiBundle.Content))
-	})
-	app.GET(swagInfo.JsSwaggerUiStandalonePreset.Path, func(req *http.Request, writer http.ResponseWriter) {
-		writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-		_, _ = writer.Write([]byte(swagInfo.JsSwaggerUiStandalonePreset.Content))
-	})
-	app.GET(swagInfo.OpenAPIPath, func(req *http.Request, writer http.ResponseWriter) {
-		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_, _ = writer.Write(jsonByte)
-	})
+	if a.log == nil {
+		a.log = &defaultLogger{}
+	}
 }
 
 type Middleware func(ctx *Context)

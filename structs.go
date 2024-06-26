@@ -1,6 +1,8 @@
 package goapi
 
-import "reflect"
+import (
+	"reflect"
+)
 
 type includeRouter struct {
 	router      any
