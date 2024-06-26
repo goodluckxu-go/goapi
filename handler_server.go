@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 )
@@ -149,6 +150,7 @@ func (h *handlerServer) handleException(writer http.ResponseWriter, err any, med
 		exceptRes := h.api.exceptFunc(http.StatusInternalServerError, errStr)
 		httpRes.HttpCode = http.StatusInternalServerError
 		httpRes.Body = exceptRes.GetBody()
+		h.api.log.Error("panic: %v [recovered]\n%v", errStr, string(debug.Stack()))
 	} else {
 		exceptRes := h.api.exceptFunc(res.HttpCode, res.Detail)
 		for k, v := range res.Header {
@@ -157,10 +159,10 @@ func (h *handlerServer) handleException(writer http.ResponseWriter, err any, med
 		httpRes.HttpCode = exceptRes.GetHttpCode()
 		httpRes.Body = exceptRes.GetBody()
 	}
-	writer.WriteHeader(httpRes.GetHttpCode())
 	for k, v := range httpRes.GetHeaders() {
 		writer.Header().Set(k, v)
 	}
+	writer.WriteHeader(httpRes.GetHttpCode())
 	_, _ = writer.Write(httpRes.Bytes())
 }
 

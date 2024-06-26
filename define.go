@@ -68,6 +68,18 @@ const tagUnique = "unique"     // VALIDATION. openapi's uniqueItems
 
 const validErrorCode = 422
 
+type LogLevel uint
+
+var logLevel LogLevel = LogInfo | LogDebug | LogWarning | LogError | LogFail
+
+const (
+	LogInfo LogLevel = 1 << iota
+	LogDebug
+	LogWarning
+	LogError
+	LogFail
+)
+
 var securityTypeHTTPBearer = reflect.TypeOf(new(HTTPBearer)).Elem()
 var securityTypeHTTPBasic = reflect.TypeOf(new(HTTPBasic)).Elem()
 var securityTypeApiKey = reflect.TypeOf(new(ApiKey)).Elem()

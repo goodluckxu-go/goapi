@@ -53,7 +53,7 @@ func (a *API) SetLang(lang Lang) {
 }
 
 func (a *API) SetLogger(log Logger) {
-	a.log = log
+	a.log = &levelHandleLogger{log: log}
 }
 
 func (a *API) SetResponseMediaType(mediaTypes ...MediaType) {
@@ -143,7 +143,7 @@ func (a *API) init() {
 		a.lang = &lang.EN{}
 	}
 	if a.log == nil {
-		a.log = &defaultLogger{}
+		a.log = &levelHandleLogger{log: &defaultLogger{}}
 	}
 	if a.addr == "" {
 		a.addr = ":8080"
