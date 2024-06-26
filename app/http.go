@@ -20,10 +20,6 @@ func (h *Http) Handle(handler func(ctx *goapi.Context)) {
 	})
 }
 
-func (h *Http) Run(addr ...string) error {
-	ad := ":8080"
-	if len(addr) > 0 {
-		ad = addr[0]
-	}
-	return http.ListenAndServe(ad, nil)
+func (h *Http) Run(addr string) error {
+	return http.ListenAndServe(addr, nil)
 }

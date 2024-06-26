@@ -25,6 +25,6 @@ func (g *Gin) Handle(handler func(ctx *goapi.Context)) {
 	})
 }
 
-func (g *Gin) Run(addr ...string) error {
-	return g.engine.Run(addr...)
+func (g *Gin) Run(addr string) error {
+	return g.engine.Run(addr)
 }

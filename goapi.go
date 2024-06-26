@@ -2,10 +2,12 @@ package goapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/goodluckxu-go/goapi/lang"
 	"github.com/goodluckxu-go/goapi/openapi"
 	"github.com/goodluckxu-go/goapi/swagger"
 	"net/http"
+	"os"
 )
 
 func GoAPI(app APP, isDocs bool, docsPath ...string) *API {
@@ -37,6 +39,7 @@ type API struct {
 	exceptFunc            func(httpCode int, detail string) Response
 	lang                  Lang
 	log                   Logger
+	addr                  string
 	routers               []*AppRouter
 }
 
@@ -83,7 +86,12 @@ func (a *API) IncludeRouter(router any, prefix string, isDocs bool, middlewares 
 }
 
 func (a *API) Run(addr ...string) error {
+	if len(addr) > 0 {
+		a.addr = addr[0]
+	}
 	a.init()
+	a.log.Info("Started server process [%v]", colorDebug(os.Getpid()))
+	a.log.Info("Using the [%v] APP", colorDebug(fmt.Sprintf("%T", a.app)))
 	handle := newHandler(a)
 	handle.Handle()
 	if a.isDocs {
@@ -98,8 +106,8 @@ func (a *API) Run(addr ...string) error {
 		a.app.Init()
 	}
 	newHandlerServer(a, handle).Handle()
-
-	return a.app.Run(addr...)
+	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
+	return a.app.Run(a.addr)
 }
 
 func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) *AppRouter {
@@ -136,6 +144,9 @@ func (a *API) init() {
 	}
 	if a.log == nil {
 		a.log = &defaultLogger{}
+	}
+	if a.addr == "" {
+		a.addr = ":8080"
 	}
 }
 

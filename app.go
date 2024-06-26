@@ -7,7 +7,7 @@ import (
 type APP interface {
 	Init()
 	Handle(handler func(ctx *Context))
-	Run(addr ...string) error
+	Run(addr string) error
 }
 
 type HandleFunc func(ctx *Context)
