@@ -22,7 +22,10 @@ func GoAPI(app APP, isDocs bool, docsPath ...string) *API {
 			Title:   "GoAPI",
 			Version: "1.0.0",
 		},
+		log:      &levelHandleLogger{log: &defaultLogger{}},
 		docsPath: dPath,
+		addr:     ":8080",
+		lang:     &lang.EN{},
 	}
 }
 
@@ -40,7 +43,7 @@ type API struct {
 	lang                  Lang
 	log                   Logger
 	addr                  string
-	routers               []*AppRouter
+	routers               []appRouter
 }
 
 func (a *API) HTTPExceptionHandler(f func(httpCode int, detail string) Response) {
@@ -90,12 +93,10 @@ func (a *API) Run(addr ...string) error {
 		a.addr = addr[0]
 	}
 	a.init()
-	a.log.Info("Started server process [%v]", colorDebug(os.Getpid()))
-	a.log.Info("Using the [%v] APP", colorDebug(fmt.Sprintf("%T", a.app)))
 	handle := newHandler(a)
 	handle.Handle()
 	if a.isDocs {
-		api := newHandlerOpenAPI(a, handle.paths, handle.structs).Handle()
+		api := newHandlerOpenAPI(a, handle).Handle()
 		openapiBody, _ := json.Marshal(api)
 		a.app.Init()
 		list := swagger.GetSwagger(a.docsPath, api.Info.Title, "", openapiBody)
@@ -106,15 +107,17 @@ func (a *API) Run(addr ...string) error {
 		a.app.Init()
 	}
 	newHandlerServer(a, handle).Handle()
+	a.log.Info("Started server process [%v]", colorDebug(os.Getpid()))
+	a.log.Info("Using the [%v] APP", colorDebug(fmt.Sprintf("%T", a.app)))
 	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
 	return a.app.Run(a.addr)
 }
 
-func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) *AppRouter {
-	return &AppRouter{
-		Path:   router.Path,
-		Method: http.MethodGet,
-		Handler: func(ctx *Context) {
+func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) appRouter {
+	return appRouter{
+		path:   router.Path,
+		method: http.MethodGet,
+		handler: func(ctx *Context) {
 			ctx.middlewares = middlewares
 			ctx.Log = a.log
 			ctx.routerFunc = func(done chan struct{}) {
@@ -138,15 +141,6 @@ func (a *API) init() {
 			}
 		}
 		a.httpExceptionResponse = a.exceptFunc(0, "")
-	}
-	if a.lang == nil {
-		a.lang = &lang.EN{}
-	}
-	if a.log == nil {
-		a.log = &levelHandleLogger{log: &defaultLogger{}}
-	}
-	if a.addr == "" {
-		a.addr = ":8080"
 	}
 }
 

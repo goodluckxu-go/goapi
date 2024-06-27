@@ -92,3 +92,9 @@ type exceptInfo struct {
 	Header   map[string]string `json:"header"`
 	Detail   string            `json:"detail"`
 }
+
+type appRouter struct {
+	path    string
+	method  string
+	handler func(ctx *Context)
+}

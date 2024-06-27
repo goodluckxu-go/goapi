@@ -3,23 +3,23 @@ package goapi
 import (
 	"fmt"
 	"github.com/goodluckxu-go/goapi/openapi"
+	"log"
 	"net/http"
 	"reflect"
 	"regexp"
 	"strings"
 )
 
-func newHandlerOpenAPI(api *API, paths []pathInfo, structs map[string]*structInfo) *handlerOpenAPI {
+func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {
 	return &handlerOpenAPI{
-		api:   api,
-		paths: paths,
+		api:    api,
+		handle: handle,
 		openapi: &openapi.OpenAPI{
 			OpenAPI: openapi.Version,
 			Info:    api.OpenAPIInfo,
 			Servers: api.OpenAPIServers,
 			Tags:    api.OpenAPITags,
 		},
-		structs:         structs,
 		schemas:         map[string]map[string]*openapi.Schema{},
 		relationSchemas: map[string][]string{},
 		useSchemas:      map[string]struct{}{},
@@ -28,9 +28,8 @@ func newHandlerOpenAPI(api *API, paths []pathInfo, structs map[string]*structInf
 
 type handlerOpenAPI struct {
 	api             *API
-	paths           []pathInfo
+	handle          *handler
 	openapi         *openapi.OpenAPI
-	structs         map[string]*structInfo
 	schemas         map[string]map[string]*openapi.Schema
 	relationSchemas map[string][]string
 	useSchemas      map[string]struct{}
@@ -42,7 +41,7 @@ func (h *handlerOpenAPI) Handle() *openapi.OpenAPI {
 	h.handleUseSchemas()
 	h.handleSchemas()
 	if err := h.openapi.Validate(); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return h.openapi
 }
@@ -65,7 +64,7 @@ func (h *handlerOpenAPI) handleUseSchemas() {
 
 func (h *handlerOpenAPI) handlePaths() {
 	h.openapi.Paths = &openapi.Paths{}
-	for _, path := range h.paths {
+	for _, path := range h.handle.paths {
 		if !path.isDocs {
 			continue
 		}
@@ -335,7 +334,7 @@ func (h *handlerOpenAPI) handleSchemas() {
 		h.openapi.Components = &openapi.Components{}
 	}
 
-	for k, v := range h.structs {
+	for k, v := range h.handle.structs {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
 		}
@@ -422,7 +421,7 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[str
 func (h *handlerOpenAPI) handleStructs() {
 	nameMap := map[string]map[string]struct{}{}
 	nameBaseMap := map[string]map[string]struct{}{}
-	for k, v := range h.structs {
+	for k, v := range h.handle.structs {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
 		}
@@ -443,7 +442,7 @@ func (h *handlerOpenAPI) handleStructs() {
 		}
 		nameBaseMap[baseName][name] = struct{}{}
 	}
-	for k, v := range h.structs {
+	for k, v := range h.handle.structs {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
 		}
@@ -454,7 +453,7 @@ func (h *handlerOpenAPI) handleStructs() {
 		} else if len(nameMap[name]) == 1 {
 			v.openapiName = name
 		}
-		h.structs[k] = v
+		h.handle.structs[k] = v
 	}
 }
 
@@ -539,7 +538,7 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 	case reflect.Struct:
 		key := fmt.Sprintf("%v.%v", tyInfo._type.PkgPath(), tyInfo._type.Name())
 		if key != "." {
-			stInfo := h.structs[key]
+			stInfo := h.handle.structs[key]
 			schemaKey := stInfo.openapiName
 			if mediaTypeCount > 1 && mediaType != xmlType {
 				schemaKey = stInfo.openapiName + "_" + mediaType
@@ -548,7 +547,7 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 			return
 		}
 		key = fmt.Sprintf("%s%p", prefixTempStruct, tyInfo._type)
-		stInfo := h.structs[key]
+		stInfo := h.handle.structs[key]
 		properties, requiredMap := h.setStructSchema(stInfo.fields)
 		schema.Required = requiredMap[mediaType]
 		schema.Properties = properties[mediaType]

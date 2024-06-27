@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -26,7 +27,10 @@ func (h *handler) Handle() {
 		switch val := hd.(type) {
 		case *includeRouter:
 			pathMiddlewares := append(h.middlewares, val.middlewares...)
-			list := h.handleIncludeRouter(val)
+			list, err := h.handleIncludeRouter(val)
+			if err != nil {
+				log.Fatal(err)
+			}
 			for k, v := range list {
 				v.middlewares = pathMiddlewares
 				list[k] = v
@@ -64,10 +68,12 @@ func (h *handler) Handle() {
 			h.paths[k] = v
 		}
 	}
-	h.handleStructs()
+	if err := h.handleStructs(); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func (h *handler) handleStructs() {
+func (h *handler) handleStructs() (err error) {
 	h.structs = map[string]*structInfo{}
 	structFields := h.structFields
 	for len(structFields) > 0 {
@@ -142,37 +148,59 @@ func (h *handler) handleStructs() {
 					desc:   tag.Get(tagDesc),
 				}
 				if tagVal := field.Tag.Get(tagEnum); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag.enum, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag.enum, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				if tagVal := tag.Get(tagDefault); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag._default, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag._default, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				if tagVal := tag.Get(tagExample); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag.example, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag.example, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				if tagVal := tag.Get(tagLt); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag.lt, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag.lt, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				if tagVal := tag.Get(tagLte); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag.lte, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag.lte, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				if tagVal := tag.Get(tagGt); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag.gt, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag.gt, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				if tagVal := tag.Get(tagGte); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag.gte, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag.gte, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				if tagVal := tag.Get(tagMultiple); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag.multiple, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag.multiple, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				if tagVal := tag.Get(tagMax); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag.max, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag.max, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				if tagVal := tag.Get(tagMin); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag.min, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag.min, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				if tagVal := tag.Get(tagUnique); tagVal != "" {
-					h.parseTagValByKind(tagVal, &fTag.unique, field.Type.Kind())
+					if err = h.parseTagValByKind(tagVal, &fTag.unique, field.Type.Kind()); err != nil {
+						return
+					}
 				}
 				fFile.tag = fTag
 				if lastChildType.isStruct {
@@ -200,12 +228,14 @@ func (h *handler) handleStructs() {
 			}
 		}
 	}
+	return
 }
 
-func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo) {
+func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, err error) {
 	routerType := reflect.ValueOf(router.router)
 	if routerType.Kind() != reflect.Ptr || routerType.Elem().Kind() != reflect.Struct {
-		panic("Router must be a struct pointer")
+		err = fmt.Errorf("router must be a struct pointer")
+		return
 	}
 	numMethod := routerType.NumMethod()
 	for i := 0; i < numMethod; i++ {
@@ -219,30 +249,41 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo) {
 		switch numIn {
 		case 1:
 			if method.Type().In(0).Kind() != reflect.Struct {
-				panic("When the method parameter in the router must be 1, it must be a structure")
+				err = fmt.Errorf("when the method parameter in the router must be 1, it must be a structure")
+				return
 			}
-			params = h.handleInType(routerType.Method(i).Type().In(0), "in", nil)
+			params, err = h.handleInType(routerType.Method(i).Type().In(0), "in", nil)
+			if err != nil {
+				return
+			}
 			pInfo.inTypes = []reflect.Type{
 				routerType.Method(i).Type().In(0),
 			}
 		case 2:
 			if method.Type().In(0) != reflect.TypeOf(&Context{}) {
-				panic("When the method parameter in the router must be 2, the 1st parameter must be '*goapi.Context'")
+				err = fmt.Errorf("when the method parameter in the router must be 2, the 1st parameter must be '*goapi.Context'")
+				return
 			}
 			if method.Type().In(1).Kind() != reflect.Struct {
-				panic("When the method parameter in the router must be 2, the 2st parameter must be a structure")
+				err = fmt.Errorf("when the method parameter in the router must be 2, the 2st parameter must be a structure")
+				return
 			}
-			params = h.handleInType(method.Type().In(1), "in", nil)
+			params, err = h.handleInType(method.Type().In(1), "in", nil)
+			if err != nil {
+				return
+			}
 			pInfo.inTypes = []reflect.Type{
 				routerType.Method(i).Type().In(0),
 				routerType.Method(i).Type().In(1),
 			}
 		default:
-			panic("The method parameters in the router must be 1 or 2")
+			err = fmt.Errorf("the method parameters in the router must be 1 or 2")
+			return
 		}
 		numOut := method.Type().NumOut()
 		if numOut != 1 {
-			panic("The method parameters out the router must be 1")
+			err = fmt.Errorf("the method parameters out the router must be 1")
+			return
 		}
 		var rInfo *routerInfo
 		var fInfoList []fieldInfo
@@ -252,7 +293,8 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo) {
 				fInfoList = append(fInfoList, val)
 			case *routerInfo:
 				if rInfo != nil {
-					panic("Only one router can exist in the parameters")
+					err = fmt.Errorf("only one router can exist in the parameters")
+					return
 				}
 				rInfo = val
 			}
@@ -296,7 +338,7 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo) {
 	return
 }
 
-func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int) (list []any) {
+func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int) (list []any, err error) {
 	numField := inType.NumField()
 	for i := 0; i < numField; i++ {
 		field := inType.Field(i)
@@ -308,14 +350,16 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 				path := field.Tag.Get("path")
 				method := field.Tag.Get("method")
 				if path == "" || method == "" {
-					panic("The parameters must have a path and method present")
+					err = fmt.Errorf("the parameters must have a path and method present")
+					return
 				}
 				methods := strings.Split(method, ",")
 				for k, v := range methods {
 					methods[k] = strings.ToUpper(v)
 				}
 				if !h.isMethod(methods) {
-					panic("The method in the parameter does not exist " + strings.Join(methods, ", "))
+					err = fmt.Errorf("the method in the parameter does not exist " + strings.Join(methods, ", "))
+					return
 				}
 				summary := field.Tag.Get("summary")
 				desc := field.Tag.Get("desc")
@@ -343,8 +387,9 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 						continue
 					}
 					if requestType != "" {
-						panic(fmt.Sprintf("Field %s cannot have both '%s' and '%s' labels present at the same time",
-							field.Name, requestType, inTypeStr))
+						err = fmt.Errorf("field %s cannot have both '%s' and '%s' labels present at the same time",
+							field.Name, requestType, inTypeStr)
+						return
 					}
 					valList := strings.Split(val, ",")
 					required := true
@@ -365,37 +410,59 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 						desc:   tag.Get(tagDesc),
 					}
 					if tagVal := field.Tag.Get(tagEnum); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag.enum, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag.enum, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					if tagVal := tag.Get(tagDefault); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag._default, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag._default, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					if tagVal := tag.Get(tagExample); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag.example, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag.example, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					if tagVal := tag.Get(tagLt); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag.lt, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag.lt, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					if tagVal := tag.Get(tagLte); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag.lte, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag.lte, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					if tagVal := tag.Get(tagGt); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag.gt, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag.gt, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					if tagVal := tag.Get(tagGte); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag.gte, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag.gte, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					if tagVal := tag.Get(tagMultiple); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag.multiple, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag.multiple, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					if tagVal := tag.Get(tagMax); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag.max, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag.max, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					if tagVal := tag.Get(tagMin); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag.min, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag.min, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					if tagVal := tag.Get(tagUnique); tagVal != "" {
-						h.parseTagValByKind(tagVal, &fTag.unique, field.Type.Kind())
+						if err = h.parseTagValByKind(tagVal, &fTag.unique, field.Type.Kind()); err != nil {
+							return
+						}
 					}
 					requestType = inTypeStr
 					switch inTypeStr {
@@ -412,7 +479,8 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 								fType = fType.Elem()
 							}
 							if !h.isNormalType(fType) {
-								panic(fmt.Sprintf("The %s type must be a regular type", inTypeStr))
+								err = fmt.Errorf("the %s type must be a regular type", inTypeStr)
+								return
 							}
 						}
 						fInfo.tag = fTag
@@ -420,7 +488,8 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 						var mTypes []mediaTypeInfo
 						for _, v := range valList {
 							if v != jsonType && v != xmlType {
-								panic("The body must in 'json','xml'")
+								err = fmt.Errorf("the body must in 'json','xml'")
+								return
 							}
 							mType := mediaTypeInfo{
 								_type:    v,
@@ -449,7 +518,8 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 						}
 					case inTypeFile:
 						if fType != typeFile && fType != typeFiles {
-							panic("The type of file must in '*multipart.FileHeader', '[]*multipart.FileHeader")
+							err = fmt.Errorf("the type of file must in '*multipart.FileHeader', '[]*multipart.FileHeader")
+							return
 						}
 						fInfo.deepTypes = []typeInfo{{_type: fType}}
 						if fType == typeFiles {
@@ -463,7 +533,12 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					continue
 				}
 				if fType.Kind() == reflect.Ptr {
-					if securityList, ok := h.handleSecurity(fType, field.Name, append(deepIdx, i)); ok {
+					securityList, ok, er := h.handleSecurity(fType, append(deepIdx, i))
+					if er != nil {
+						err = er
+						return
+					}
+					if ok {
 						for _, security := range securityList {
 							list = append(list, security)
 						}
@@ -477,7 +552,12 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					fType = fType.Elem()
 				}
 				if fType.Kind() == reflect.Struct {
-					list = append(list, h.handleInType(fType, pType, append(deepIdx, i))...)
+					var childList []any
+					childList, err = h.handleInType(fType, pType, append(deepIdx, i))
+					if err != nil {
+						return
+					}
+					list = append(list, childList...)
 				}
 			}
 		case "apiKey":
@@ -491,8 +571,9 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					continue
 				}
 				if requestType != "" {
-					panic(fmt.Sprintf("Field %s cannot have both '%s' and '%s' labels present at the same time",
-						field.Name, requestType, inTypeStr))
+					fmt.Errorf("field %s cannot have both '%s' and '%s' labels present at the same time",
+						field.Name, requestType, inTypeStr)
+					return
 				}
 				fInfo := fieldInfo{
 					name:      field.Name,
@@ -509,7 +590,8 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					fType = fType.Elem()
 				}
 				if !h.isNormalType(fType) {
-					panic(fmt.Sprintf("The %s type must be a regular type", inTypeStr))
+					err = fmt.Errorf("the %s type must be a regular type", inTypeStr)
+					return
 				}
 				list = append(list, fInfo)
 			}
@@ -520,7 +602,12 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 				fType = fType.Elem()
 			}
 			if fType.Kind() == reflect.Struct {
-				list = append(list, h.handleInType(fType, pType, append(deepIdx, i))...)
+				var childList []any
+				childList, err = h.handleInType(fType, pType, append(deepIdx, i))
+				if err != nil {
+					return
+				}
+				list = append(list, childList...)
 			}
 		}
 	}
@@ -564,15 +651,16 @@ func (h *handler) parseType(fType reflect.Type) (rs []typeInfo) {
 	return
 }
 
-func (h *handler) handleSecurity(fType reflect.Type, fName string, deepIdx []int) (list []fieldInfo, ok bool) {
+func (h *handler) handleSecurity(fType reflect.Type, deepIdx []int) (list []fieldInfo, ok bool, err error) {
 	num := 0
 	for _, securityType := range securityTypes {
 		if !fType.Implements(securityType) {
 			continue
 		}
 		if num > 0 {
-			panic("Security can only implement one of the interfaces 'HTTPBearerInterface', " +
+			err = fmt.Errorf("security can only implement one of the interfaces 'HTTPBearerInterface', " +
 				"'HTTPBasicInterface', and 'ApiKeyInterface'")
+			return
 		}
 		num++
 		switch securityType {
@@ -591,7 +679,11 @@ func (h *handler) handleSecurity(fType reflect.Type, fName string, deepIdx []int
 				deepIdx: deepIdx,
 			})
 		case securityTypeApiKey:
-			cList := h.handleInType(fType.Elem(), "apiKey", deepIdx)
+			var cList []any
+			cList, err = h.handleInType(fType.Elem(), "apiKey", deepIdx)
+			if err != nil {
+				return
+			}
 			for _, v := range cList {
 				if f, b := v.(fieldInfo); b {
 					f.inTypeSecurity = f.inType
@@ -605,7 +697,7 @@ func (h *handler) handleSecurity(fType reflect.Type, fName string, deepIdx []int
 	return
 }
 
-func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind) {
+func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind) error {
 	switch val := outVal.(type) {
 	case *string:
 		*val = inVal
@@ -613,31 +705,31 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 		if v, err := strconv.ParseFloat(inVal, 64); err == nil {
 			*val = v
 		} else {
-			panic(err)
+			return err
 		}
 	case **float64:
 		if v, err := strconv.ParseFloat(inVal, 64); err == nil {
 			*val = toPtr(v)
 		} else {
-			panic(err)
+			return err
 		}
 	case *uint64:
 		if v, err := strconv.ParseUint(inVal, 10, 64); err == nil {
 			*val = v
 		} else {
-			panic(err)
+			return err
 		}
 	case **uint64:
 		if v, err := strconv.ParseUint(inVal, 10, 64); err == nil {
 			*val = toPtr(v)
 		} else {
-			panic(err)
+			return err
 		}
 	case *bool:
 		if v, err := strconv.ParseBool(inVal); err == nil {
 			*val = v
 		} else {
-			panic(err)
+			return err
 		}
 	case *any:
 		switch kind {
@@ -646,18 +738,18 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 			if v, err := strconv.ParseFloat(inVal, 64); err == nil {
 				*val = toPtr(v)
 			} else {
-				panic(err)
+				return err
 			}
 		case reflect.Bool:
 			if v, err := strconv.ParseBool(inVal); err == nil {
 				*val = v
 			} else {
-				panic(err)
+				return err
 			}
 		case reflect.String:
 			*val = inVal
 		default:
-			panic("Structure tag value type error")
+			return fmt.Errorf("structure tag value type error")
 		}
 	case *[]any:
 		list := strings.Split(inVal, ",")
@@ -670,20 +762,21 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 				if v, err := strconv.ParseFloat(str, 64); err == nil {
 					rs = append(rs, v)
 				} else {
-					panic(err)
+					return err
 				}
 			case reflect.Bool:
 				if v, err := strconv.ParseBool(str); err == nil {
 					rs = append(rs, v)
 				} else {
-					panic(err)
+					return err
 				}
 			case reflect.String:
 				rs = append(rs, str)
 			default:
-				panic("Structure tag value type error")
+				return fmt.Errorf("structure tag value type error")
 			}
 		}
 		*val = rs
 	}
+	return nil
 }

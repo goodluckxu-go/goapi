@@ -46,5 +46,12 @@ func (e *EN) Regexp(field string, val string) string {
 }
 
 func (e *EN) Enum(field string, val []any) string {
-	return fmt.Sprintf("The value of %v must be in %v", field, val)
+	s := ""
+	for _, v := range val {
+		s += fmt.Sprintf(",%v", v)
+	}
+	if s != "" {
+		s = s[1:]
+	}
+	return fmt.Sprintf("The value of %v must be in %v", field, s)
 }

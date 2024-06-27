@@ -44,9 +44,11 @@ func (h *handlerServer) Handle() {
 		}
 		isFind := false
 		for _, router := range h.api.routers {
-			if router.Method == ctx.Request.Method && router.IsMatch(ctx.Request.URL.Path) {
-				router.Handler(ctx)
-				isFind = true
+			if router.method == ctx.Request.Method {
+				if _, err := h.getPaths(router.path, ctx.Request.URL.Path); err == nil {
+					router.handler(ctx)
+					isFind = true
+				}
 			}
 		}
 		if !isFind {
@@ -58,10 +60,10 @@ func (h *handlerServer) Handle() {
 }
 
 func (h *handlerServer) handlePaths(method string, path pathInfo) {
-	h.api.routers = append(h.api.routers, &AppRouter{
-		Path:   path.path,
-		Method: method,
-		Handler: func(ctx *Context) {
+	h.api.routers = append(h.api.routers, appRouter{
+		path:   path.path,
+		method: method,
+		handler: func(ctx *Context) {
 			done := make(chan struct{})
 			go h.handlePath(ctx, &path, done)
 			<-done
@@ -425,6 +427,8 @@ func (h *handlerServer) getPaths(path, urlPath string) (rs map[string]string, er
 	pathList := strings.Split(path, "/")
 	relPathList := strings.Split(urlPath, "/")
 	if len(pathList) != len(relPathList) {
+		err = fmt.Errorf("path format error")
+		rs = nil
 		return
 	}
 	for k, v := range pathList {
