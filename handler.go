@@ -299,6 +299,10 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, e
 				rInfo = val
 			}
 		}
+		if rInfo == nil {
+			err = fmt.Errorf("a route must exist in the parameters")
+			return
+		}
 		respType := routerType.Method(i).Type().Out(0)
 		if respType.Implements(typeResponse) {
 			resp := reflect.New(respType.Elem()).Interface().(Response)

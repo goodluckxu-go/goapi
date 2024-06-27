@@ -11,7 +11,7 @@ import (
 )
 
 func GoAPI(app APP, isDocs bool, docsPath ...string) *API {
-	dPath := "docs"
+	dPath := "/docs"
 	if len(docsPath) > 0 {
 		dPath = docsPath[0]
 	}
