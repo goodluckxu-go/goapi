@@ -65,10 +65,6 @@ func (c *Context) Value(key any) any {
 	return nil
 }
 
-func (c *Context) SetMiddleware(middlewares ...Middleware) {
-	c.middlewares = append(c.middlewares, middlewares...)
-}
-
 func (c *Context) Next() {
 	c.mux.RLock()
 	defer c.mux.RUnlock()
