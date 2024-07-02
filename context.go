@@ -1,6 +1,8 @@
 package goapi
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -84,6 +86,16 @@ func (c *Context) Next() {
 type ResponseWriter struct {
 	http.ResponseWriter
 	status int
+}
+
+// Hijack implements the http.Hijacker interface.
+func (r *ResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return r.ResponseWriter.(http.Hijacker).Hijack()
+}
+
+// Flush implements the http.Flusher interface.
+func (r *ResponseWriter) Flush() {
+	r.ResponseWriter.(http.Flusher).Flush()
 }
 
 func (r *ResponseWriter) Header() http.Header {

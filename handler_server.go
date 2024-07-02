@@ -115,6 +115,7 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struc
 		}
 		rs := path.funcValue.Call(inputs)
 		if len(rs) != 1 {
+			done <- struct{}{}
 			return
 		}
 		if rs[0].Type().Implements(typeResponse) {

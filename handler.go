@@ -280,11 +280,6 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, e
 			err = fmt.Errorf("the method parameters in the router must be 1 or 2")
 			return
 		}
-		numOut := method.Type().NumOut()
-		if numOut != 1 {
-			err = fmt.Errorf("the method parameters out the router must be 1")
-			return
-		}
 		var rInfo *routerInfo
 		var fInfoList []fieldInfo
 		for _, param := range params {
@@ -303,32 +298,35 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, e
 			err = fmt.Errorf("a route must exist in the parameters")
 			return
 		}
-		respType := routerType.Method(i).Type().Out(0)
-		if respType.Implements(typeResponse) {
-			resp := reflect.New(respType.Elem()).Interface().(Response)
-			respType = reflect.TypeOf(resp.GetBody())
-		}
-		resp := fieldInfo{
-			_type:     respType,
-			deepTypes: h.parseType(respType),
-		}
-		lastType := resp.deepTypes[len(resp.deepTypes)-1]
-		name := ""
-		if lastType.isStruct && len(resp.deepTypes) == 1 {
-			name = lastType._type.Name()
-		}
-		for _, mediaType := range h.api.responseMediaTypes {
-			resp.mediaTypes = append(resp.mediaTypes, mediaTypeInfo{
-				name:     name,
-				_type:    mediaTypeToTypeMap[mediaType],
-				required: true,
-			})
-		}
-		if lastType.isStruct {
-			h.structFields = append(h.structFields, fieldInfo{
-				_type:      lastType._type,
-				mediaTypes: resp.mediaTypes,
-			})
+		var resp *fieldInfo
+		if method.Type().NumOut() == 1 {
+			respType := routerType.Method(i).Type().Out(0)
+			if respType.Implements(typeResponse) {
+				res := reflect.New(respType.Elem()).Interface().(Response)
+				respType = reflect.TypeOf(res.GetBody())
+			}
+			resp = &fieldInfo{
+				_type:     respType,
+				deepTypes: h.parseType(respType),
+			}
+			lastType := resp.deepTypes[len(resp.deepTypes)-1]
+			name := ""
+			if lastType.isStruct && len(resp.deepTypes) == 1 {
+				name = lastType._type.Name()
+			}
+			for _, mediaType := range h.api.responseMediaTypes {
+				resp.mediaTypes = append(resp.mediaTypes, mediaTypeInfo{
+					name:     name,
+					_type:    mediaTypeToTypeMap[mediaType],
+					required: true,
+				})
+			}
+			if lastType.isStruct {
+				h.structFields = append(h.structFields, fieldInfo{
+					_type:      lastType._type,
+					mediaTypes: resp.mediaTypes,
+				})
+			}
 		}
 		pInfo.path = router.prefix + rInfo.path
 		pInfo.methods = rInfo.methods
@@ -336,7 +334,7 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, e
 		pInfo.summary = rInfo.summary
 		pInfo.desc = rInfo.desc
 		pInfo.tags = rInfo.tags
-		pInfo.res = &resp
+		pInfo.res = resp
 		list = append(list, pInfo)
 	}
 	return
