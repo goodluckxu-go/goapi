@@ -72,7 +72,7 @@ func (h *handlerServer) handlePaths(method string, path pathInfo) {
 }
 
 func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struct{}) {
-	ctx.Log = h.api.log
+	ctx.log = h.api.log
 	mediaType := ctx.Request.URL.Query().Get("media_type")
 	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
 		mediaType = mediaTypeToTypeMap[h.api.responseMediaTypes[0]]

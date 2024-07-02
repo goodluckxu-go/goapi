@@ -12,7 +12,7 @@ type Context struct {
 	Request     *http.Request
 	Writer      http.ResponseWriter
 	Values      map[string]any
-	Log         Logger
+	log         Logger
 	mux         sync.RWMutex
 	middlewares []Middleware
 	routerFunc  func(done chan struct{})
@@ -81,6 +81,10 @@ func (c *Context) Next() {
 	middleware := c.middlewares[0]
 	c.middlewares = c.middlewares[1:]
 	middleware(c)
+}
+
+func (c *Context) Logger() Logger {
+	return c.log
 }
 
 type ResponseWriter struct {

@@ -9,7 +9,7 @@ import (
 func notFind() func(ctx *Context) {
 	return func(ctx *Context) {
 		http.NotFound(ctx.Writer, ctx.Request)
-		ctx.Log.Info("[0.000ms] %v - \"%v %v\" %v %v", ctx.Request.RemoteAddr,
+		ctx.Logger().Info("[0.000ms] %v - \"%v %v\" %v %v", ctx.Request.RemoteAddr,
 			ctx.Request.Method, ctx.Request.URL.Path, colorError("404"), colorError(http.StatusText(404)))
 	}
 }
@@ -34,7 +34,7 @@ func setLogger() func(ctx *Context) {
 					statusText = colorWarning(statusText)
 				}
 			}
-			ctx.Log.Info("[%.3fms] %v - \"%v %v\" %v %v", float64(elapsed.Nanoseconds())/1e6, ctx.Request.RemoteAddr,
+			ctx.Logger().Info("[%.3fms] %v - \"%v %v\" %v %v", float64(elapsed.Nanoseconds())/1e6, ctx.Request.RemoteAddr,
 				ctx.Request.Method, ctx.Request.URL.Path, status, statusText)
 		}
 	}

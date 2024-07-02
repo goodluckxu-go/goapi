@@ -119,7 +119,7 @@ func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) app
 		method: http.MethodGet,
 		handler: func(ctx *Context) {
 			ctx.middlewares = middlewares
-			ctx.Log = a.log
+			ctx.log = a.log
 			ctx.routerFunc = func(done chan struct{}) {
 				router.Handler(ctx.Writer)
 				done <- struct{}{}
