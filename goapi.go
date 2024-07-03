@@ -10,6 +10,7 @@ import (
 	"os"
 )
 
+// GoAPI It is a newly created API function
 func GoAPI(app APP, isDocs bool, docsPath ...string) *API {
 	dPath := "/docs"
 	if len(docsPath) > 0 {
@@ -46,19 +47,23 @@ type API struct {
 	routers               []appRouter
 }
 
+// HTTPExceptionHandler It is an exception handling registration for HTTP
 func (a *API) HTTPExceptionHandler(f func(httpCode int, detail string) Response) {
 	a.httpExceptionResponse = f(0, "")
 	a.exceptFunc = f
 }
 
+// SetLang It is to set the validation language function
 func (a *API) SetLang(lang Lang) {
 	a.lang = lang
 }
 
+// SetLogger It is a function for setting custom logs
 func (a *API) SetLogger(log Logger) {
 	a.log = &levelHandleLogger{log: log}
 }
 
+// SetResponseMediaType It is a function that sets the return value type
 func (a *API) SetResponseMediaType(mediaTypes ...MediaType) {
 	m := map[MediaType]struct{}{}
 	for _, v := range a.responseMediaTypes {
@@ -73,12 +78,14 @@ func (a *API) SetResponseMediaType(mediaTypes ...MediaType) {
 	}
 }
 
+// AddMiddleware It is a function for adding middleware
 func (a *API) AddMiddleware(middlewares ...Middleware) {
 	for _, middleware := range middlewares {
 		a.handlers = append(a.handlers, middleware)
 	}
 }
 
+// IncludeRouter It is a function that introduces routing structures
 func (a *API) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...Middleware) {
 	a.handlers = append(a.handlers, &includeRouter{
 		router:      router,
@@ -88,6 +95,7 @@ func (a *API) IncludeRouter(router any, prefix string, isDocs bool, middlewares 
 	})
 }
 
+// Run It is an execution function
 func (a *API) Run(addr ...string) error {
 	if len(addr) > 0 {
 		a.addr = addr[0]
