@@ -104,7 +104,7 @@ func (a *API) Static(path, root string) {
 }
 
 // Run It is an execution function
-func (a *API) Run(addr ...string) error {
+func (a *API) Run(addr ...string) {
 	if len(addr) > 0 {
 		a.addr = addr[0]
 	}
@@ -126,7 +126,10 @@ func (a *API) Run(addr ...string) error {
 	a.log.Info("Started server process [%v]", colorDebug(os.Getpid()))
 	a.log.Info("Using the [%v] APP", colorDebug(fmt.Sprintf("%T", a.app)))
 	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
-	return a.app.Run(a.addr)
+	err := a.app.Run(a.addr)
+	if err != nil {
+		a.log.Fatal(err.Error())
+	}
 }
 
 func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) appRouter {
