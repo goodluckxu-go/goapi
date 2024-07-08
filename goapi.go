@@ -95,6 +95,15 @@ func (a *API) IncludeRouter(router any, prefix string, isDocs bool, middlewares 
 	})
 }
 
+// OpenPprof Open the system's built-in pprof
+func (a *API) OpenPprof() {
+	a.handlers = append(a.handlers, &includeRouter{
+		router: &pprofInfo{},
+		prefix: "/debug",
+		isDocs: true,
+	})
+}
+
 // Static serves files from the given file system root.
 func (a *API) Static(path, root string) {
 	a.handlers = append(a.handlers, &staticInfo{
