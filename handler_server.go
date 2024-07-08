@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"runtime/debug"
@@ -32,6 +33,9 @@ type handlerServer struct {
 }
 
 func (h *handlerServer) Handle() {
+	for _, static := range h.handle.statics {
+		h.handleStatic(static)
+	}
 	for _, path := range h.handle.paths {
 		for _, method := range path.methods {
 			h.handlePaths(method, path)
@@ -45,7 +49,10 @@ func (h *handlerServer) Handle() {
 		isFind := false
 		for _, router := range h.api.routers {
 			if router.method == ctx.Request.Method {
-				if _, err := h.getPaths(router.path, ctx.Request.URL.Path); err == nil {
+				if router.isPrefix && strings.HasPrefix(ctx.Request.URL.Path, router.path) {
+					router.handler(ctx)
+					isFind = true
+				} else if _, err := h.getPaths(router.path, ctx.Request.URL.Path); err == nil {
 					router.handler(ctx)
 					isFind = true
 				}
@@ -56,6 +63,25 @@ func (h *handlerServer) Handle() {
 			go h.handlePath(ctx, nil, done)
 			<-done
 		}
+	})
+}
+
+func (h *handlerServer) handleStatic(static staticInfo) {
+	root, _ := filepath.Abs(static.root)
+	h.api.routers = append(h.api.routers, appRouter{
+		path:     static.path,
+		isPrefix: true,
+		method:   http.MethodGet,
+		handler: func(ctx *Context) {
+			ctx.middlewares = h.handle.middlewares
+			ctx.log = h.api.log
+			ctx.routerFunc = func(done chan struct{}) {
+				name := strings.TrimPrefix(ctx.Request.URL.Path, static.path)
+				http.ServeFile(ctx.Writer, ctx.Request, filepath.Join(root, name))
+				done <- struct{}{}
+			}
+			ctx.Next()
+		},
 	})
 }
 

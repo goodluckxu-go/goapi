@@ -16,6 +16,7 @@ func newHandler(api *API) *handler {
 type handler struct {
 	api          *API
 	paths        []pathInfo
+	statics      []staticInfo
 	structFields []fieldInfo
 	structs      map[string]*structInfo
 	middlewares  []Middleware
@@ -36,6 +37,8 @@ func (h *handler) Handle() {
 				list[k] = v
 			}
 			h.paths = append(h.paths, list...)
+		case *staticInfo:
+			h.statics = append(h.statics, *val)
 		case Middleware:
 			h.middlewares = append(h.middlewares, val)
 		}

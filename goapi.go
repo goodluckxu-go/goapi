@@ -95,6 +95,14 @@ func (a *API) IncludeRouter(router any, prefix string, isDocs bool, middlewares 
 	})
 }
 
+// Static serves files from the given file system root.
+func (a *API) Static(path, root string) {
+	a.handlers = append(a.handlers, &staticInfo{
+		path: path,
+		root: root,
+	})
+}
+
 // Run It is an execution function
 func (a *API) Run(addr ...string) error {
 	if len(addr) > 0 {

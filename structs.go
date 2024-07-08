@@ -11,6 +11,11 @@ type includeRouter struct {
 	middlewares []Middleware
 }
 
+type staticInfo struct {
+	path string
+	root string
+}
+
 type routerInfo struct {
 	path    string
 	methods []string
@@ -94,7 +99,8 @@ type exceptInfo struct {
 }
 
 type appRouter struct {
-	path    string
-	method  string
-	handler func(ctx *Context)
+	path     string
+	isPrefix bool
+	method   string
+	handler  func(ctx *Context)
 }
