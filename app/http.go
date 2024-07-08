@@ -6,13 +6,15 @@ import (
 )
 
 type Http struct {
+	mux *http.ServeMux
 }
 
 func (h *Http) Init() {
+	h.mux = http.NewServeMux()
 }
 
 func (h *Http) Handle(handler func(ctx *goapi.Context)) {
-	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+	h.mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		handler(&goapi.Context{
 			Request: request,
 			Writer:  writer,
@@ -21,5 +23,5 @@ func (h *Http) Handle(handler func(ctx *goapi.Context)) {
 }
 
 func (h *Http) Run(addr string) error {
-	return http.ListenAndServe(addr, nil)
+	return http.ListenAndServe(addr, h.mux)
 }
