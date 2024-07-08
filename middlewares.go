@@ -22,6 +22,10 @@ func setLogger() func(ctx *Context) {
 		if resp, ok := ctx.Writer.(*ResponseWriter); ok {
 			status := fmt.Sprintf("%v", resp.Status())
 			statusText := http.StatusText(resp.Status())
+			if resp.Status() == 0 {
+				status = "200"
+				statusText = http.StatusText(200)
+			}
 			if len(status) == 3 {
 				if status[0] == '1' || status[0] == '2' {
 					status = colorInfo(status)
