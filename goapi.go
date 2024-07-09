@@ -149,7 +149,7 @@ func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) app
 			ctx.middlewares = middlewares
 			ctx.log = a.log
 			ctx.routerFunc = func(done chan struct{}) {
-				router.Handler(ctx.Writer)
+				router.Handler(ctx.Writer, ctx.Request)
 				done <- struct{}{}
 			}
 			ctx.Next()
