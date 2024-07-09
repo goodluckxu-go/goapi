@@ -7,6 +7,13 @@ type pprofInfo struct {
 
 func (p *pprofInfo) Pprof(ctx *Context, input struct {
 	router Router `path:"/pprof/{path}" method:"get" tags:"pprof"`
+	Path   string `path:"path"`
+}) {
+	pprof.Index(ctx.Writer, ctx.Request)
+}
+
+func (p *pprofInfo) PprofIndex(ctx *Context, input struct {
+	router Router `path:"/pprof/" method:"get" tags:"pprof"`
 }) {
 	pprof.Index(ctx.Writer, ctx.Request)
 }
