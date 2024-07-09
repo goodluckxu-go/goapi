@@ -33,42 +33,54 @@ func GetSwagger(path, title, favicon string, openapiJsonBody []byte) (routers []
 		Path: path,
 		Handler: func(writer http.ResponseWriter, request *http.Request) {
 			writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-			handleCache(writer, request)
+			if handleCache(writer, request) {
+				return
+			}
 			_, _ = writer.Write([]byte(fmt.Sprintf(index, title, path, path, favicon, path, path, path)))
 		},
 	}, Router{
 		Path: path + "/index.css",
 		Handler: func(writer http.ResponseWriter, request *http.Request) {
 			writer.Header().Set("Content-Type", "text/css; charset=utf-8")
-			handleCache(writer, request)
+			if handleCache(writer, request) {
+				return
+			}
 			_, _ = writer.Write([]byte(cssIndex))
 		},
 	}, Router{
 		Path: path + "/swagger-ui.css",
 		Handler: func(writer http.ResponseWriter, request *http.Request) {
 			writer.Header().Set("Content-Type", "text/css; charset=utf-8")
-			handleCache(writer, request)
+			if handleCache(writer, request) {
+				return
+			}
 			_, _ = writer.Write([]byte(cssSwaggerUi))
 		},
 	}, Router{
 		Path: path + "/swagger-initializer.js",
 		Handler: func(writer http.ResponseWriter, request *http.Request) {
 			writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-			handleCache(writer, request)
+			if handleCache(writer, request) {
+				return
+			}
 			_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, openapiPath)))
 		},
 	}, Router{
 		Path: path + "/swagger-ui-bundle.js",
 		Handler: func(writer http.ResponseWriter, request *http.Request) {
 			writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-			handleCache(writer, request)
+			if handleCache(writer, request) {
+				return
+			}
 			_, _ = writer.Write([]byte(jsSwaggerUiBundle))
 		},
 	}, Router{
 		Path: path + "/swagger-ui-standalone-preset.js",
 		Handler: func(writer http.ResponseWriter, request *http.Request) {
 			writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-			handleCache(writer, request)
+			if handleCache(writer, request) {
+				return
+			}
 			_, _ = writer.Write([]byte(jsSwaggerUiStandalonePreset))
 		},
 	}, Router{
@@ -82,11 +94,12 @@ func GetSwagger(path, title, favicon string, openapiJsonBody []byte) (routers []
 	return
 }
 
-func handleCache(writer http.ResponseWriter, request *http.Request) {
-	if request.Header.Get("If-Modified-Since") == "" {
-		writer.WriteHeader(200)
-	} else {
+func handleCache(writer http.ResponseWriter, request *http.Request) bool {
+	if request.Header.Get("If-Modified-Since") != "" {
 		writer.WriteHeader(304)
+		return true
 	}
+	writer.WriteHeader(200)
 	writer.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
+	return false
 }
