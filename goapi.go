@@ -95,8 +95,8 @@ func (a *API) IncludeRouter(router any, prefix string, isDocs bool, middlewares 
 	})
 }
 
-// OpenPprof Open the system's built-in pprof
-func (a *API) OpenPprof() {
+// DebugPprof Open the system's built-in pprof
+func (a *API) DebugPprof() {
 	a.handlers = append(a.handlers, &includeRouter{
 		router: &pprofInfo{},
 		prefix: "/debug",
