@@ -961,10 +961,18 @@ func (o *Operation) Validate(openapi *OpenAPI, path string) error {
 		}
 	}
 
+	pathTotal := strings.Count(path, "{")
+	pathCount := 0
 	for k, v := range o.Parameters {
+		if v.In == "path" {
+			pathCount++
+		}
 		if err := v.Validate(openapi, path); err != nil {
 			return verifyError(fmt.Sprintf("parameters[%v]", k), err)
 		}
+	}
+	if pathCount != pathTotal {
+		return verifyError("parameters", fmt.Errorf("must be in %q when in is \"path\"", path))
 	}
 
 	if o.RequestBody != nil {
