@@ -124,7 +124,7 @@ func (a *API) Run(addr ...string) {
 		api := newHandlerOpenAPI(a, handle).Handle()
 		openapiBody, _ := json.Marshal(api)
 		a.app.Init()
-		list := swagger.GetSwagger(a.docsPath, api.Info.Title, "", openapiBody)
+		list := swagger.GetSwagger(a.docsPath, api.Info.Title, logo, openapiBody)
 		for _, v := range list {
 			a.routers = append(a.routers, a.handleSwagger(v, handle.middlewares))
 		}
