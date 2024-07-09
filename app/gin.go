@@ -13,6 +13,7 @@ func (g *Gin) Init() {
 	if g.engine == nil {
 		gin.SetMode(gin.ReleaseMode)
 		g.engine = gin.New()
+		_ = g.engine.SetTrustedProxies(nil)
 	}
 }
 
