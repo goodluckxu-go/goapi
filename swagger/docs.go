@@ -101,5 +101,6 @@ func handleCache(writer http.ResponseWriter, request *http.Request) bool {
 	}
 	writer.WriteHeader(200)
 	writer.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
+	writer.Header().Set("Cache-Control", "max-age=86400")
 	return false
 }
