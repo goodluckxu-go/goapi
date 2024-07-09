@@ -154,7 +154,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 		case inTypePath, inTypeQuery, inTypeCookie, inTypeHeader:
 			fType := h.convertType(inputField._type)
 			childSchema := &openapi.Schema{
-				Type:   []string{fType.typeStr},
+				Type:   fType.typeStr,
 				Format: fType.format,
 			}
 			childSchema.Enum = inputField.tag.enum
@@ -176,7 +176,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 				childSchema.UniqueItems = inputField.tag.unique
 				cfType := h.convertType(fType._type.Elem())
 				childSchema.Items = &openapi.Schema{
-					Type:   []string{cfType.typeStr},
+					Type:   cfType.typeStr,
 					Format: cfType.format,
 				}
 			case "object":
@@ -230,7 +230,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 	if len(bodyProperties) > 0 {
 		bodyContent[string(bodyMediaType)] = &openapi.MediaType{
 			Schema: &openapi.Schema{
-				Type:       []string{"object"},
+				Type:       "object",
 				Properties: bodyProperties,
 				Required:   bodyRequireds,
 			},
@@ -348,7 +348,7 @@ func (h *handlerOpenAPI) handleSchemas() {
 		properties, requiredMap := h.setStructSchema(v.fields)
 		for key, val := range properties {
 			h.schemas[v.openapiName][key] = &openapi.Schema{
-				Type:       []string{"object"},
+				Type:       "object",
 				Properties: val,
 				Required:   requiredMap[key],
 			}
@@ -522,7 +522,7 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 	}
 	tyInfo := h.convertType(types[0]._type)
 	types = types[1:]
-	schema.Type = []string{tyInfo.typeStr}
+	schema.Type = tyInfo.typeStr
 	schema.Format = tyInfo.format
 	switch tyInfo._type.Kind() {
 	case reflect.Map:
