@@ -340,7 +340,22 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, e
 		pInfo.res = resp
 		list = append(list, pInfo)
 	}
+	h.handlePathSort(list)
 	return
+}
+
+func (h *handler) handlePathSort(list []pathInfo) {
+	left, right := 0, len(list)-1
+	for left < right {
+		for strings.Contains(list[right].path, "{") {
+			right--
+		}
+		if strings.Contains(list[left].path, "{") {
+			list[left], list[right] = list[right], list[left]
+			right--
+		}
+		left++
+	}
 }
 
 func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int) (list []any, err error) {

@@ -56,6 +56,9 @@ func (h *handlerServer) Handle() {
 					router.handler(ctx)
 					isFind = true
 				}
+				if isFind {
+					break
+				}
 			}
 		}
 		if !isFind {
