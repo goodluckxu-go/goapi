@@ -20,7 +20,7 @@ func main() {
 		}
 	})
 	api.IncludeRouter(&TestController{}, "/v1", true)
-	_ = api.Run("127.0.0.1:8080")
+	api.Run("127.0.0.1:8080")
 }
 
 type TestController struct {
