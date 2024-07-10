@@ -163,7 +163,6 @@ func (h *AdminAuth) ApiKey() {
 - if response is an implementation of the goapi.Response interface, you can set the http Code and header
 - else do not set the header, and set the HTTP code to 200
 ## Error corresponding comment
-aaa
 ~~~go
 goapi.HTTPException(404, "error message")
 ~~~
