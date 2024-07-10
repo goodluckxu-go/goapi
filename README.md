@@ -5,7 +5,7 @@ About the OpenAPI3.1.0 usage of http
 ~~~bash
 go get github.com/goodluckxu-go/goapi
 ~~~
-main.go入口文件
+main.go
 ~~~go
 import (
 	"github.com/goodluckxu-go/goapi"
@@ -30,7 +30,7 @@ func main() {
 	_ = api.Run("127.0.0.1:8080")
 }
 ~~~
-user_controller.go控制器文件
+user_controller.go
 ~~~go
 type UserController struct {
 }
@@ -162,5 +162,12 @@ func (h *AdminAuth) ApiKey() {
 ## Response annotation
 - if response is an implementation of the goapi.Response interface, you can set the http Code and header
 - else do not set the header, and set the HTTP code to 200
+## Error corresponding comment
+aaa
+~~~go
+goapi.HTTPException(404, "error message")
+~~~
+- Specific return information can be configured using the 'HTTPExceptionHandler' method
+- The first parameter is the HTTP status code, the second is the error message, and the third is the header setting returned
 ## About
 Generate documentation using an API similar to FastAPI in Python

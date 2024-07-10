@@ -591,7 +591,7 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					continue
 				}
 				if requestType != "" {
-					fmt.Errorf("field %s cannot have both '%s' and '%s' labels present at the same time",
+					err = fmt.Errorf("field %s cannot have both '%s' and '%s' labels present at the same time",
 						field.Name, requestType, inTypeStr)
 					return
 				}
@@ -678,8 +678,8 @@ func (h *handler) handleSecurity(fType reflect.Type, deepIdx []int) (list []fiel
 			continue
 		}
 		if num > 0 {
-			err = fmt.Errorf("security can only implement one of the interfaces 'HTTPBearerInterface', " +
-				"'HTTPBasicInterface', and 'ApiKeyInterface'")
+			err = fmt.Errorf("security can only implement one of the interfaces 'goapi.HTTPBearer', " +
+				"'goapi.HTTPBasic', and 'goapi.ApiKey'")
 			return
 		}
 		num++
