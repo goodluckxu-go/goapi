@@ -54,7 +54,7 @@ type AdminAuth struct {
 
 func (h *AdminAuth) HTTPBearer(token string) {
 	if token != "123456" {
-		response.HTTPException(401, "token is error")   
+		goapi.HTTPException(401, "token is error")   
 	}
 	h.Admin = "admin"
 }
@@ -66,7 +66,7 @@ type AdminAuth struct {
 
 func (h *AdminAuth) HTTPBasic(username,password string) {
 	if username != "admin" || password != "123456" {
-		response.HTTPException(401, "token is error")
+		goapi.HTTPException(401, "token is error")
 	} 
 	h.Admin = "admin"
 }
@@ -85,7 +85,7 @@ type AdminAuth struct {
 
 func (h *AdminAuth) ApiKey() {
 	if h.Header.token != "123456" {
-		response.HTTPException(401, "token is error")
+		goapi.HTTPException(401, "token is error")
 	}
 	h.Admin = "admin"
 }
