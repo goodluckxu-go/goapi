@@ -215,7 +215,7 @@ func (h *handler) handleStructs() (err error) {
 					}
 					newStructFields = append(newStructFields, fieldInfo{
 						_type:      csType,
-						mediaTypes: val.mediaTypes,
+						mediaTypes: mTypes,
 					})
 				}
 				stInfo.fields = append(stInfo.fields, fFile)
@@ -226,8 +226,14 @@ func (h *handler) handleStructs() (err error) {
 		structFields = []fieldInfo{}
 		for _, val := range newStructFields {
 			key := fmt.Sprintf("%v.%v", val._type.PkgPath(), val._type.Name())
-			if h.structs[key] == nil {
+			oldStruct := h.structs[key]
+			if oldStruct == nil {
 				structFields = append(structFields, val)
+			} else {
+				for k, v := range oldStruct.fields {
+					v.mediaTypes = val.mediaTypes
+					oldStruct.fields[k] = v
+				}
 			}
 		}
 	}
