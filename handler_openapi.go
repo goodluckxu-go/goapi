@@ -217,6 +217,9 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 			for _, mediaType := range inputField.mediaTypes {
 				childSchema := &openapi.Schema{}
 				h.setChildSchema(childSchema, inputField.deepTypes, len(inputField.mediaTypes), mediaType._type)
+				childSchema.XML = &openapi.XML{
+					Name: mediaType.name,
+				}
 				bodyContent[string(typeToMediaTypeMap[mediaType._type])] = &openapi.MediaType{
 					Schema: childSchema,
 				}
@@ -543,7 +546,11 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 			if mediaTypeCount > 1 && mediaType != xmlType {
 				schemaKey = stInfo.openapiName + "_" + mediaType
 			}
-			schema.Ref = "#/components/schemas/" + schemaKey
+			schema.AllOf = []*openapi.Schema{
+				{
+					Ref: "#/components/schemas/" + schemaKey,
+				},
+			}
 			return
 		}
 		key = fmt.Sprintf("%s%p", prefixTempStruct, tyInfo._type)

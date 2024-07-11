@@ -522,6 +522,14 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 								name:     field.Name,
 								required: true,
 							}
+							tagVal := tag.Get(v)
+							if tagVal != "" {
+								tagList := strings.Split(tagVal, ",")
+								mType.name = tagList[0]
+								if len(tagList) > 1 && tagList[1] == omitempty {
+									mType.required = false
+								}
+							}
 							childVal := tag.Get(v)
 							if childVal != "" {
 								childValList := strings.Split(childVal, ",")
