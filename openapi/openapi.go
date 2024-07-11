@@ -705,7 +705,11 @@ type PathItem struct {
 
 func (p *PathItem) marshalField() []marshalField {
 	if p.Ref != "" {
-		return []marshalField{{"$ref", p.Ref, false}}
+		return []marshalField{
+			{"$ref", p.Ref, false},
+			{"summary", p.Summary, p.Summary == ""},
+			{"description", p.Description, p.Description == ""},
+		}
 	}
 	return []marshalField{
 		{"summary", p.Summary, p.Summary == ""},
@@ -1114,7 +1118,10 @@ type Parameter struct {
 
 func (p *Parameter) marshalField() []marshalField {
 	if p.Ref != "" {
-		return []marshalField{{"$ref", p.Ref, false}}
+		return []marshalField{
+			{"$ref", p.Ref, false},
+			{"description", p.Description, p.Description == ""},
+		}
 	}
 	if p.In == "header" && (p.Name == "Accept" || p.Name == "Content-Type" || p.Name == "Authorization") {
 		p.Name = ""
@@ -1237,7 +1244,10 @@ type RequestBody struct {
 
 func (r *RequestBody) marshalField() []marshalField {
 	if r.Ref != "" {
-		return []marshalField{{"$ref", r.Ref, false}}
+		return []marshalField{
+			{"$ref", r.Ref, false},
+			{"description", r.Description, r.Description == ""},
+		}
 	}
 	return []marshalField{
 		{"description", r.Description, r.Description == ""},
@@ -1551,7 +1561,10 @@ type Response struct {
 
 func (r *Response) marshalField() []marshalField {
 	if r.Ref != "" {
-		return []marshalField{{"$ref", r.Ref, false}}
+		return []marshalField{
+			{"$ref", r.Ref, false},
+			{"description", r.Description, r.Description == ""},
+		}
 	}
 	return []marshalField{
 		{"description", r.Description, r.Description == ""},
@@ -1782,7 +1795,11 @@ type Example struct {
 
 func (e *Example) marshalField() []marshalField {
 	if e.Ref != "" {
-		return []marshalField{{"$ref", e.Ref, false}}
+		return []marshalField{
+			{"$ref", e.Ref, false},
+			{"summary", e.Summary, e.Summary == ""},
+			{"description", e.Description, e.Description == ""},
+		}
 	}
 	return []marshalField{
 		{"summary", e.Summary, e.Summary == ""},
@@ -1855,7 +1872,10 @@ type Link struct {
 
 func (l *Link) marshalField() []marshalField {
 	if l.Ref != "" {
-		return []marshalField{{"$ref", l.Ref, false}}
+		return []marshalField{
+			{"$ref", l.Ref, false},
+			{"description", l.Description, l.Description == ""},
+		}
 	}
 	return []marshalField{
 		{"operationRef", l.OperationRef, l.OperationRef == ""},
@@ -1924,7 +1944,10 @@ type Header Parameter
 
 func (h *Header) marshalField() []marshalField {
 	if h.Ref != "" {
-		return []marshalField{{"$ref", h.Ref, false}}
+		return []marshalField{
+			{"$ref", h.Ref, false},
+			{"description", h.Description, h.Description == ""},
+		}
 	}
 	return []marshalField{
 		{"description", h.Description, h.Description == ""},
@@ -2131,7 +2154,10 @@ type Schema struct {
 
 func (s *Schema) marshalField() []marshalField {
 	if s.Ref != "" {
-		return []marshalField{{"$ref", s.Ref, false}}
+		return []marshalField{
+			{"$ref", s.Ref, false},
+			{"description", s.Description, s.Description == ""},
+		}
 	}
 	return []marshalField{
 		{"type", s.Type, s.Type == ""},
@@ -2448,7 +2474,10 @@ type SecurityScheme struct {
 
 func (s *SecurityScheme) marshalField() []marshalField {
 	if s.Ref != "" {
-		return []marshalField{{"$ref", s.Ref, false}}
+		return []marshalField{
+			{"$ref", s.Ref, false},
+			{"description", s.Description, s.Description == ""},
+		}
 	}
 	return []marshalField{
 		{"type", s.Type, s.Type == ""},
