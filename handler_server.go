@@ -222,61 +222,12 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 	for _, field := range fields {
 		switch field.inType {
 		case inTypeHeader:
-			value := req.Header.Get(field.inTypeVal)
-			var values []string
-			if value != "" {
-				fType := field._type
-				for fType.Kind() == reflect.Ptr {
-					fType = fType.Elem()
-				}
-				values = []string{value}
-				if fType.Kind() == reflect.Slice {
-					values = []string{}
-					valList := strings.Split(value, ",")
-					for _, v := range valList {
-						values = append(values, strings.TrimSpace(v))
-					}
-				}
-			}
-			if err = h.handleValue(inputValue, field, values); err != nil {
+			if err = h.handleHeader(req, inputValue, field); err != nil {
 				return
 			}
 		case inTypeCookie:
-			cookie, er := req.Cookie(field.inTypeVal)
-			if field._type == typeCookie {
-				name := field.tag.desc
-				if name == "" {
-					name = field.inTypeVal
-				}
-				if er != nil || cookie.Value == "" {
-					if field.mediaTypes[0].required {
-						err = fmt.Errorf(h.api.lang.Required(name))
-						return
-					}
-					return
-				}
-				if err = h.validString(cookie.Value, name, field.tag); err != nil {
-					return
-				}
-			} else {
-				var values []string
-				if cookie.Value != "" {
-					fType := field._type
-					for fType.Kind() == reflect.Ptr {
-						fType = fType.Elem()
-					}
-					values = []string{cookie.Value}
-					if fType.Kind() == reflect.Slice {
-						values = []string{}
-						valList := strings.Split(cookie.Value, ",")
-						for _, v := range valList {
-							values = append(values, strings.TrimSpace(v))
-						}
-					}
-				}
-				if err = h.handleValue(inputValue, field, values); err != nil {
-					return
-				}
+			if err = h.handleCookie(req, inputValue, field); err != nil {
+				return
 			}
 		case inTypeQuery:
 			values := req.URL.Query()[field.inTypeVal]
@@ -284,22 +235,7 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 				return
 			}
 		case inTypePath:
-			value := h.pathMap[field.inTypeVal]
-			var values []string
-			if value != "" {
-				fType := field._type
-				for fType.Kind() == reflect.Ptr {
-					fType = fType.Elem()
-				}
-				values = []string{value}
-				if fType.Kind() == reflect.Slice {
-					values = []string{}
-					valList := strings.Split(value, ",")
-					for _, v := range valList {
-						values = append(values, strings.TrimSpace(v))
-					}
-				}
-			}
+			values := h.handleValueToValues(field._type, h.pathMap[field.inTypeVal])
 			if err = h.handleValue(inputValue, field, values); err != nil {
 				return
 			}
@@ -313,21 +249,7 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 					value = req.MultipartForm.Value[field.inTypeVal][0]
 				}
 			}
-			var values []string
-			if value != "" {
-				fType := field._type
-				for fType.Kind() == reflect.Ptr {
-					fType = fType.Elem()
-				}
-				values = []string{value}
-				if fType.Kind() == reflect.Slice {
-					values = []string{}
-					valList := strings.Split(value, ",")
-					for _, v := range valList {
-						values = append(values, strings.TrimSpace(v))
-					}
-				}
-			}
+			values := h.handleValueToValues(field._type, value)
 			if err = h.handleValue(inputValue, field, values); err != nil {
 				return
 			}
@@ -384,61 +306,12 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 			h.initPtr(childField)
 			switch field.inTypeSecurity {
 			case inTypeHeader:
-				value := req.Header.Get(field.inTypeVal)
-				var values []string
-				if value != "" {
-					fType := field._type
-					for fType.Kind() == reflect.Ptr {
-						fType = fType.Elem()
-					}
-					values = []string{value}
-					if fType.Kind() == reflect.Slice {
-						values = []string{}
-						valList := strings.Split(value, ",")
-						for _, v := range valList {
-							values = append(values, strings.TrimSpace(v))
-						}
-					}
-				}
-				if err = h.handleValue(inputValue, field, values); err != nil {
+				if err = h.handleHeader(req, inputValue, field); err != nil {
 					return
 				}
 			case inTypeCookie:
-				cookie, er := req.Cookie(field.inTypeVal)
-				if field._type == typeCookie {
-					name := field.tag.desc
-					if name == "" {
-						name = field.inTypeVal
-					}
-					if er != nil || cookie.Value == "" {
-						if field.mediaTypes[0].required {
-							err = fmt.Errorf(h.api.lang.Required(name))
-							return
-						}
-						return
-					}
-					if err = h.validString(cookie.Value, name, field.tag); err != nil {
-						return
-					}
-				} else {
-					var values []string
-					if cookie.Value != "" {
-						fType := field._type
-						for fType.Kind() == reflect.Ptr {
-							fType = fType.Elem()
-						}
-						values = []string{cookie.Value}
-						if fType.Kind() == reflect.Slice {
-							values = []string{}
-							valList := strings.Split(cookie.Value, ",")
-							for _, v := range valList {
-								values = append(values, strings.TrimSpace(v))
-							}
-						}
-					}
-					if err = h.handleValue(inputValue, field, values); err != nil {
-						return
-					}
+				if err = h.handleCookie(req, inputValue, field); err != nil {
+					return
 				}
 			case inTypeQuery:
 				values := req.URL.Query()[field.inTypeVal]
@@ -480,6 +353,60 @@ func (h *handlerServer) getPaths(path, urlPath string) (rs map[string]string, er
 			err = fmt.Errorf("path format error")
 			rs = nil
 			return
+		}
+	}
+	return
+}
+
+func (h *handlerServer) handleHeader(req *http.Request, inputValue reflect.Value, field fieldInfo) (err error) {
+	values := h.handleValueToValues(field._type, req.Header.Get(field.inTypeVal))
+	if err = h.handleValue(inputValue, field, values); err != nil {
+		return
+	}
+	return
+}
+
+func (h *handlerServer) handleCookie(req *http.Request, inputValue reflect.Value, field fieldInfo) (err error) {
+	cookie, er := req.Cookie(field.inTypeVal)
+	if er != nil {
+		return
+	}
+	if field._type == typeCookie {
+		name := field.tag.desc
+		if name == "" {
+			name = field.inTypeVal
+		}
+		if er != nil || cookie.Value == "" {
+			if field.mediaTypes[0].required {
+				err = fmt.Errorf(h.api.lang.Required(name))
+				return
+			}
+			return
+		}
+		if err = h.validString(cookie.Value, name, field.tag); err != nil {
+			return
+		}
+	} else {
+		values := h.handleValueToValues(field._type, cookie.Value)
+		if err = h.handleValue(inputValue, field, values); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (h *handlerServer) handleValueToValues(fType reflect.Type, value string) (values []string) {
+	if value != "" {
+		for fType.Kind() == reflect.Ptr {
+			fType = fType.Elem()
+		}
+		values = []string{value}
+		if fType.Kind() == reflect.Slice {
+			values = []string{}
+			valList := strings.Split(value, ",")
+			for _, v := range valList {
+				values = append(values, strings.TrimSpace(v))
+			}
 		}
 	}
 	return
