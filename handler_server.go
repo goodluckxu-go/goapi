@@ -368,12 +368,14 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 			}
 			childField := h.getChildFieldVal(inputValue, field.deepIdx)
 			h.initPtr(childField)
-			childField.MethodByName(field.inType).Call([]reflect.Value{reflect.ValueOf(token)})
+			security := childField.Interface().(HTTPBearer)
+			security.HTTPBearer(token)
 		case inTypeSecurityHTTPBasic:
 			username, password, _ := req.BasicAuth()
 			childField := h.getChildFieldVal(inputValue, field.deepIdx)
 			h.initPtr(childField)
-			childField.MethodByName(field.inType).Call([]reflect.Value{reflect.ValueOf(username), reflect.ValueOf(password)})
+			security := childField.Interface().(HTTPBasic)
+			security.HTTPBasic(username, password)
 		case inTypeSecurityApiKey:
 			if !securityApiKey.IsValid() {
 				securityApiKey = h.getChildFieldVal(inputValue, field.deepIdx[:len(field.deepIdx)-1])
@@ -447,7 +449,8 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 		}
 	}
 	if securityApiKey.IsValid() {
-		securityApiKey.MethodByName(inTypeSecurityApiKey).Call(nil)
+		security := securityApiKey.Interface().(ApiKey)
+		security.ApiKey()
 	}
 	return
 }

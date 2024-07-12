@@ -600,6 +600,7 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 			}
 			requestType := ""
 			for _, inTypeStr := range []string{inTypeHeader, inTypeCookie, inTypeQuery} {
+				tag := field.Tag
 				val := field.Tag.Get(inTypeStr)
 				if val == "" {
 					continue
@@ -609,13 +610,80 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 						field.Name, requestType, inTypeStr)
 					return
 				}
-				fInfo := fieldInfo{
-					name:      field.Name,
-					_type:     fType,
-					inType:    inTypeStr,
-					inTypeVal: val,
-					deepIdx:   append(deepIdx, i),
+				valList := strings.Split(val, ",")
+				required := true
+				if len(valList) > 1 && valList[1] == omitempty {
+					required = false
 				}
+				fInfo := fieldInfo{
+					name:       field.Name,
+					_type:      fType,
+					inType:     inTypeStr,
+					inTypeVal:  val,
+					mediaTypes: []mediaTypeInfo{{required: required}},
+					deepIdx:    append(deepIdx, i),
+				}
+				// tag
+				fTag := &fieldTagInfo{
+					regexp: tag.Get(tagRegexp),
+					desc:   tag.Get(tagDesc),
+				}
+				if tagVal := field.Tag.Get(tagEnum); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag.enum, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				if tagVal := tag.Get(tagDefault); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag._default, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				if tagVal := tag.Get(tagExample); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag.example, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				if tagVal := tag.Get(tagLt); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag.lt, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				if tagVal := tag.Get(tagLte); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag.lte, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				if tagVal := tag.Get(tagGt); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag.gt, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				if tagVal := tag.Get(tagGte); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag.gte, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				if tagVal := tag.Get(tagMultiple); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag.multiple, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				if tagVal := tag.Get(tagMax); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag.max, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				if tagVal := tag.Get(tagMin); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag.min, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				if tagVal := tag.Get(tagUnique); tagVal != "" {
+					if err = h.parseTagValByKind(tagVal, &fTag.unique, field.Type.Kind()); err != nil {
+						return
+					}
+				}
+				fInfo.tag = fTag
 				requestType = inTypeStr
 				for fType.Kind() == reflect.Ptr {
 					fType = fType.Elem()
