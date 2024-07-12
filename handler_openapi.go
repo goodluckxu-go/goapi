@@ -323,19 +323,22 @@ func (h *handlerOpenAPI) setSecuritySchemes(path pathInfo) {
 		switch inputFiled.inType {
 		case inTypeSecurityHTTPBearer:
 			securitySchemes[inputFiled.name] = &openapi.SecurityScheme{
-				Type:   "http",
-				Scheme: "bearer",
+				Type:        "http",
+				Scheme:      "bearer",
+				Description: inputFiled.tag.desc,
 			}
 		case inTypeSecurityHTTPBasic:
 			securitySchemes[inputFiled.name] = &openapi.SecurityScheme{
-				Type:   "http",
-				Scheme: "basic",
+				Type:        "http",
+				Scheme:      "basic",
+				Description: inputFiled.tag.desc,
 			}
 		case inTypeSecurityApiKey:
 			securitySchemes[inputFiled.name] = &openapi.SecurityScheme{
-				Type: "apiKey",
-				Name: inputFiled.inTypeVal,
-				In:   inputFiled.inTypeSecurity,
+				Type:        "apiKey",
+				Name:        inputFiled.inTypeVal,
+				In:          inputFiled.inTypeSecurity,
+				Description: inputFiled.tag.desc,
 			}
 		}
 	}
