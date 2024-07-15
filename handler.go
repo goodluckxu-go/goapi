@@ -619,7 +619,7 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					name:       field.Name,
 					_type:      fType,
 					inType:     inTypeStr,
-					inTypeVal:  val,
+					inTypeVal:  valList[0],
 					mediaTypes: []mediaTypeInfo{{required: required}},
 					deepIdx:    append(deepIdx, i),
 				}
