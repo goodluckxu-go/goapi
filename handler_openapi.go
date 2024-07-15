@@ -217,8 +217,10 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 			for _, mediaType := range inputField.mediaTypes {
 				childSchema := &openapi.Schema{}
 				h.setChildSchema(childSchema, inputField.deepTypes, len(inputField.mediaTypes), mediaType._type)
-				childSchema.XML = &openapi.XML{
-					Name: mediaType.name,
+				if mediaType._type == xmlType {
+					childSchema.XML = &openapi.XML{
+						Name: h.getStructBaseName(lastType._type.Name()),
+					}
 				}
 				bodyContent[string(typeToMediaTypeMap[mediaType._type])] = &openapi.MediaType{
 					Schema: childSchema,
@@ -264,6 +266,11 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
 			h.setChildSchema(childSchema, resp.deepTypes, mediaTypeCount, mediaType._type)
+			if mediaType._type == xmlType {
+				childSchema.XML = &openapi.XML{
+					Name: h.getStructBaseName(lastType._type.Name()),
+				}
+			}
 			responseContent[string(typeToMediaTypeMap[mediaType._type])] = &openapi.MediaType{
 				Schema: childSchema,
 			}
@@ -288,6 +295,11 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
 			h.setChildSchema(childSchema, resp.deepTypes, mediaTypeCount, mediaType._type)
+			if mediaType._type == xmlType {
+				childSchema.XML = &openapi.XML{
+					Name: h.getStructBaseName(lastType._type.Name()),
+				}
+			}
 			responseContent[string(typeToMediaTypeMap[mediaType._type])] = &openapi.MediaType{
 				Schema: childSchema,
 			}
@@ -569,4 +581,14 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 		schema.Properties = properties[mediaType]
 	default:
 	}
+}
+
+func (h *handlerOpenAPI) getStructBaseName(structName string) string {
+	if idx := strings.Index(structName, "["); idx != -1 {
+		structName = structName[:idx]
+	}
+	if idx := strings.LastIndex(structName, "."); idx != -1 {
+		structName = structName[idx+1:]
+	}
+	return structName
 }
