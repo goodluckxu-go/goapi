@@ -359,7 +359,7 @@ func (h *handlerOpenAPI) handleSchemas() {
 	}
 	h.openapi.Components.Schemas = map[string]*openapi.Schema{}
 	for key, schemas := range h.schemas {
-		if len(schemas) == 1 {
+		if !h.isMullMediaType {
 			for _, v := range schemas {
 				h.openapi.Components.Schemas[key] = v
 			}
