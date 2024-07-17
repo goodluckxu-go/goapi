@@ -45,10 +45,10 @@ func (h *handlerOpenAPI) Handle() *openapi.OpenAPI {
 }
 
 func (h *handlerOpenAPI) handleUseSchemas() {
-	buf, _ := h.openapi.MarshalJSON()
-	str := string(buf)
 	isDel := true
 	for isDel {
+		buf, _ := h.openapi.MarshalJSON()
+		str := string(buf)
 		isDel = false
 		for k, _ := range h.openapi.Components.Schemas {
 			ref := "#/components/schemas/" + k
