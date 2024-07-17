@@ -50,6 +50,11 @@ var typeToMediaTypeMap = map[string]MediaType{
 	xmlType:  XML,
 }
 
+var bodyMediaTypes = []MediaType{
+	JSON,
+	XML,
+}
+
 const prefixTempStruct = "tmp_"
 
 const tagRegexp = "regexp"     // VALIDATION. openapi's pattern

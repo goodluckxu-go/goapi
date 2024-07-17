@@ -20,9 +20,8 @@ func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {
 			Servers: api.OpenAPIServers,
 			Tags:    api.OpenAPITags,
 		},
-		schemas:         map[string]map[string]*openapi.Schema{},
-		relationSchemas: map[string][]string{},
-		useSchemas:      map[string]struct{}{},
+		schemas:         map[string]map[MediaType]*openapi.Schema{},
+		isMullMediaType: len(handle.allMediaTypes) > 1,
 	}
 }
 
@@ -30,16 +29,15 @@ type handlerOpenAPI struct {
 	api             *API
 	handle          *handler
 	openapi         *openapi.OpenAPI
-	schemas         map[string]map[string]*openapi.Schema
-	relationSchemas map[string][]string
-	useSchemas      map[string]struct{}
+	schemas         map[string]map[MediaType]*openapi.Schema
+	isMullMediaType bool
 }
 
 func (h *handlerOpenAPI) Handle() *openapi.OpenAPI {
 	h.handleStructs()
 	h.handlePaths()
-	h.handleUseSchemas()
 	h.handleSchemas()
+	h.handleUseSchemas()
 	if err := h.openapi.Validate(); err != nil {
 		log.Fatal(err)
 	}
@@ -47,18 +45,18 @@ func (h *handlerOpenAPI) Handle() *openapi.OpenAPI {
 }
 
 func (h *handlerOpenAPI) handleUseSchemas() {
-	handleSchemas := h.useSchemas
-	for len(handleSchemas) > 0 {
-		newHandleSchemas := map[string]struct{}{}
-		for k, _ := range handleSchemas {
-			for _, v := range h.relationSchemas[k] {
-				if _, ok := h.useSchemas[v]; !ok {
-					newHandleSchemas[v] = struct{}{}
-				}
-				h.useSchemas[v] = struct{}{}
+	buf, _ := h.openapi.MarshalJSON()
+	str := string(buf)
+	isDel := true
+	for isDel {
+		isDel = false
+		for k, _ := range h.openapi.Components.Schemas {
+			ref := "#/components/schemas/" + k
+			if !strings.Contains(str, ref) {
+				delete(h.openapi.Components.Schemas, k)
+				isDel = true
 			}
 		}
-		handleSchemas = newHandleSchemas
 	}
 }
 
@@ -188,7 +186,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 				In:          inputField.inType,
 				Description: inputField.tag.desc,
 				Schema:      childSchema,
-				Required:    inputField.mediaTypes[0].required,
+				Required:    inputField.required,
 				Example:     inputField.tag.example,
 			})
 		case inTypeForm:
@@ -196,33 +194,30 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 				bodyMediaType = formUrlencoded
 			}
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, inputField.deepTypes, 1, inputField.inTypeVal)
+			h.setChildSchema(childSchema, inputField.deepTypes, "")
 			bodyProperties[inputField.inTypeVal] = childSchema
-			if inputField.mediaTypes[0].required {
+			if inputField.required {
 				bodyRequireds = append(bodyRequireds, inputField.inTypeVal)
 			}
 		case inTypeFile:
 			bodyMediaType = formMultipart
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, inputField.deepTypes, 1, inputField.inTypeVal)
+			h.setChildSchema(childSchema, inputField.deepTypes, "")
 			bodyProperties[inputField.inTypeVal] = childSchema
-			if inputField.mediaTypes[0].required {
+			if inputField.required {
 				bodyRequireds = append(bodyRequireds, inputField.inTypeVal)
 			}
 		case inTypeBody:
 			lastType := inputField.deepTypes[len(inputField.deepTypes)-1]
-			if lastType.isStruct {
-				h.useSchemas[fmt.Sprintf("%v.%v", lastType._type.PkgPath(), lastType._type.Name())] = struct{}{}
-			}
 			for _, mediaType := range inputField.mediaTypes {
 				childSchema := &openapi.Schema{}
-				h.setChildSchema(childSchema, inputField.deepTypes, len(inputField.mediaTypes), mediaType._type)
-				if mediaType._type == xmlType {
+				h.setChildSchema(childSchema, inputField.deepTypes, mediaType)
+				if mediaType == XML {
 					childSchema.XML = &openapi.XML{
 						Name: h.getStructBaseName(lastType._type.Name()),
 					}
 				}
-				bodyContent[string(typeToMediaTypeMap[mediaType._type])] = &openapi.MediaType{
+				bodyContent[string(mediaType)] = &openapi.MediaType{
 					Schema: childSchema,
 				}
 			}
@@ -254,24 +249,16 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 	if path.res != nil {
 		resp := path.res
 		lastType := resp.deepTypes[len(resp.deepTypes)-1]
-		mediaTypeCount := len(resp.mediaTypes)
-		if lastType.isStruct {
-			key := fmt.Sprintf("%v.%v", lastType._type.PkgPath(), lastType._type.Name())
-			h.useSchemas[key] = struct{}{}
-			if len(h.handle.structs[key].fields) > 0 {
-				mediaTypeCount = len(h.handle.structs[key].fields[0].mediaTypes)
-			}
-		}
 		responseContent := map[string]*openapi.MediaType{}
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, resp.deepTypes, mediaTypeCount, mediaType._type)
-			if mediaType._type == xmlType {
+			h.setChildSchema(childSchema, resp.deepTypes, mediaType)
+			if mediaType == XML {
 				childSchema.XML = &openapi.XML{
 					Name: h.getStructBaseName(lastType._type.Name()),
 				}
 			}
-			responseContent[string(typeToMediaTypeMap[mediaType._type])] = &openapi.MediaType{
+			responseContent[string(mediaType)] = &openapi.MediaType{
 				Schema: childSchema,
 			}
 		}
@@ -283,24 +270,16 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 	if path.exceptRes != nil {
 		resp := path.exceptRes
 		lastType := resp.deepTypes[len(resp.deepTypes)-1]
-		mediaTypeCount := len(resp.mediaTypes)
-		if lastType.isStruct {
-			key := fmt.Sprintf("%v.%v", lastType._type.PkgPath(), lastType._type.Name())
-			h.useSchemas[key] = struct{}{}
-			if len(h.handle.structs[key].fields) > 0 {
-				mediaTypeCount = len(h.handle.structs[key].fields[0].mediaTypes)
-			}
-		}
 		responseContent := map[string]*openapi.MediaType{}
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, resp.deepTypes, mediaTypeCount, mediaType._type)
-			if mediaType._type == xmlType {
+			h.setChildSchema(childSchema, resp.deepTypes, mediaType)
+			if mediaType == XML {
 				childSchema.XML = &openapi.XML{
 					Name: h.getStructBaseName(lastType._type.Name()),
 				}
 			}
-			responseContent[string(typeToMediaTypeMap[mediaType._type])] = &openapi.MediaType{
+			responseContent[string(mediaType)] = &openapi.MediaType{
 				Schema: childSchema,
 			}
 		}
@@ -366,12 +345,8 @@ func (h *handlerOpenAPI) handleSchemas() {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
 		}
-		useKey := fmt.Sprintf("%v.%v", v.pkg, v.name)
-		if _, ok := h.useSchemas[useKey]; !ok {
-			continue
-		}
 		if h.schemas[v.openapiName] == nil {
-			h.schemas[v.openapiName] = map[string]*openapi.Schema{}
+			h.schemas[v.openapiName] = map[MediaType]*openapi.Schema{}
 		}
 		properties, requiredMap := h.setStructSchema(v.fields)
 		for key, val := range properties {
@@ -390,22 +365,22 @@ func (h *handlerOpenAPI) handleSchemas() {
 			}
 		} else {
 			for k, v := range schemas {
-				h.openapi.Components.Schemas[key+"_"+k] = v
+				h.openapi.Components.Schemas[key+"_"+mediaTypeToTypeMap[k]] = v
 			}
 		}
 	}
 }
 
-func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[string]map[string]*openapi.Schema, requiredMap map[string][]string) {
-	properties = map[string]map[string]*openapi.Schema{}
-	requiredMap = map[string][]string{}
+func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[MediaType]map[string]*openapi.Schema, requiredMap map[MediaType][]string) {
+	properties = map[MediaType]map[string]*openapi.Schema{}
+	requiredMap = map[MediaType][]string{}
 	for _, v1 := range fields {
-		for _, mediaType := range v1.mediaTypes {
-			if mediaType.name == "-" {
+		for mType, fInfo := range v1.fieldMap {
+			if fInfo.name == "-" {
 				continue
 			}
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, v1.deepTypes, len(v1.mediaTypes), mediaType._type)
+			h.setChildSchema(childSchema, v1.deepTypes, mType)
 			childSchema.Enum = v1.tag.enum
 			childSchema.Default = v1.tag._default
 			childSchema.Example = v1.tag.example
@@ -430,12 +405,12 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[str
 				childSchema.MaxProperties = v1.tag.max
 				childSchema.MinProperties = v1.tag.min
 			}
-			if properties[mediaType._type] == nil {
-				properties[mediaType._type] = map[string]*openapi.Schema{}
+			if properties[mType] == nil {
+				properties[mType] = map[string]*openapi.Schema{}
 			}
-			properties[mediaType._type][mediaType.name] = childSchema
-			if mediaType.required {
-				requiredMap[mediaType._type] = append(requiredMap[mediaType._type], mediaType.name)
+			properties[mType][fInfo.name] = childSchema
+			if fInfo.required {
+				requiredMap[mType] = append(requiredMap[mType], fInfo.name)
 			}
 		}
 	}
@@ -445,16 +420,9 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[str
 func (h *handlerOpenAPI) handleStructs() {
 	nameMap := map[string]map[string]struct{}{}
 	nameBaseMap := map[string]map[string]struct{}{}
-	for k, v := range h.handle.structs {
+	for k, _ := range h.handle.structs {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
-		}
-		useKey := fmt.Sprintf("%v.%v", v.pkg, v.name)
-		for _, field := range v.fields {
-			if field._struct != nil {
-				h.relationSchemas[useKey] = append(h.relationSchemas[useKey],
-					fmt.Sprintf("%v.%v", field._struct.pkg, field._struct.name))
-			}
 		}
 		pkg, name, baseName := h.parseOpenapiName(k)
 		if nameMap[name] == nil {
@@ -540,7 +508,7 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type) (rs typeInfo) {
 	return
 }
 
-func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo, mediaTypeCount int, mediaType string) {
+func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo, mediaType MediaType) {
 	if len(types) == 0 {
 		return
 	}
@@ -551,21 +519,21 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 	switch tyInfo._type.Kind() {
 	case reflect.Map:
 		childSchema := &openapi.Schema{}
-		h.setChildSchema(childSchema, types, mediaTypeCount, mediaType)
+		h.setChildSchema(childSchema, types, mediaType)
 		schema.Properties = map[string]*openapi.Schema{
 			"string": childSchema,
 		}
 	case reflect.Slice:
 		childSchema := &openapi.Schema{}
-		h.setChildSchema(childSchema, types, mediaTypeCount, mediaType)
+		h.setChildSchema(childSchema, types, mediaType)
 		schema.Items = childSchema
 	case reflect.Struct:
 		key := fmt.Sprintf("%v.%v", tyInfo._type.PkgPath(), tyInfo._type.Name())
 		if key != "." {
 			stInfo := h.handle.structs[key]
 			schemaKey := stInfo.openapiName
-			if mediaTypeCount > 1 {
-				schemaKey = stInfo.openapiName + "_" + mediaType
+			if h.isMullMediaType {
+				schemaKey = stInfo.openapiName + "_" + mediaTypeToTypeMap[mediaType]
 			}
 			schema.AllOf = []*openapi.Schema{
 				{

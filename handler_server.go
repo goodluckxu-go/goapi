@@ -377,7 +377,7 @@ func (h *handlerServer) handleCookie(req *http.Request, inputValue reflect.Value
 			name = field.inTypeVal
 		}
 		if er != nil || cookie.Value == "" {
-			if field.mediaTypes[0].required {
+			if field.required {
 				err = fmt.Errorf(h.api.lang.Required(name))
 				return
 			}
@@ -417,7 +417,7 @@ func (h *handlerServer) handleValue(inputValue reflect.Value, field fieldInfo, v
 	if name == "" {
 		name = field.inTypeVal
 	}
-	required := field.mediaTypes[0].required
+	required := field.required
 	if values == nil {
 		if required {
 			err = fmt.Errorf(h.api.lang.Required(name))
@@ -728,13 +728,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 			if name == "" {
 				name = field.name
 			}
-			var mType mediaTypeInfo
-			for _, v := range field.mediaTypes {
-				if v._type == mediaType {
-					mType = v
-					break
-				}
-			}
+			myFName := field.fieldMap[typeToMediaTypeMap[mediaType]]
 			v := val.Field(field.deepIdx[0])
 			fType := field._type
 			for fType.Kind() == reflect.Ptr {
@@ -745,7 +739,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				vFloat := float64(v.Int())
 				if vFloat == 0 {
-					if mType.required {
+					if myFName.required {
 						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
@@ -757,7 +751,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				vFloat := float64(v.Uint())
 				if vFloat == 0 {
-					if mType.required {
+					if myFName.required {
 						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
@@ -769,7 +763,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 			case reflect.Float32, reflect.Float64:
 				vFloat := v.Float()
 				if vFloat == 0 {
-					if mType.required {
+					if myFName.required {
 						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
@@ -781,7 +775,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 			case reflect.String:
 				vStr := v.String()
 				if v.String() == "" {
-					if mType.required {
+					if myFName.required {
 						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
@@ -793,7 +787,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 			case reflect.Slice:
 				vLen := v.Len()
 				if vLen == 0 {
-					if mType.required {
+					if myFName.required {
 						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}
@@ -820,7 +814,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 			case reflect.Map:
 				vLen := len(v.MapKeys())
 				if vLen == 0 {
-					if mType.required {
+					if myFName.required {
 						err = fmt.Errorf(h.api.lang.Required(name))
 						return
 					}

@@ -59,7 +59,9 @@ type fieldInfo struct {
 	deepIdx        []int       // Struct depth index
 	deepTypes      []typeInfo  // Struct type depth
 	_struct        *structInfo // Exists when type is struct
-	mediaTypes     []mediaTypeInfo
+	mediaTypes     []MediaType
+	required       bool
+	fieldMap       map[MediaType]*fieldNameInfo
 }
 
 type fieldTagInfo struct {
@@ -79,8 +81,7 @@ type fieldTagInfo struct {
 	unique   bool
 }
 
-type mediaTypeInfo struct {
-	_type    string // media type, example 'json', 'xml'
+type fieldNameInfo struct {
 	name     string
 	required bool
 }

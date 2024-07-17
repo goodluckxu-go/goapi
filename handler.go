@@ -10,19 +10,23 @@ import (
 )
 
 func newHandler(api *API) *handler {
-	return &handler{api: api}
+	return &handler{api: api, allMediaTypes: map[MediaType]struct{}{}}
 }
 
 type handler struct {
-	api          *API
-	paths        []pathInfo
-	statics      []staticInfo
-	structFields []fieldInfo
-	structs      map[string]*structInfo
-	middlewares  []Middleware
+	api           *API
+	paths         []pathInfo
+	statics       []staticInfo
+	structFields  []fieldInfo
+	structs       map[string]*structInfo
+	middlewares   []Middleware
+	allMediaTypes map[MediaType]struct{}
 }
 
 func (h *handler) Handle() {
+	for _, v := range h.api.responseMediaTypes {
+		h.allMediaTypes[v] = struct{}{}
+	}
 	h.middlewares = append(h.middlewares, setLogger())
 	for _, hd := range h.api.handlers {
 		switch val := hd.(type) {
@@ -48,17 +52,7 @@ func (h *handler) Handle() {
 			deepTypes: h.parseType(reflect.TypeOf(h.api.httpExceptionResponse.GetBody())),
 		}
 		lastType := resp.deepTypes[len(resp.deepTypes)-1]
-		name := ""
-		if lastType.isStruct && len(resp.deepTypes) == 1 {
-			name = lastType._type.Name()
-		}
-		for _, mediaType := range h.api.responseMediaTypes {
-			resp.mediaTypes = append(resp.mediaTypes, mediaTypeInfo{
-				name:     name,
-				_type:    mediaTypeToTypeMap[mediaType],
-				required: true,
-			})
-		}
+		resp.mediaTypes = h.api.responseMediaTypes
 		if lastType.isStruct {
 			h.structFields = append(h.structFields, fieldInfo{
 				_type:      lastType._type,
@@ -97,8 +91,11 @@ func (h *handler) handleStructs() (err error) {
 			if key == "." {
 				key = fmt.Sprintf("%v%p", prefixTempStruct, sType)
 			}
-			numField := sType.NumField()
 			oldStruct := h.structs[key]
+			if oldStruct != nil {
+				continue
+			}
+			numField := sType.NumField()
 			idx := 0
 			for i := 0; i < numField; i++ {
 				field := sType.Field(i)
@@ -112,39 +109,25 @@ func (h *handler) handleStructs() (err error) {
 					_type:     field.Type,
 					deepTypes: childTypes,
 					deepIdx:   []int{i},
+					fieldMap:  map[MediaType]*fieldNameInfo{},
 				}
 				tag := field.Tag
-				// mediaType
-				var mTypes []mediaTypeInfo
-				oldTypeMap := map[string]bool{}
-				if oldStruct != nil {
-					oldTypes := oldStruct.fields[idx].mediaTypes
-					for _, v := range oldTypes {
-						oldTypeMap[v._type] = true
-					}
-					mTypes = oldTypes
-				}
-				for _, v := range val.mediaTypes {
-					if oldTypeMap[v._type] {
-						continue
-					}
-					mType := mediaTypeInfo{
-						_type:    v._type,
+				// fieldNameInfo
+				for _, v := range bodyMediaTypes {
+					fInfo := &fieldNameInfo{
 						name:     field.Name,
 						required: true,
 					}
-					tagVal := tag.Get(v._type)
+					tagVal := tag.Get(mediaTypeToTypeMap[v])
 					if tagVal != "" {
 						tagList := strings.Split(tagVal, ",")
-						mType.name = tagList[0]
+						fInfo.name = tagList[0]
 						if len(tagList) > 1 && tagList[1] == omitempty {
-							mType.required = false
+							fInfo.required = false
 						}
 					}
-					mTypes = append(mTypes, mType)
+					fFile.fieldMap[v] = fInfo
 				}
-
-				fFile.mediaTypes = mTypes
 				// tag
 				fTag := &fieldTagInfo{}
 				if fTag, err = h.handleTag(tag, field.Type.Kind()); err != nil {
@@ -159,8 +142,7 @@ func (h *handler) handleStructs() (err error) {
 						_type: csType,
 					}
 					newStructFields = append(newStructFields, fieldInfo{
-						_type:      csType,
-						mediaTypes: mTypes,
+						_type: csType,
 					})
 				}
 				stInfo.fields = append(stInfo.fields, fFile)
@@ -174,11 +156,6 @@ func (h *handler) handleStructs() (err error) {
 			oldStruct := h.structs[key]
 			if oldStruct == nil {
 				structFields = append(structFields, val)
-			} else {
-				for k, v := range oldStruct.fields {
-					v.mediaTypes = val.mediaTypes
-					oldStruct.fields[k] = v
-				}
 			}
 		}
 	}
@@ -264,17 +241,7 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, e
 				deepTypes: h.parseType(respType),
 			}
 			lastType := resp.deepTypes[len(resp.deepTypes)-1]
-			name := ""
-			if lastType.isStruct && len(resp.deepTypes) == 1 {
-				name = lastType._type.Name()
-			}
-			for _, mediaType := range h.api.responseMediaTypes {
-				resp.mediaTypes = append(resp.mediaTypes, mediaTypeInfo{
-					name:     name,
-					_type:    mediaTypeToTypeMap[mediaType],
-					required: true,
-				})
-			}
+			resp.mediaTypes = h.api.responseMediaTypes
 			if lastType.isStruct {
 				h.structFields = append(h.structFields, fieldInfo{
 					_type:      lastType._type,
@@ -368,12 +335,12 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 						required = false
 					}
 					fInfo := fieldInfo{
-						name:       field.Name,
-						_type:      fType,
-						inType:     inTypeStr,
-						inTypeVal:  valList[0],
-						mediaTypes: []mediaTypeInfo{{required: required}},
-						deepIdx:    append(deepIdx, i),
+						name:      field.Name,
+						_type:     fType,
+						inType:    inTypeStr,
+						inTypeVal: valList[0],
+						deepIdx:   append(deepIdx, i),
+						required:  required,
 					}
 					// tag
 					fTag := &fieldTagInfo{}
@@ -401,34 +368,15 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 						}
 						fInfo.tag = fTag
 					case inTypeBody:
-						var mTypes []mediaTypeInfo
+						var mTypes []MediaType
 						for _, v := range valList {
 							if v != jsonType && v != xmlType {
 								err = fmt.Errorf("the body must in 'json','xml'")
 								return
 							}
-							mType := mediaTypeInfo{
-								_type:    v,
-								name:     field.Name,
-								required: true,
-							}
-							tagVal := tag.Get(v)
-							if tagVal != "" {
-								tagList := strings.Split(tagVal, ",")
-								mType.name = tagList[0]
-								if len(tagList) > 1 && tagList[1] == omitempty {
-									mType.required = false
-								}
-							}
-							childVal := tag.Get(v)
-							if childVal != "" {
-								childValList := strings.Split(childVal, ",")
-								mType.name = childValList[0]
-								if len(childValList) > 1 && childValList[1] == omitempty {
-									mType.required = false
-								}
-							}
-							mTypes = append(mTypes, mType)
+							mediaType := typeToMediaTypeMap[v]
+							h.allMediaTypes[mediaType] = struct{}{}
+							mTypes = append(mTypes, mediaType)
 						}
 						fInfo.mediaTypes = mTypes
 						fInfo.deepTypes = h.parseType(fType)
@@ -506,12 +454,12 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					required = false
 				}
 				fInfo := fieldInfo{
-					name:       field.Name,
-					_type:      fType,
-					inType:     inTypeStr,
-					inTypeVal:  valList[0],
-					mediaTypes: []mediaTypeInfo{{required: required}},
-					deepIdx:    append(deepIdx, i),
+					name:      field.Name,
+					_type:     fType,
+					inType:    inTypeStr,
+					inTypeVal: valList[0],
+					deepIdx:   append(deepIdx, i),
+					required:  required,
 				}
 				// tag
 				fTag := &fieldTagInfo{}
