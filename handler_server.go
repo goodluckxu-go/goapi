@@ -38,7 +38,7 @@ func (h *handlerServer) Handle() {
 	}
 	for _, path := range h.handle.paths {
 		for _, method := range path.methods {
-			h.handlePaths(method, path)
+			h.handlePaths(method, path, path.middlewares)
 		}
 	}
 	h.api.app.Handle(func(ctx *Context) {
@@ -85,10 +85,11 @@ func (h *handlerServer) handleStatic(static staticInfo) {
 			}
 			ctx.Next()
 		},
+		pos: root + " (fs)",
 	})
 }
 
-func (h *handlerServer) handlePaths(method string, path pathInfo) {
+func (h *handlerServer) handlePaths(method string, path pathInfo, middlewares []Middleware) {
 	h.api.routers = append(h.api.routers, appRouter{
 		path:   path.path,
 		method: method,
@@ -97,6 +98,7 @@ func (h *handlerServer) handlePaths(method string, path pathInfo) {
 			go h.handlePath(ctx, &path, done)
 			<-done
 		},
+		pos: fmt.Sprintf("%v (%v Middleware)", path.pos, len(middlewares)),
 	})
 }
 

@@ -134,6 +134,20 @@ func (a *API) Run(addr ...string) {
 	newHandlerServer(a, handle).Handle()
 	a.log.Info("Started server process [%v]", colorDebug(os.Getpid()))
 	a.log.Info("Using the [%v] APP", colorDebug(fmt.Sprintf("%T", a.app)))
+	a.log.Debug("All routes:")
+	maxMethodLen := 0
+	maxPathLen := 0
+	for _, v := range a.routers {
+		if maxMethodLen < len(v.method) {
+			maxMethodLen = len(v.method)
+		}
+		if maxPathLen < len(v.path) {
+			maxPathLen = len(v.path)
+		}
+	}
+	for _, v := range a.routers {
+		a.log.Debug("%v%v%v", spanFill(v.method, len(v.method), maxMethodLen+1), spanFill(v.path, len(v.path), maxPathLen+1), v.pos)
+	}
 	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
 	err := a.app.Run(a.addr)
 	if err != nil {
@@ -154,6 +168,7 @@ func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) app
 			}
 			ctx.Next()
 		},
+		pos: "github.com/goodluckxu-go/goapi/swagger.GetSwagger",
 	}
 }
 

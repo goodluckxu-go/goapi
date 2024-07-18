@@ -39,6 +39,7 @@ type pathInfo struct {
 	res       *fieldInfo // response
 	exceptRes *fieldInfo // exception response
 	isDocs    bool
+	pos       string // position
 }
 
 type structInfo struct {
@@ -104,4 +105,5 @@ type appRouter struct {
 	isPrefix bool
 	method   string
 	handler  func(ctx *Context)
+	pos      string
 }

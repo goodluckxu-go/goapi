@@ -169,12 +169,15 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, e
 		err = fmt.Errorf("router must be a struct pointer")
 		return
 	}
+	routerStructType := routerType.Elem().Type()
+	pos := fmt.Sprintf("%v.(*%v)", routerStructType.PkgPath(), routerStructType.Name())
 	numMethod := routerType.NumMethod()
 	for i := 0; i < numMethod; i++ {
 		method := routerType.Method(i)
 		pInfo := pathInfo{
 			funcValue: method,
 			isDocs:    router.isDocs,
+			pos:       fmt.Sprintf("%v.%v", pos, routerType.Type().Method(i).Name),
 		}
 		numIn := method.Type().NumIn()
 		var params []any
