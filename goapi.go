@@ -146,7 +146,7 @@ func (a *API) Run(addr ...string) {
 		}
 	}
 	for _, v := range a.routers {
-		a.log.Debug("%v%v%v", spanFill(v.method, len(v.method), maxMethodLen+1), spanFill(v.path, len(v.path), maxPathLen+1), v.pos)
+		a.log.Debug("%v%v--> %v", spanFill(v.method, len(v.method), maxMethodLen+1), spanFill(v.path, len(v.path), maxPathLen+1), v.pos)
 	}
 	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
 	err := a.app.Run(a.addr)
