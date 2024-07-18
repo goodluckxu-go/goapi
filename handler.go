@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -263,17 +264,9 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, e
 }
 
 func (h *handler) handlePathSort(list []pathInfo) {
-	left, right := 0, len(list)-1
-	for left < right {
-		for strings.Contains(list[right].path, "{") {
-			right--
-		}
-		if strings.Contains(list[left].path, "{") {
-			list[left], list[right] = list[right], list[left]
-			right--
-		}
-		left++
-	}
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].path < list[j].path
+	})
 }
 
 func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int) (list []any, err error) {
