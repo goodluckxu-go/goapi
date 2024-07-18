@@ -165,12 +165,22 @@ func (h *handler) handleStructs() (err error) {
 
 func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, err error) {
 	routerType := reflect.ValueOf(router.router)
-	if routerType.Kind() != reflect.Ptr || routerType.Elem().Kind() != reflect.Struct {
-		err = fmt.Errorf("router must be a struct pointer")
+	var routerStructType reflect.Type
+	var pos string
+	switch routerType.Kind() {
+	case reflect.Ptr:
+		if routerType.Elem().Kind() != reflect.Struct {
+			err = fmt.Errorf("router must be a struct or struct pointer")
+		}
+		routerStructType = routerType.Elem().Type()
+		pos = fmt.Sprintf("%v.(*%v)", routerStructType.PkgPath(), routerStructType.Name())
+	case reflect.Struct:
+		routerStructType = routerType.Type()
+		pos = fmt.Sprintf("%v.%v", routerStructType.PkgPath(), routerStructType.Name())
+	default:
+		err = fmt.Errorf("router must be a struct or struct pointer")
 		return
 	}
-	routerStructType := routerType.Elem().Type()
-	pos := fmt.Sprintf("%v.(*%v)", routerStructType.PkgPath(), routerStructType.Name())
 	numMethod := routerType.NumMethod()
 	for i := 0; i < numMethod; i++ {
 		method := routerType.Method(i)
