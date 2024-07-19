@@ -95,6 +95,11 @@ func (a *API) IncludeRouter(router any, prefix string, isDocs bool, middlewares 
 	})
 }
 
+// IncludeGroup It is an introduction routing group
+func (a *API) IncludeGroup(group *APIGroup) {
+	a.handlers = append(a.handlers, group)
+}
+
 // DebugPprof Open the system's built-in pprof
 func (a *API) DebugPprof() {
 	a.handlers = append(a.handlers, &includeRouter{
@@ -168,7 +173,7 @@ func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) app
 			}
 			ctx.Next()
 		},
-		pos: "github.com/goodluckxu-go/goapi/swagger.GetSwagger",
+		pos: fmt.Sprintf("github.com/goodluckxu-go/goapi/swagger.GetSwagger (%v Middleware)", len(middlewares)),
 	}
 }
 
@@ -188,3 +193,38 @@ func (a *API) init() {
 }
 
 type Middleware func(ctx *Context)
+
+type APIGroup struct {
+	prefix   string
+	isDocs   bool
+	handlers []any
+}
+
+func NewGroup(prefix string, isDocs bool) *APIGroup {
+	return &APIGroup{
+		prefix: prefix,
+		isDocs: isDocs,
+	}
+}
+
+// AddMiddleware It is a function for adding middleware
+func (g *APIGroup) AddMiddleware(middlewares ...Middleware) {
+	for _, middleware := range middlewares {
+		g.handlers = append(g.handlers, middleware)
+	}
+}
+
+// IncludeRouter It is a function that introduces routing structures
+func (g *APIGroup) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...Middleware) {
+	g.handlers = append(g.handlers, &includeRouter{
+		router:      router,
+		prefix:      prefix,
+		isDocs:      isDocs,
+		middlewares: middlewares,
+	})
+}
+
+// IncludeGroup It is an introduction routing group
+func (g *APIGroup) IncludeGroup(group *APIGroup) {
+	g.handlers = append(g.handlers, group)
+}

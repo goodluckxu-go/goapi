@@ -29,25 +29,7 @@ func (h *handler) Handle() {
 		h.allMediaTypes[v] = struct{}{}
 	}
 	h.middlewares = append(h.middlewares, setLogger())
-	for _, hd := range h.api.handlers {
-		switch val := hd.(type) {
-		case *includeRouter:
-			pathMiddlewares := append(h.middlewares, val.middlewares...)
-			list, err := h.handleIncludeRouter(val)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for k, v := range list {
-				v.middlewares = pathMiddlewares
-				list[k] = v
-			}
-			h.paths = append(h.paths, list...)
-		case *staticInfo:
-			h.statics = append(h.statics, *val)
-		case Middleware:
-			h.middlewares = append(h.middlewares, val)
-		}
-	}
+	h.handleHandlers(h.api.handlers, h.middlewares, "", true)
 	if h.api.httpExceptionResponse != nil {
 		resp := fieldInfo{
 			deepTypes: h.parseType(reflect.TypeOf(h.api.httpExceptionResponse.GetBody())),
@@ -68,6 +50,31 @@ func (h *handler) Handle() {
 	}
 	if err := h.handleStructs(); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefix string, isDocs bool) {
+	for _, hd := range handlers {
+		switch val := hd.(type) {
+		case *includeRouter:
+			pathMiddlewares := append(middlewares, val.middlewares...)
+			list, err := h.handleIncludeRouter(val, prefix)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for k, v := range list {
+				v.middlewares = pathMiddlewares
+				v.isDocs = isDocs && v.isDocs
+				list[k] = v
+			}
+			h.paths = append(h.paths, list...)
+		case *staticInfo:
+			h.statics = append(h.statics, *val)
+		case *APIGroup:
+			h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs)
+		case Middleware:
+			middlewares = append(middlewares, val)
+		}
 	}
 }
 
@@ -163,7 +170,7 @@ func (h *handler) handleStructs() (err error) {
 	return
 }
 
-func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, err error) {
+func (h *handler) handleIncludeRouter(router *includeRouter, prefix string) (list []pathInfo, err error) {
 	routerType := reflect.ValueOf(router.router)
 	var routerStructType reflect.Type
 	var pos string
@@ -263,7 +270,7 @@ func (h *handler) handleIncludeRouter(router *includeRouter) (list []pathInfo, e
 				})
 			}
 		}
-		pInfo.path = router.prefix + rInfo.path
+		pInfo.path = prefix + router.prefix + rInfo.path
 		pInfo.methods = rInfo.methods
 		pInfo.inputFields = fInfoList
 		pInfo.summary = rInfo.summary

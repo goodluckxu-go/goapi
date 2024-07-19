@@ -85,7 +85,7 @@ func (h *handlerServer) handleStatic(static staticInfo) {
 			}
 			ctx.Next()
 		},
-		pos: root + " (fs)",
+		pos: root + fmt.Sprintf(" (fs) (%v Middleware)", len(h.handle.middlewares)),
 	})
 }
 
