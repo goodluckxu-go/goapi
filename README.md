@@ -1,5 +1,5 @@
 # goapi
-About the OpenAPI3.1.0 usage of http
+Using the HTTP framework of OpenAPI3.1 documentation
 
 ## usage
 ~~~bash
