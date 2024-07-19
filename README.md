@@ -40,10 +40,15 @@ type UserController struct {
 type UserListRouter struct {
 }
 
+type Req struct {
+	Page int `json:"page" desc:"now page" gt:"0"`
+	Limit int `json:"page" desc:"limit a page count" gte:"10" lte:"100"`
+}
+
 func (u *UserListRouter) Index(input struct {
 	router  goapi.Router `path:"/index/{id}" method:"put" summary:"test api" desc:"test api" tags:"admin"`
 	Auth    *AdminAuth
-	ID      string `path:"id"` // path 
+	ID      string `path:"id" regexp:"^\d+$"` // path 
 	Req     Req `body:"json"`
 }) Resp {
 	return Resp{}
@@ -76,17 +81,16 @@ func (h *AdminAuth) HTTPBasic(username,password string) {
 // Auth verification
 type UserListHeader struct { 
 	Token     string
-	param.Header     // inherit
 }
 
 // Implement ApiKey interface
 type AdminAuth struct {
-	Header *UserListHeader
+	Token  string   `header:"Token"`
 	Admin  string          // Define a value and retrieve it from the controller
 }
 
 func (h *AdminAuth) ApiKey() {
-	if h.Header.token != "123456" {
+	if h.Token != "123456" {
 		goapi.HTTPException(401, "token is error")
 	}
 	h.Admin = "admin"
