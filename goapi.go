@@ -200,6 +200,7 @@ type APIGroup struct {
 	handlers []any
 }
 
+// NewGroup It is a newly created APIGroup function
 func NewGroup(prefix string, isDocs bool) *APIGroup {
 	return &APIGroup{
 		prefix: prefix,
