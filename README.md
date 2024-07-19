@@ -8,11 +8,13 @@ go get github.com/goodluckxu-go/goapi
 main.go
 ~~~go
 import (
+	"github.com/fatih/color"
 	"github.com/goodluckxu-go/goapi"
 	"github.com/goodluckxu-go/goapi/app"
 )
 
 func main() {
+	color.NoColor = true // Turn off console color, default color
 	api := goapi.GoAPI(&app.Gin{}, true, "/docs")
 	api.SetResponseMediaType(goapi.JSON)
 	api.HTTPExceptionHandler(func(httpCode int, detail string) goapi.Response {
@@ -90,13 +92,18 @@ func (h *AdminAuth) ApiKey() {
 	h.Admin = "admin"
 }
 ~~~
-
-### Structure tag field annotation
+### 'goapi.Router' tag field annotation
+- path: Access Routing
+- method: Access method. Multiple contents separated by ','
+- summary: A short summary of the API.
+- desc: A description of the API. CommonMark syntax MAY be used for rich text representation.
+- tags: Multiple contents separated by ','
+### Annotation of parameter structure tag in the method
 - header
   - Can use commonly used types(ptr, slice), in slice type use ',' split
   - Value is an alias for a field, 'omitempty' is nullable
 - cookie
-  - Can use commonly used types(ptr, slice) or *http.Cookie, in slice type use ',' split
+  - Can use commonly used types(ptr, slice) or '*http.Cookie', in slice type use ',' split
   - Value is an alias for a field, 'omitempty' is nullable
 - query
   - Can use commonly used types(ptr, slice)
@@ -109,11 +116,11 @@ func (h *AdminAuth) ApiKey() {
   - default media type 'application/x-www-form-urlencoded', if file exists 'multipart/form-data'
   - Value is an alias for a field, 'omitempty' is nullable
 - file
-  - Can use commonly used *multipart.FileHeader or []*multipart.FileHeader
+  - Can use commonly used '*multipart.FileHeader' or '[]*multipart.FileHeader'
   - default media type 'multipart/form-data'
   - Value is an alias for a field, 'omitempty' is nullable
 - body
-  - The values are xml and json, Multiple uses ',' segmentation
+  - The values are 'xml' and 'json', Multiple uses ',' segmentation
   - Value of json is media type 'application/json', xml is media type 'application/xml'
   - Body of tag use value, 'omitempty' is nullable
 ### Structure tag annotation
