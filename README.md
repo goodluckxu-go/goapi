@@ -130,10 +130,11 @@ func (h *AdminAuth) ApiKey() {
 ### Structure tag annotation
 - regexp
     - Regular expression of value
+    - Validator limit **string** type
     - Equivalent to OpenAPI **pattern**
 - enum
     - Enumeration of values
-    - Limit **integer** **number** **boolean** **string** type
+    - Validator limit **integer** **number** **boolean** **string** type
     - Comma division (**,**)
 - default
     - Default value
@@ -144,32 +145,32 @@ func (h *AdminAuth) ApiKey() {
     - Equivalent to OpenAPI **description**
 - lt
     - Less than value
-    - Limit **integer** **number** type
+    - Validator limit **integer** **number** type
     - Equivalent to OpenAPI **exclusiveMaximum**
 - lte
     - Less than or equal to value
-    - Limit **integer** **number** type
+    - Validator limit **integer** **number** type
     - Equivalent to OpenAPI **maximum**
 - gt
     - Greater than value
-    - Limit **integer** **number** type
+    - Validator limit **integer** **number** type
     - Equivalent to OpenAPI **exclusiveMinimum**
 - gte
     - Greater than or equal to value
-    - Limit **integer** **number** type
+    - Validator limit **integer** **number** type
     - Equivalent to OpenAPI **minimum**
 - multiple
     - Multipliers of values
-    - Limit **integer** **number** type
+    - Validator limit **integer** **number** type
 - max
     - The maximum length of the value
-    - Limit **string** **array** **object** type
+    - Validator limit **string** **array** **object** type
 - min
     - The minimum length of the value
-    - Limit **string** **array** **object** type
+    - Validator limit **string** **array** **object** type
 - unique
     - The value of the array is unique
-    - Limit **array** type
+    - Validator limit **array** type
 ## Response annotation
 - if response is an implementation of the goapi.Response interface, you can set the http Code and header
 - else do not set the header, and set the HTTP code to 200
