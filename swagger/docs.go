@@ -87,7 +87,6 @@ func GetSwagger(path, title, favicon string, openapiJsonBody []byte) (routers []
 		Path: openapiPath,
 		Handler: func(writer http.ResponseWriter, request *http.Request) {
 			writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-			writer.WriteHeader(200)
 			_, _ = writer.Write(openapiJsonBody)
 		},
 	})
@@ -99,7 +98,6 @@ func handleCache(writer http.ResponseWriter, request *http.Request) bool {
 		writer.WriteHeader(304)
 		return true
 	}
-	writer.WriteHeader(200)
 	writer.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
 	writer.Header().Set("Cache-Control", "max-age=86400")
 	return false
