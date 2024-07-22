@@ -87,9 +87,9 @@ func SetLogLevel(level LogLevel) {
 }
 
 func SetLogger(log Logger) {
-	log = &levelHandleLogger{log: log}
+	defaultLog = &levelHandleLogger{log: log}
 }
 
 func GetLogger() Logger {
-	return log
+	return defaultLog
 }
