@@ -63,6 +63,11 @@ func (a *API) SetLogger(log Logger) {
 	a.log = &levelHandleLogger{log: log}
 }
 
+// Logger It is a method of obtaining logs
+func (a *API) Logger() Logger {
+	return a.log
+}
+
 // SetResponseMediaType It is a function that sets the return value type
 func (a *API) SetResponseMediaType(mediaTypes ...MediaType) {
 	m := map[MediaType]struct{}{}

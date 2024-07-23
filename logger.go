@@ -85,11 +85,3 @@ var colorFatal = color.New(color.BgRed, color.FgWhite).SprintFunc()
 func SetLogLevel(level LogLevel) {
 	logLevel = level
 }
-
-func SetLogger(log Logger) {
-	defaultLog = &levelHandleLogger{log: log}
-}
-
-func GetLogger() Logger {
-	return defaultLog
-}

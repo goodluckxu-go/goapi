@@ -39,6 +39,7 @@ func (c *Context) Err() error {
 	return nil
 }
 
+// Set It is a method for setting context values
 func (c *Context) Set(key string, value any) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -48,6 +49,7 @@ func (c *Context) Set(key string, value any) {
 	c.Values[key] = value
 }
 
+// Get It is a method for obtaining context values
 func (c *Context) Get(key string) (value any, ok bool) {
 	c.mux.RLock()
 	defer c.mux.RUnlock()
@@ -67,6 +69,7 @@ func (c *Context) Value(key any) any {
 	return nil
 }
 
+// Next It is used in middleware, before Next is before interface request, and after Next is after interface request
 func (c *Context) Next() {
 	c.mux.RLock()
 	defer c.mux.RUnlock()
@@ -83,6 +86,7 @@ func (c *Context) Next() {
 	middleware(c)
 }
 
+// Logger It is a method of obtaining logs
 func (c *Context) Logger() Logger {
 	return c.log
 }

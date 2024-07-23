@@ -75,8 +75,6 @@ const validErrorCode = 422
 
 type LogLevel uint
 
-var defaultLog Logger = &levelHandleLogger{log: &defaultLogger{}}
-
 var logLevel LogLevel = LogInfo | LogDebug | LogWarning | LogError | LogFail
 
 const (
