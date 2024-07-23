@@ -489,11 +489,20 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type) (rs typeInfo) {
 	case reflect.Bool:
 		rs.typeStr = "boolean"
 	case reflect.Slice:
+		if fType == typeBytes {
+			rs.typeStr = "string"
+			return
+		}
 		rs.typeStr = "array"
 	case reflect.Map:
 		rs.typeStr = "object"
 	case reflect.Ptr:
 		if fType == typeFile {
+			rs.typeStr = "string"
+			rs.format = "binary"
+			return
+		}
+		if fType.Implements(interfaceIoReadCloser) {
 			rs.typeStr = "string"
 			rs.format = "binary"
 			return

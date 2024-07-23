@@ -382,17 +382,32 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 						fInfo.tag = fTag
 					case inTypeBody:
 						var mTypes []MediaType
+						isNotJsonXml := false
 						for _, v := range valList {
-							if v != jsonType && v != xmlType {
-								err = fmt.Errorf("the body must in 'json','xml'")
-								return
-							}
 							mediaType := typeToMediaTypeMap[v]
+							if mediaType == "" {
+								mediaType = MediaType(v)
+							}
+							if mediaType != XML && mediaType != JSON {
+								isNotJsonXml = true
+							}
 							h.allMediaTypes[mediaType] = struct{}{}
 							mTypes = append(mTypes, mediaType)
 						}
+						if isNotJsonXml && len(mTypes) > 1 {
+							err = fmt.Errorf("non 'json', 'xml' types do not allow multiple transfers")
+							return
+						}
 						fInfo.mediaTypes = mTypes
-						fInfo.deepTypes = h.parseType(fType)
+						if isNotJsonXml {
+							if fType.Kind() != reflect.String && fType != typeBytes && !fType.Implements(interfaceIoReadCloser) {
+								err = fmt.Errorf("other media types only support types '[]byte', 'string', and 'io.ReadCloser‘")
+								return
+							}
+							fInfo.deepTypes = []typeInfo{{_type: fType}}
+						} else {
+							fInfo.deepTypes = h.parseType(fType)
+						}
 						fInfo.inType = inTypeStr
 						lastType := fInfo.deepTypes[len(fInfo.deepTypes)-1]
 						if lastType.isStruct {

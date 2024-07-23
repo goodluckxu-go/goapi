@@ -270,6 +270,11 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 				}
 			}
 		case inTypeBody:
+			if field._type.Implements(interfaceIoReadCloser) {
+				childField := h.getChildFieldVal(inputValue, field.deepIdx)
+				childField.Set(reflect.ValueOf(req.Body))
+				continue
+			}
 			if bodyBytes, er := io.ReadAll(req.Body); er == nil {
 				if len(bodyBytes) == 0 {
 					err = fmt.Errorf(h.api.lang.Required("body"))
@@ -692,6 +697,17 @@ func (h *handlerServer) setBody(req *http.Request, fVal reflect.Value, body []by
 		if err = xml.Unmarshal(body, newVal.Interface()); err != nil {
 			return
 		}
+	default:
+		if typeBytes == fVal.Type() {
+			fVal.Set(reflect.ValueOf(body))
+			return
+		}
+		switch fVal.Kind() {
+		case reflect.String:
+			fVal.Set(reflect.ValueOf(string(body)))
+		default:
+		}
+		return
 	}
 	if err = h.validBody(newVal, mediaType); err != nil {
 		return
