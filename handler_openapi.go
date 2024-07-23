@@ -533,6 +533,9 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 			"string": childSchema,
 		}
 	case reflect.Slice:
+		if tyInfo._type == typeBytes {
+			return
+		}
 		childSchema := &openapi.Schema{}
 		h.setChildSchema(childSchema, types, mediaType)
 		schema.Items = childSchema
