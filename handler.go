@@ -416,6 +416,7 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 								mediaTypes: mTypes,
 							})
 						}
+						fInfo.tag = fTag
 					case inTypeFile:
 						if fType != typeFile && fType != typeFiles {
 							err = fmt.Errorf("the type of file must in '*multipart.FileHeader', '[]*multipart.FileHeader")

@@ -147,6 +147,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 			"mediaType": []string{},
 		})
 	}
+	bodyDesc := "Request Body"
 	for _, inputField := range path.inputFields {
 		switch inputField.inType {
 		case inTypePath, inTypeQuery, inTypeCookie, inTypeHeader:
@@ -209,6 +210,9 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 			}
 		case inTypeBody:
 			lastType := inputField.deepTypes[len(inputField.deepTypes)-1]
+			if inputField.tag.desc != "" {
+				bodyDesc = inputField.tag.desc
+			}
 			for _, mediaType := range inputField.mediaTypes {
 				childSchema := &openapi.Schema{}
 				h.setChildSchema(childSchema, inputField.deepTypes, mediaType)
@@ -241,7 +245,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 	}
 	if len(bodyContent) > 0 {
 		operation.RequestBody = &openapi.RequestBody{
-			Description: "Request Body",
+			Description: bodyDesc,
 			Content:     bodyContent,
 		}
 	}
