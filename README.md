@@ -125,7 +125,7 @@ func (h *AdminAuth) ApiKey() {
   - Value is an alias for a field, 'omitempty' is nullable
 - body
   - The values are 'xml' and 'json', Multiple uses ',' segmentation
-  - The value is for other media types(example 'text/plain'), only one can exist, The type is '[]byte', 'string' or 'io.ReadCloser'
+  - The value is for other media types(example 'text/plain'), The type is '[]byte', 'string' or 'io.ReadCloser'
   - Value of json is media type 'application/json', xml is media type 'application/xml'
   - Body of tag use value, 'omitempty' is nullable
 ### Structure tag annotation
