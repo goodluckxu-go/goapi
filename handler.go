@@ -394,10 +394,6 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 							h.allMediaTypes[mediaType] = struct{}{}
 							mTypes = append(mTypes, mediaType)
 						}
-						if isNotJsonXml && len(mTypes) > 1 {
-							err = fmt.Errorf("non 'json', 'xml' types do not allow multiple transfers")
-							return
-						}
 						fInfo.mediaTypes = mTypes
 						if isNotJsonXml {
 							if fType.Kind() != reflect.String && fType != typeBytes && !fType.Implements(interfaceIoReadCloser) {
