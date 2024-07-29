@@ -252,17 +252,25 @@ func (h *handler) handleIncludeRouter(router *includeRouter, prefix string) (lis
 		}
 		var resp *fieldInfo
 		if method.Type().NumOut() == 1 {
+			var mediaTypes []MediaType
 			respType := routerType.Method(i).Type().Out(0)
 			if respType.Implements(typeResponse) {
 				res := reflect.New(respType.Elem()).Interface().(Response)
 				respType = reflect.TypeOf(res.GetBody())
+				switch res.(type) {
+				case *FileResponse:
+					mediaTypes = append(mediaTypes, "application/octet-stream")
+				}
 			}
 			resp = &fieldInfo{
-				_type:     respType,
-				deepTypes: h.parseType(respType),
+				_type:      respType,
+				deepTypes:  h.parseType(respType),
+				mediaTypes: mediaTypes,
 			}
 			lastType := resp.deepTypes[len(resp.deepTypes)-1]
-			resp.mediaTypes = h.api.responseMediaTypes
+			if len(resp.mediaTypes) == 0 {
+				resp.mediaTypes = h.api.responseMediaTypes
+			}
 			if lastType.isStruct {
 				h.structFields = append(h.structFields, fieldInfo{
 					_type:      lastType._type,
