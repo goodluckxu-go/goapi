@@ -257,9 +257,8 @@ func (h *handler) handleIncludeRouter(router *includeRouter, prefix string) (lis
 			if respType.Implements(typeResponse) {
 				res := reflect.New(respType.Elem()).Interface().(Response)
 				respType = reflect.TypeOf(res.GetBody())
-				switch res.(type) {
-				case *FileResponse:
-					mediaTypes = append(mediaTypes, "application/octet-stream")
+				if res.GetContentType() != "" {
+					mediaTypes = append(mediaTypes, MediaType(res.GetContentType()))
 				}
 			}
 			resp = &fieldInfo{

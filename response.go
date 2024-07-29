@@ -11,6 +11,7 @@ type Response interface {
 	Bytes() []byte
 	GetBody() any
 	GetHttpCode() int
+	GetContentType() string
 	GetHeaders() map[string]string
 }
 
@@ -32,7 +33,7 @@ func (h *HTTPResponse[T]) Bytes() []byte {
 		buf, err = json.Marshal(h.Body)
 	case XML:
 		buf, err = xml.Marshal(h.Body)
-	case "application/octet-stream":
+	default:
 		var anyVal any = h.Body
 		if val, ok := anyVal.([]byte); ok {
 			buf = val
@@ -50,6 +51,10 @@ func (h *HTTPResponse[T]) GetBody() any {
 
 func (h *HTTPResponse[T]) GetHttpCode() int {
 	return h.HttpCode
+}
+
+func (h *HTTPResponse[T]) GetContentType() string {
+	return ""
 }
 
 func (h *HTTPResponse[T]) GetHeaders() map[string]string {
@@ -89,9 +94,13 @@ func (h *FileResponse) GetHttpCode() int {
 	return 200
 }
 
+func (h *FileResponse) GetContentType() string {
+	return "application/octet-stream"
+}
+
 func (h *FileResponse) GetHeaders() map[string]string {
 	return map[string]string{
-		"Content-Type":        "application/octet-stream",
+		"Content-Type":        h.GetContentType(),
 		"Content-Disposition": fmt.Sprintf("attachment; filename=\"%v\"", h.Filename),
 	}
 }
