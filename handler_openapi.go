@@ -337,7 +337,9 @@ func (h *handlerOpenAPI) setSecuritySchemes(path pathInfo) {
 			}
 		}
 	}
-	h.openapi.Components.SecuritySchemes = securitySchemes
+	if len(securitySchemes) > 0 {
+		h.openapi.Components.SecuritySchemes = securitySchemes
+	}
 }
 
 func (h *handlerOpenAPI) handleSchemas() {
