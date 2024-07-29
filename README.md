@@ -173,8 +173,10 @@ func (h *AdminAuth) ApiKey() {
     - The value of the array is unique
     - Validator limit **array** type
 ## Response annotation
-- if response is an implementation of the goapi.Response interface, you can set the http Code and header
-- else do not set the header, and set the HTTP code to 200
+### if response is an implementation of the goapi.Response interface, you can set some functions
+- **HTTPResponse[T]** can set httpCode and header
+- **FileResponse** can return downloadable files
+- **SSEResponse** can return content in Server Sent Events format
 ## Error corresponding comment
 ~~~go
 goapi.HTTPException(404, "error message")
