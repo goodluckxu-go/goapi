@@ -151,19 +151,13 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struc
 		}
 		if rs[0].Type().Implements(typeResponse) {
 			resp := rs[0].Interface().(Response)
-			httpRes.HttpCode = resp.GetHttpCode()
-			for k, v := range resp.GetHeaders() {
-				httpRes.Header[k] = v
-			}
-			httpRes.Body = resp.GetBody()
-		} else {
-			httpRes.Body = rs[0].Interface()
+			resp.SetContentType(string(typeToMediaTypeMap[mediaType]))
+			resp.Write(ctx.Writer)
+			done <- struct{}{}
+			return
 		}
-		for k, v := range httpRes.Header {
-			ctx.Writer.Header().Set(k, v)
-		}
-		ctx.Writer.WriteHeader(httpRes.GetHttpCode())
-		_, _ = ctx.Writer.Write(httpRes.Bytes())
+		httpRes.Body = rs[0].Interface()
+		httpRes.Write(ctx.Writer)
 		done <- struct{}{}
 	}
 	ctx.Next()
@@ -190,14 +184,9 @@ func (h *handlerServer) handleException(writer http.ResponseWriter, err any, med
 		for k, v := range res.Header {
 			httpRes.Header[k] = v
 		}
-		httpRes.HttpCode = exceptRes.GetHttpCode()
 		httpRes.Body = exceptRes.GetBody()
 	}
-	for k, v := range httpRes.GetHeaders() {
-		writer.Header().Set(k, v)
-	}
-	writer.WriteHeader(httpRes.GetHttpCode())
-	_, _ = writer.Write(httpRes.Bytes())
+	httpRes.Write(writer)
 }
 
 func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.Type, fields []fieldInfo) (inputValue reflect.Value, err error) {
