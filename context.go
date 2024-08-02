@@ -19,6 +19,16 @@ type Context struct {
 	paths       map[string]string
 }
 
+func (c *Context) reset() {
+	c.Request = nil
+	c.Writer = nil
+	c.Values = nil
+	c.log = nil
+	c.middlewares = nil
+	c.routerFunc = nil
+	c.paths = nil
+}
+
 func (c *Context) Deadline() (deadline time.Time, ok bool) {
 	if c.Request != nil && c.Request.Context() != nil {
 		return c.Request.Context().Deadline()

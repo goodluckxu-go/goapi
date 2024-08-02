@@ -46,8 +46,7 @@ func (h *handlerServer) Handle() {
 func (h *handlerServer) HttpHandler() http.Handler {
 	mux := newGoAPIMux(h.api.log)
 	for _, router := range h.api.routers {
-		r := router
-		if err := mux.addRouters(router.path, router.method, &r); err != nil {
+		if err := mux.addRouters(router.path, router.method, router); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -56,7 +55,7 @@ func (h *handlerServer) HttpHandler() http.Handler {
 
 func (h *handlerServer) handleStatic(static staticInfo) {
 	root, _ := filepath.Abs(static.root)
-	h.api.routers = append(h.api.routers, appRouter{
+	h.api.routers = append(h.api.routers, &appRouter{
 		path:     static.path,
 		isPrefix: true,
 		method:   http.MethodGet,
@@ -75,7 +74,7 @@ func (h *handlerServer) handleStatic(static staticInfo) {
 }
 
 func (h *handlerServer) handlePaths(method string, path pathInfo, middlewares []Middleware) {
-	h.api.routers = append(h.api.routers, appRouter{
+	h.api.routers = append(h.api.routers, &appRouter{
 		path:   path.path,
 		method: method,
 		handler: func(ctx *Context) {

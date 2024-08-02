@@ -42,7 +42,7 @@ type API struct {
 	lang                  Lang
 	log                   Logger
 	addr                  string
-	routers               []appRouter
+	routers               []*appRouter
 }
 
 // HTTPExceptionHandler It is an exception handling registration for HTTP
@@ -171,8 +171,8 @@ func (a *API) Handler() http.Handler {
 	return serverHandler.HttpHandler()
 }
 
-func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) appRouter {
-	return appRouter{
+func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) *appRouter {
+	return &appRouter{
 		path:   router.Path,
 		method: http.MethodGet,
 		handler: func(ctx *Context) {
