@@ -11,13 +11,12 @@ import (
 )
 
 // GoAPI It is a newly created API function
-func GoAPI(app APP, isDocs bool, docsPath ...string) *API {
+func GoAPI(isDocs bool, docsPath ...string) *API {
 	dPath := "/docs"
 	if len(docsPath) > 0 {
 		dPath = docsPath[0]
 	}
 	return &API{
-		app:    app,
 		isDocs: isDocs,
 		OpenAPIInfo: &openapi.Info{
 			Title:   "GoAPI",
@@ -31,7 +30,6 @@ func GoAPI(app APP, isDocs bool, docsPath ...string) *API {
 }
 
 type API struct {
-	app                   APP
 	handlers              []any
 	httpExceptionResponse Response
 	responseMediaTypes    []MediaType
@@ -123,27 +121,29 @@ func (a *API) Static(path, root string) {
 }
 
 // Run It is an execution function
-func (a *API) Run(addr ...string) {
+func (a *API) Run(addr ...string) error {
 	if len(addr) > 0 {
 		a.addr = addr[0]
 	}
+	return http.ListenAndServe(a.addr, a.Handler())
+}
+
+// Handler Return to http.Handler interface
+func (a *API) Handler() http.Handler {
 	a.init()
 	handle := newHandler(a)
 	handle.Handle()
 	if a.isDocs {
 		api := newHandlerOpenAPI(a, handle).Handle()
 		openapiBody, _ := json.Marshal(api)
-		a.app.Init()
 		list := swagger.GetSwagger(a.docsPath, api.Info.Title, logo, openapiBody)
 		for _, v := range list {
 			a.routers = append(a.routers, a.handleSwagger(v, handle.middlewares))
 		}
-	} else {
-		a.app.Init()
 	}
-	newHandlerServer(a, handle).Handle()
+	serverHandler := newHandlerServer(a, handle)
+	serverHandler.Handle()
 	a.log.Info("Started server process [%v]", colorDebug(os.Getpid()))
-	a.log.Info("Using the [%v] APP", colorDebug(fmt.Sprintf("%T", a.app)))
 	a.log.Debug("All routes:")
 	maxMethodLen := 0
 	maxPathLen := 0
@@ -159,10 +159,7 @@ func (a *API) Run(addr ...string) {
 		a.log.Debug("%v%v--> %v", spanFill(v.method, len(v.method), maxMethodLen+1), spanFill(v.path, len(v.path), maxPathLen+1), v.pos)
 	}
 	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
-	err := a.app.Run(a.addr)
-	if err != nil {
-		a.log.Fatal(err.Error())
-	}
+	return serverHandler.HttpHandler()
 }
 
 func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) appRouter {

@@ -16,6 +16,7 @@ type Context struct {
 	mux         sync.RWMutex
 	middlewares []Middleware
 	routerFunc  func(done chan struct{})
+	paths       map[string]string
 }
 
 func (c *Context) Deadline() (deadline time.Time, ok bool) {

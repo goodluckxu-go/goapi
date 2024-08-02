@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/shopspring/decimal"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -27,9 +28,8 @@ func newHandlerServer(
 }
 
 type handlerServer struct {
-	api     *API
-	handle  *handler
-	pathMap map[string]string
+	api    *API
+	handle *handler
 }
 
 func (h *handlerServer) Handle() {
@@ -41,32 +41,17 @@ func (h *handlerServer) Handle() {
 			h.handlePaths(method, path, path.middlewares)
 		}
 	}
-	h.api.app.Handle(func(ctx *Context) {
-		ctx = &Context{
-			Request: ctx.Request,
-			Writer:  &ResponseWriter{ResponseWriter: ctx.Writer},
+}
+
+func (h *handlerServer) HttpHandler() http.Handler {
+	mux := newGoAPIMux(h.api.log)
+	for _, router := range h.api.routers {
+		r := router
+		if err := mux.addRouters(router.path, router.method, &r); err != nil {
+			log.Fatal(err)
 		}
-		isFind := false
-		for _, router := range h.api.routers {
-			if router.method == ctx.Request.Method {
-				if router.isPrefix && strings.HasPrefix(ctx.Request.URL.Path, router.path) {
-					router.handler(ctx)
-					isFind = true
-				} else if _, err := h.getPaths(router.path, ctx.Request.URL.Path); err == nil {
-					router.handler(ctx)
-					isFind = true
-				}
-				if isFind {
-					break
-				}
-			}
-		}
-		if !isFind {
-			done := make(chan struct{})
-			go h.handlePath(ctx, nil, done)
-			<-done
-		}
-	})
+	}
+	return mux
 }
 
 func (h *handlerServer) handleStatic(static staticInfo) {
@@ -126,13 +111,12 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struc
 		done <- struct{}{}
 		return
 	}
-	h.pathMap, _ = h.getPaths(path.path, ctx.Request.URL.Path)
 	var inputs []reflect.Value
 	ctx.middlewares = path.middlewares
 	if len(path.inTypes) == 2 {
 		inputs = append(inputs, reflect.ValueOf(ctx))
 	}
-	inputFields, err := h.handleInputFields(ctx.Request, path.inTypes[len(path.inTypes)-1], path.inputFields)
+	inputFields, err := h.handleInputFields(ctx, path.inTypes[len(path.inTypes)-1], path.inputFields)
 	inputs = append(inputs, inputFields)
 	ctx.routerFunc = func(done chan struct{}) {
 		defer func() {
@@ -189,7 +173,7 @@ func (h *handlerServer) handleException(writer http.ResponseWriter, err any, med
 	httpRes.Write(writer)
 }
 
-func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.Type, fields []fieldInfo) (inputValue reflect.Value, err error) {
+func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type, fields []fieldInfo) (inputValue reflect.Value, err error) {
 	inputValue = reflect.New(inputTypes).Elem()
 	var formType MediaType
 	for _, field := range fields {
@@ -201,11 +185,11 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 	}
 	switch formType {
 	case formUrlencoded:
-		if err = req.ParseForm(); err != nil {
+		if err = ctx.Request.ParseForm(); err != nil {
 			return
 		}
 	case formMultipart:
-		if err = req.ParseMultipartForm(32 << 20); err != nil {
+		if err = ctx.Request.ParseMultipartForm(32 << 20); err != nil {
 			return
 		}
 	}
@@ -213,20 +197,20 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 	for _, field := range fields {
 		switch field.inType {
 		case inTypeHeader:
-			if err = h.handleHeader(req, inputValue, field); err != nil {
+			if err = h.handleHeader(ctx.Request, inputValue, field); err != nil {
 				return
 			}
 		case inTypeCookie:
-			if err = h.handleCookie(req, inputValue, field); err != nil {
+			if err = h.handleCookie(ctx.Request, inputValue, field); err != nil {
 				return
 			}
 		case inTypeQuery:
-			values := req.URL.Query()[field.inTypeVal]
+			values := ctx.Request.URL.Query()[field.inTypeVal]
 			if err = h.handleValue(inputValue, field, values); err != nil {
 				return
 			}
 		case inTypePath:
-			values := h.handleValueToValues(field._type, h.pathMap[field.inTypeVal])
+			values := h.handleValueToValues(field._type, ctx.paths[field.inTypeVal])
 			if err = h.handleValue(inputValue, field, values); err != nil {
 				return
 			}
@@ -234,10 +218,10 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 			value := ""
 			switch formType {
 			case formUrlencoded:
-				value = req.Form.Get(field.inTypeVal)
+				value = ctx.Request.Form.Get(field.inTypeVal)
 			case formMultipart:
-				if req.MultipartForm != nil && req.MultipartForm.Value[field.inTypeVal] != nil {
-					value = req.MultipartForm.Value[field.inTypeVal][0]
+				if ctx.Request.MultipartForm != nil && ctx.Request.MultipartForm.Value[field.inTypeVal] != nil {
+					value = ctx.Request.MultipartForm.Value[field.inTypeVal][0]
 				}
 			}
 			values := h.handleValueToValues(field._type, value)
@@ -246,8 +230,8 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 			}
 		case inTypeFile:
 			var files []*multipart.FileHeader
-			if req.MultipartForm != nil {
-				files = req.MultipartForm.File[field.inTypeVal]
+			if ctx.Request.MultipartForm != nil {
+				files = ctx.Request.MultipartForm.File[field.inTypeVal]
 			}
 			if files != nil {
 				childField := h.getChildFieldVal(inputValue, field.deepIdx)
@@ -261,16 +245,16 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 		case inTypeBody:
 			if field._type.Implements(interfaceIoReadCloser) {
 				childField := h.getChildFieldVal(inputValue, field.deepIdx)
-				childField.Set(reflect.ValueOf(req.Body))
+				childField.Set(reflect.ValueOf(ctx.Request.Body))
 				continue
 			}
-			if bodyBytes, er := io.ReadAll(req.Body); er == nil {
+			if bodyBytes, er := io.ReadAll(ctx.Request.Body); er == nil {
 				if len(bodyBytes) == 0 {
 					err = fmt.Errorf(h.api.lang.Required("body"))
 					return
 				}
 				childField := h.getChildFieldVal(inputValue, field.deepIdx)
-				if err = h.setBody(req, childField, bodyBytes); err != nil {
+				if err = h.setBody(ctx.Request, childField, bodyBytes); err != nil {
 					return
 				}
 			} else {
@@ -278,7 +262,7 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 				return
 			}
 		case inTypeSecurityHTTPBearer:
-			authorization := req.Header.Get("Authorization")
+			authorization := ctx.Request.Header.Get("Authorization")
 			authList := strings.Split(authorization, " ")
 			token := ""
 			if len(authList) == 2 && authList[0] == "Bearer" {
@@ -289,7 +273,7 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 			security := childField.Interface().(HTTPBearer)
 			security.HTTPBearer(token)
 		case inTypeSecurityHTTPBasic:
-			username, password, _ := req.BasicAuth()
+			username, password, _ := ctx.Request.BasicAuth()
 			childField := h.getChildFieldVal(inputValue, field.deepIdx)
 			h.initPtr(childField)
 			security := childField.Interface().(HTTPBasic)
@@ -302,15 +286,15 @@ func (h *handlerServer) handleInputFields(req *http.Request, inputTypes reflect.
 			h.initPtr(childField)
 			switch field.inTypeSecurity {
 			case inTypeHeader:
-				if err = h.handleHeader(req, inputValue, field); err != nil {
+				if err = h.handleHeader(ctx.Request, inputValue, field); err != nil {
 					return
 				}
 			case inTypeCookie:
-				if err = h.handleCookie(req, inputValue, field); err != nil {
+				if err = h.handleCookie(ctx.Request, inputValue, field); err != nil {
 					return
 				}
 			case inTypeQuery:
-				values := req.URL.Query()[field.inTypeVal]
+				values := ctx.Request.URL.Query()[field.inTypeVal]
 				if err = h.handleValue(inputValue, field, values); err != nil {
 					return
 				}

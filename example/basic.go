@@ -2,11 +2,10 @@ package main
 
 import (
 	"github.com/goodluckxu-go/goapi"
-	"github.com/goodluckxu-go/goapi/app"
 )
 
 func main() {
-	api := goapi.GoAPI(&app.Gin{}, true)
+	api := goapi.GoAPI(true)
 	api.AddMiddleware(func(ctx *goapi.Context) {
 		// todo
 		ctx.Next()

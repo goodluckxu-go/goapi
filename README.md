@@ -10,12 +10,11 @@ main.go
 import (
 	"github.com/fatih/color"
 	"github.com/goodluckxu-go/goapi"
-	"github.com/goodluckxu-go/goapi/app"
 )
 
 func main() {
 	color.NoColor = true // Turn off console color, default color
-	api := goapi.GoAPI(&app.Gin{}, true, "/docs")
+	api := goapi.GoAPI(true, "/docs")
 	api.SetResponseMediaType(goapi.JSON)
 	api.HTTPExceptionHandler(func(httpCode int, detail string) goapi.Response {
 		return &goapi.HTTPResponse[Error]{
@@ -78,10 +77,6 @@ func (h *AdminAuth) HTTPBasic(username,password string) {
 	h.Admin = "admin"
 }
 
-// Auth verification
-type UserListHeader struct { 
-	Token     string
-}
 
 // Implement ApiKey interface
 type AdminAuth struct {
