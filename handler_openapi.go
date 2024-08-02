@@ -503,9 +503,13 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type) (rs typeInfo) {
 	case reflect.Map:
 		rs.typeStr = "object"
 	case reflect.Ptr:
-		if fType == typeFile {
+		switch fType {
+		case typeFile:
 			rs.typeStr = "string"
 			rs.format = "binary"
+			return
+		case typeCookie:
+			rs.typeStr = "string"
 			return
 		}
 		if fType.Implements(interfaceIoReadCloser) {
