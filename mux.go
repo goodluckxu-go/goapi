@@ -5,14 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-	"sync"
 )
-
-var ctxPool = &sync.Pool{
-	New: func() any {
-		return &Context{}
-	},
-}
 
 func newGoAPIMux(log Logger) *goAPIMux {
 	return &goAPIMux{
@@ -29,21 +22,19 @@ type goAPIMux struct {
 
 // ServeHTTP Implement http.Handler interface
 func (m *goAPIMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := ctxPool.Get().(*Context)
-	ctx.reset()
-	ctx.log = m.log
-	ctx.Request = r
-	ctx.Writer = &ResponseWriter{ResponseWriter: w}
+	ctx := &Context{
+		log:     m.log,
+		Request: r,
+		Writer:  &ResponseWriter{ResponseWriter: w},
+	}
 	router, paths, exists := m.searchRouters(r.URL.Path, r.Method)
 	if !exists {
 		ctx.middlewares = append([]Middleware{notFind()}, m.middlewares...)
 		ctx.Next()
-		ctxPool.Put(ctx)
 		return
 	}
 	ctx.paths = paths
 	router.handler(ctx)
-	ctxPool.Put(ctx)
 }
 
 func (m *goAPIMux) addRouters(path, method string, router *appRouter) (err error) {
