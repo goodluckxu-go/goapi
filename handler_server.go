@@ -365,6 +365,8 @@ func (h *handlerServer) handleCookie(req *http.Request, inputValue reflect.Value
 		if err = h.validString(cookie.Value, name, field.tag); err != nil {
 			return
 		}
+		childVal := h.getChildFieldVal(inputValue, field.deepIdx)
+		childVal.Set(reflect.ValueOf(cookie))
 	} else {
 		values := h.handleValueToValues(field._type, cookie.Value)
 		if err = h.handleValue(inputValue, field, values); err != nil {
