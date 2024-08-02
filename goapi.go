@@ -120,12 +120,21 @@ func (a *API) Static(path, root string) {
 	})
 }
 
-// Run It is an execution function
-func (a *API) Run(addr ...string) error {
+// Run attaches the router to a http.Server and starts listening and serving HTTP requests.
+// It is a shortcut for http.ListenAndServe(addr, router)
+// Note: this method will block the calling goroutine indefinitely unless an error happens.
+func (a *API) Run(addr ...string) (err error) {
 	if len(addr) > 0 {
 		a.addr = addr[0]
 	}
 	return http.ListenAndServe(a.addr, a.Handler())
+}
+
+// RunTLS attaches the router to a http.Server and starts listening and serving HTTPS (secure) requests.
+// It is a shortcut for http.ListenAndServeTLS(addr, certFile, keyFile, router)
+// Note: this method will block the calling goroutine indefinitely unless an error happens.
+func (a *API) RunTLS(addr, certFile, keyFile string) (err error) {
+	return http.ListenAndServeTLS(addr, certFile, keyFile, a.Handler())
 }
 
 // Handler Return to http.Handler interface
