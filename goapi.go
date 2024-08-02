@@ -127,14 +127,19 @@ func (a *API) Run(addr ...string) (err error) {
 	if len(addr) > 0 {
 		a.addr = addr[0]
 	}
-	return http.ListenAndServe(a.addr, a.Handler())
+	httpHandler := a.Handler()
+	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
+	return http.ListenAndServe(a.addr, httpHandler)
 }
 
 // RunTLS attaches the router to a http.Server and starts listening and serving HTTPS (secure) requests.
 // It is a shortcut for http.ListenAndServeTLS(addr, certFile, keyFile, router)
 // Note: this method will block the calling goroutine indefinitely unless an error happens.
 func (a *API) RunTLS(addr, certFile, keyFile string) (err error) {
-	return http.ListenAndServeTLS(addr, certFile, keyFile, a.Handler())
+	a.addr = addr
+	httpHandler := a.Handler()
+	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
+	return http.ListenAndServeTLS(a.addr, certFile, keyFile, httpHandler)
 }
 
 // Handler Return to http.Handler interface
@@ -167,7 +172,6 @@ func (a *API) Handler() http.Handler {
 	for _, v := range a.routers {
 		a.log.Debug("%v%v--> %v", spanFill(v.method, len(v.method), maxMethodLen+1), spanFill(v.path, len(v.path), maxPathLen+1), v.pos)
 	}
-	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
 	return serverHandler.HttpHandler()
 }
 
