@@ -307,36 +307,6 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 	return
 }
 
-func (h *handlerServer) getPaths(path, urlPath string) (rs map[string]string, err error) {
-	rs = map[string]string{}
-	pathList := strings.Split(path, "/")
-	relPathList := strings.Split(urlPath, "/")
-	if len(pathList) != len(relPathList) {
-		err = fmt.Errorf("path format error")
-		rs = nil
-		return
-	}
-	for k, v := range pathList {
-		relV := relPathList[k]
-		left := strings.Index(v, "{")
-		right := strings.Index(v, "}")
-		if left != -1 && right != -1 {
-			right = len(v) - (right + 1)
-			if v[:left] != relPathList[k][:left] || v[len(v)-right:] != relPathList[k][len(relV)-right:] {
-				err = fmt.Errorf("path format error")
-				rs = nil
-				return
-			}
-			rs[v[left+1:len(v)-right-1]] = relPathList[k][left : len(relV)-right]
-		} else if relV != v {
-			err = fmt.Errorf("path format error")
-			rs = nil
-			return
-		}
-	}
-	return
-}
-
 func (h *handlerServer) handleHeader(req *http.Request, inputValue reflect.Value, field fieldInfo) (err error) {
 	values := h.handleValueToValues(field._type, req.Header.Get(field.inTypeVal))
 	if err = h.handleValue(inputValue, field, values); err != nil {
