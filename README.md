@@ -172,6 +172,7 @@ func (h *AdminAuth) ApiKey() {
 - **HTTPResponse[T]** can set httpCode and header
 - **FileResponse** can return downloadable files
 - **SSEResponse** can return content in Server Sent Events format
+- **HTMLResponse** can return to HTML page
 ## Error corresponding comment
 ~~~go
 goapi.HTTPException(404, "error message")

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
 )
@@ -161,4 +162,39 @@ func (s *SSEResponse) Write(w http.ResponseWriter) {
 	w.Header().Set("Connection", "keep-alive")
 	w.WriteHeader(200)
 	s.SSEWriter(&SSEvent{w: w})
+}
+
+type HTMLResponse struct {
+	Filename string
+	Data     any
+	Html     []byte // Highest priority
+}
+
+func (h *HTMLResponse) GetBody() any {
+	return ""
+}
+
+func (h *HTMLResponse) GetContentType() string {
+	return "text/html"
+}
+
+func (h *HTMLResponse) SetContentType(contentType string) {
+}
+
+func (h *HTMLResponse) Write(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", h.GetContentType())
+	if h.Html != nil {
+		_, _ = w.Write(h.Html)
+		return
+	}
+	tmpl, err := template.ParseFiles(h.Filename)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = tmpl.Execute(w, h.Data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
