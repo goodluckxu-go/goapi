@@ -152,7 +152,7 @@ func (a *API) Handler() http.Handler {
 		openapiBody, _ := json.Marshal(api)
 		list := swagger.GetSwagger(a.docsPath, api.Info.Title, logo, openapiBody)
 		for _, v := range list {
-			a.routers = append(a.routers, a.handleSwagger(v, handle.middlewares))
+			a.routers = append(a.routers, a.handleSwagger(v, handle.defaultMiddlewares))
 		}
 	}
 	serverHandler := newHandlerServer(a, handle)

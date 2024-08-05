@@ -44,7 +44,7 @@ func (h *handlerServer) Handle() {
 }
 
 func (h *handlerServer) HttpHandler() http.Handler {
-	mux := newGoAPIMux(h.api.log)
+	mux := newGoAPIMux(h.api.log, h.handle.publicMiddlewares)
 	for _, router := range h.api.routers {
 		if err := mux.addRouters(router.path, router.method, router); err != nil {
 			log.Fatal(err)
@@ -60,7 +60,7 @@ func (h *handlerServer) handleStatic(static staticInfo) {
 		isPrefix: true,
 		method:   http.MethodGet,
 		handler: func(ctx *Context) {
-			ctx.middlewares = h.handle.middlewares
+			ctx.middlewares = h.handle.defaultMiddlewares
 			ctx.log = h.api.log
 			ctx.routerFunc = func(done chan struct{}) {
 				name := strings.TrimPrefix(ctx.Request.URL.Path, static.path)
@@ -69,7 +69,7 @@ func (h *handlerServer) handleStatic(static staticInfo) {
 			}
 			ctx.Next()
 		},
-		pos: root + fmt.Sprintf(" (fs) (%v Middleware)", len(h.handle.middlewares)),
+		pos: root + fmt.Sprintf(" (fs) (%v Middleware)", len(h.handle.defaultMiddlewares)),
 	})
 }
 
@@ -79,14 +79,14 @@ func (h *handlerServer) handlePaths(method string, path pathInfo, middlewares []
 		method: method,
 		handler: func(ctx *Context) {
 			done := make(chan struct{})
-			go h.handlePath(ctx, &path, done)
+			go h.handlePath(ctx, path, done)
 			<-done
 		},
 		pos: fmt.Sprintf("%v (%v Middleware)", path.pos, len(middlewares)),
 	})
 }
 
-func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struct{}) {
+func (h *handlerServer) handlePath(ctx *Context, path pathInfo, done chan struct{}) {
 	ctx.log = h.api.log
 	mediaType := ctx.Request.URL.Query().Get("media_type")
 	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
@@ -103,12 +103,6 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struc
 		Header: map[string]string{
 			"Content-Type": string(typeToMediaTypeMap[mediaType]),
 		},
-	}
-	if path == nil {
-		ctx.middlewares = append([]Middleware{notFind()}, h.handle.middlewares...)
-		ctx.Next()
-		done <- struct{}{}
-		return
 	}
 	var inputs []reflect.Value
 	ctx.middlewares = path.middlewares

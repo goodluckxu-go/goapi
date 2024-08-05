@@ -7,10 +7,11 @@ import (
 	"strings"
 )
 
-func newGoAPIMux(log Logger) *goAPIMux {
+func newGoAPIMux(log Logger, middlewares []Middleware) *goAPIMux {
 	return &goAPIMux{
-		routers: map[string]*routerPath{},
-		log:     log,
+		routers:     map[string]*routerPath{},
+		middlewares: middlewares,
+		log:         log,
 	}
 }
 
@@ -29,7 +30,7 @@ func (m *goAPIMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	router, paths, exists := m.searchRouters(r.URL.Path, r.Method)
 	if !exists {
-		ctx.middlewares = append([]Middleware{notFind()}, m.middlewares...)
+		ctx.middlewares = append(m.middlewares, notFind())
 		ctx.Next()
 		return
 	}

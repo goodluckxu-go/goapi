@@ -15,21 +15,22 @@ func newHandler(api *API) *handler {
 }
 
 type handler struct {
-	api           *API
-	paths         []pathInfo
-	statics       []staticInfo
-	structFields  []fieldInfo
-	structs       map[string]*structInfo
-	middlewares   []Middleware
-	allMediaTypes map[MediaType]struct{}
+	api                *API
+	paths              []pathInfo
+	statics            []staticInfo
+	structFields       []fieldInfo
+	structs            map[string]*structInfo
+	defaultMiddlewares []Middleware
+	publicMiddlewares  []Middleware
+	allMediaTypes      map[MediaType]struct{}
 }
 
 func (h *handler) Handle() {
 	for _, v := range h.api.responseMediaTypes {
 		h.allMediaTypes[v] = struct{}{}
 	}
-	h.middlewares = append(h.middlewares, setLogger())
-	h.handleHandlers(h.api.handlers, h.middlewares, "", true)
+	h.defaultMiddlewares = append(h.defaultMiddlewares, setLogger())
+	h.publicMiddlewares = h.handleHandlers(h.api.handlers, h.defaultMiddlewares, "", true)
 	if h.api.httpExceptionResponse != nil {
 		resp := fieldInfo{
 			deepTypes: h.parseType(reflect.TypeOf(h.api.httpExceptionResponse.GetBody())),
@@ -53,7 +54,7 @@ func (h *handler) Handle() {
 	}
 }
 
-func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefix string, isDocs bool) {
+func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefix string, isDocs bool) (public []Middleware) {
 	for _, hd := range handlers {
 		switch val := hd.(type) {
 		case *includeRouter:
@@ -74,8 +75,10 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 			h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs)
 		case Middleware:
 			middlewares = append(middlewares, val)
+			public = append(public, val)
 		}
 	}
+	return
 }
 
 func (h *handler) handleStructs() (err error) {
