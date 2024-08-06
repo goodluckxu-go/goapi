@@ -91,6 +91,7 @@ type fieldNameInfo struct {
 type xmlInfo struct {
 	attr     bool
 	innerxml bool
+	childs   []string
 }
 
 type typeInfo struct {

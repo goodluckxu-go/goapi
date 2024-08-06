@@ -133,7 +133,15 @@ func (h *handler) handleStructs() (err error) {
 					if tagVal != "" {
 						tagList := strings.Split(tagVal, ",")
 						if tagList[0] != "" {
-							fInfo.name = tagList[0]
+							nameList := strings.Split(tagList[0], ">")
+							if len(nameList) == 1 {
+								fInfo.name = tagList[0]
+							} else {
+								fInfo.name = nameList[0]
+								fInfo.xml = &xmlInfo{
+									childs: nameList[1:],
+								}
+							}
 						}
 						for _, tv := range tagList[1:] {
 							switch tv {

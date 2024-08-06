@@ -422,6 +422,10 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 					fInfo.name = ""
 					childSchema.Description = "innerxml"
 				}
+				if len(fInfo.xml.childs) > 0 {
+					childSchema.Type = "object"
+					h.setXmlChildList(childSchema, fInfo.xml.childs)
+				}
 			}
 			if properties[mType] == nil {
 				properties[mType] = map[string]*openapi.Schema{}
@@ -537,6 +541,21 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type) (rs typeInfo) {
 		rs.typeStr = "string"
 	}
 	return
+}
+
+func (h *handlerOpenAPI) setXmlChildList(schema *openapi.Schema, childList []string) {
+	child := childList[0]
+	childList = childList[1:]
+	childSchema := &openapi.Schema{
+		Type: "string",
+	}
+	if len(childList) > 0 {
+		childSchema.Type = "object"
+		h.setXmlChildList(childSchema, childList)
+	}
+	schema.Properties = map[string]*openapi.Schema{
+		child: childSchema,
+	}
 }
 
 func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo, mediaType MediaType) {
