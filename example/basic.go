@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/goodluckxu-go/goapi"
+	"github.com/goodluckxu-go/goapi/response"
 )
 
 func main() {
@@ -13,7 +14,7 @@ func main() {
 	})
 	api.SetResponseMediaType(goapi.JSON)
 	api.HTTPExceptionHandler(func(httpCode int, detail string) goapi.Response {
-		return &goapi.HTTPResponse[any]{
+		return &response.HTTPResponse[any]{
 			HttpCode: httpCode,
 			Body:     detail,
 		}
@@ -64,6 +65,6 @@ type AdminAuth struct {
 
 func (a *AdminAuth) HTTPBearer(token string) {
 	if token != "123456" {
-		goapi.HTTPException(403, "token is 123456")
+		response.HTTPException(403, "token is 123456")
 	}
 }
