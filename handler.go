@@ -389,6 +389,9 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 								return
 							}
 						}
+						if inTypeStr == inTypeCookie {
+							fTag.example = "Read the value of document.cookie"
+						}
 						fInfo.tag = fTag
 					case inTypeBody:
 						var mTypes []MediaType
@@ -501,6 +504,9 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 				if fTag, err = h.handleTag(tag, field.Type.Kind()); err != nil {
 					return
 				}
+				if inTypeStr == inTypeCookie {
+					fTag.desc += "Read the value of document.cookie"
+				}
 				fInfo.tag = fTag
 				requestType = inTypeStr
 				for fType.Kind() == reflect.Ptr {
@@ -557,6 +563,10 @@ func (h *handler) isMethod(methods []string) bool {
 }
 
 func (h *handler) parseType(fType reflect.Type) (rs []typeInfo) {
+	if fType == nil {
+		rs = append(rs, typeInfo{_type: reflect.TypeOf(new(any)).Elem()})
+		return
+	}
 	for fType.Kind() == reflect.Ptr {
 		fType = fType.Elem()
 	}
