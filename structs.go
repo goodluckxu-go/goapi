@@ -85,6 +85,12 @@ type fieldTagInfo struct {
 type fieldNameInfo struct {
 	name     string
 	required bool
+	xml      *xmlInfo
+}
+
+type xmlInfo struct {
+	attr     bool
+	innerxml bool
 }
 
 type typeInfo struct {

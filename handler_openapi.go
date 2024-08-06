@@ -411,6 +411,18 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 				childSchema.MaxProperties = v1.tag.max
 				childSchema.MinProperties = v1.tag.min
 			}
+			// xml
+			if mType == XML && fInfo.xml != nil {
+				if fInfo.xml.attr {
+					childSchema.XML = &openapi.XML{
+						Attribute: true,
+					}
+				}
+				if fInfo.xml.innerxml {
+					fInfo.name = ""
+					childSchema.Description = "innerxml"
+				}
+			}
 			if properties[mType] == nil {
 				properties[mType] = map[string]*openapi.Schema{}
 			}

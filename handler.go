@@ -132,9 +132,26 @@ func (h *handler) handleStructs() (err error) {
 					tagVal := tag.Get(mediaTypeToTypeMap[v])
 					if tagVal != "" {
 						tagList := strings.Split(tagVal, ",")
-						fInfo.name = tagList[0]
-						if len(tagList) > 1 && tagList[1] == omitempty {
-							fInfo.required = false
+						if tagList[0] != "" {
+							fInfo.name = tagList[0]
+						}
+						for _, tv := range tagList[1:] {
+							switch tv {
+							case omitempty:
+								fInfo.required = false
+							case "attr":
+								if v == XML {
+									fInfo.xml = &xmlInfo{
+										attr: true,
+									}
+								}
+							case "innerxml":
+								if v == XML {
+									fInfo.xml = &xmlInfo{
+										innerxml: true,
+									}
+								}
+							}
 						}
 					}
 					fFile.fieldMap[v] = fInfo
