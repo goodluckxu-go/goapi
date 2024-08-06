@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/goodluckxu-go/goapi/response"
 	"github.com/shopspring/decimal"
 	"io"
 	"log"
@@ -98,7 +99,7 @@ func (h *handlerServer) handlePath(ctx *Context, path pathInfo, done chan struct
 			done <- struct{}{}
 		}
 	}()
-	httpRes := &HTTPResponse[any]{
+	httpRes := &response.HTTPResponse[any]{
 		HttpCode: 200,
 		Header: map[string]string{
 			"Content-Type": string(typeToMediaTypeMap[mediaType]),
@@ -119,7 +120,7 @@ func (h *handlerServer) handlePath(ctx *Context, path pathInfo, done chan struct
 			}
 		}()
 		if err != nil {
-			HTTPException(validErrorCode, err.Error())
+			response.HTTPException(validErrorCode, err.Error())
 		}
 		rs := path.funcValue.Call(inputs)
 		if len(rs) != 1 {
@@ -142,7 +143,7 @@ func (h *handlerServer) handlePath(ctx *Context, path pathInfo, done chan struct
 }
 
 func (h *handlerServer) handleException(writer http.ResponseWriter, err any, mediaType string) {
-	httpRes := &HTTPResponse[any]{
+	httpRes := &response.HTTPResponse[any]{
 		HttpCode: 200,
 		Header: map[string]string{
 			"Content-Type": string(typeToMediaTypeMap[mediaType]),

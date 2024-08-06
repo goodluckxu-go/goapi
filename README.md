@@ -60,7 +60,7 @@ type AdminAuth struct {
 
 func (h *AdminAuth) HTTPBearer(token string) {
 	if token != "123456" {
-		goapi.HTTPException(401, "token is error")   
+		response.HTTPException(401, "token is error")   
 	}
 	h.Admin = "admin"
 }
@@ -72,7 +72,7 @@ type AdminAuth struct {
 
 func (h *AdminAuth) HTTPBasic(username,password string) {
 	if username != "admin" || password != "123456" {
-		goapi.HTTPException(401, "token is error")
+		response.HTTPException(401, "token is error")
 	} 
 	h.Admin = "admin"
 }
@@ -86,7 +86,7 @@ type AdminAuth struct {
 
 func (h *AdminAuth) ApiKey() {
 	if h.Token != "123456" {
-		goapi.HTTPException(401, "token is error")
+		response.HTTPException(401, "token is error")
 	}
 	h.Admin = "admin"
 }
@@ -175,7 +175,7 @@ func (h *AdminAuth) ApiKey() {
 - **HTMLResponse** can return to HTML page
 ## Error corresponding comment
 ~~~go
-goapi.HTTPException(404, "error message")
+response.HTTPException(404, "error message")
 ~~~
 - Specific return information can be configured using the 'HTTPExceptionHandler' method
 - The first parameter is the HTTP status code, the second is the error message, and the third is the header setting returned

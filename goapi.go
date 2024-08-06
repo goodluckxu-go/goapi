@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/goodluckxu-go/goapi/lang"
 	"github.com/goodluckxu-go/goapi/openapi"
+	"github.com/goodluckxu-go/goapi/response"
 	"github.com/goodluckxu-go/goapi/swagger"
 	"net/http"
 	"os"
@@ -198,7 +199,7 @@ func (a *API) init() {
 	}
 	if a.exceptFunc == nil {
 		a.exceptFunc = func(httpCode int, detail string) Response {
-			return &HTTPResponse[any]{
+			return &response.HTTPResponse[any]{
 				HttpCode: httpCode,
 				Body:     detail,
 			}
