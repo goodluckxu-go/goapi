@@ -104,3 +104,5 @@ var typeCookie = reflect.TypeOf(&http.Cookie{})
 
 var typeBytes = reflect.TypeOf([]byte{})
 var interfaceIoReadCloser = reflect.TypeOf(new(io.ReadCloser)).Elem()
+
+var typeAny = reflect.TypeOf(new(any)).Elem()

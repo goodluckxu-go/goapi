@@ -390,7 +390,8 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 							}
 						}
 						if inTypeStr == inTypeCookie {
-							fTag.example = "Read the value of document.cookie"
+							fTag.desc += "Read the value of document.cookie"
+							fTag.example = "document.cookie"
 						}
 						fInfo.tag = fTag
 					case inTypeBody:
@@ -564,7 +565,7 @@ func (h *handler) isMethod(methods []string) bool {
 
 func (h *handler) parseType(fType reflect.Type) (rs []typeInfo) {
 	if fType == nil {
-		rs = append(rs, typeInfo{_type: reflect.TypeOf(new(any)).Elem()})
+		rs = append(rs, typeInfo{_type: typeAny})
 		return
 	}
 	for fType.Kind() == reflect.Ptr {
