@@ -61,13 +61,13 @@ func (h *handlerServer) handleStatic(static staticInfo) {
 		isPrefix: true,
 		method:   http.MethodGet,
 		handler: func(ctx *Context) {
+			ctx.index = -1
 			ctx.middlewares = h.handle.defaultMiddlewares
 			ctx.log = h.api.log
-			ctx.routerFunc = func(done chan struct{}) {
+			ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {
 				name := strings.TrimPrefix(ctx.Request.URL.Path, static.path)
 				http.ServeFile(ctx.Writer, ctx.Request, filepath.Join(root, name))
-				done <- struct{}{}
-			}
+			})
 			ctx.Next()
 		},
 		pos: root + fmt.Sprintf(" (fs) (%v Middleware)", len(h.handle.defaultMiddlewares)),
@@ -79,6 +79,7 @@ func (h *handlerServer) handlePaths(method string, path pathInfo, middlewares []
 		path:   path.path,
 		method: method,
 		handler: func(ctx *Context) {
+			ctx.index = -1
 			done := make(chan struct{})
 			go h.handlePath(ctx, path, done)
 			<-done
@@ -112,7 +113,7 @@ func (h *handlerServer) handlePath(ctx *Context, path pathInfo, done chan struct
 	}
 	inputFields, err := h.handleInputFields(ctx, path.inTypes[len(path.inTypes)-1], path.inputFields)
 	inputs = append(inputs, inputFields)
-	ctx.routerFunc = func(done chan struct{}) {
+	ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {
 		defer func() {
 			if er := recover(); er != nil {
 				h.handleException(ctx.Writer, er, mediaType)
@@ -137,7 +138,7 @@ func (h *handlerServer) handlePath(ctx *Context, path pathInfo, done chan struct
 		httpRes.Body = rs[0].Interface()
 		httpRes.Write(ctx.Writer)
 		done <- struct{}{}
-	}
+	})
 	ctx.Next()
 	done <- struct{}{}
 }

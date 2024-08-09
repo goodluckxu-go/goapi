@@ -15,8 +15,8 @@ type Context struct {
 	log         Logger
 	mux         sync.RWMutex
 	middlewares []Middleware
-	routerFunc  func(done chan struct{})
 	paths       map[string]string
+	index       int
 }
 
 func (c *Context) Deadline() (deadline time.Time, ok bool) {
@@ -72,19 +72,10 @@ func (c *Context) Value(key any) any {
 
 // Next It is used in middleware, before Next is before interface request, and after Next is after interface request
 func (c *Context) Next() {
-	c.mux.RLock()
-	defer c.mux.RUnlock()
-	if len(c.middlewares) == 0 {
-		if c.routerFunc != nil {
-			done := make(chan struct{})
-			go c.routerFunc(done)
-			<-done
-		}
-		return
+	c.index++
+	for ; c.index < len(c.middlewares); c.index++ {
+		c.middlewares[c.index](c)
 	}
-	middleware := c.middlewares[0]
-	c.middlewares = c.middlewares[1:]
-	middleware(c)
 }
 
 // Logger It is a method of obtaining logs

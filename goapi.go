@@ -181,12 +181,12 @@ func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) *ap
 		path:   router.Path,
 		method: http.MethodGet,
 		handler: func(ctx *Context) {
+			ctx.index = -1
 			ctx.middlewares = middlewares
 			ctx.log = a.log
-			ctx.routerFunc = func(done chan struct{}) {
+			ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {
 				router.Handler(ctx.Writer, ctx.Request)
-				done <- struct{}{}
-			}
+			})
 			ctx.Next()
 		},
 		pos: fmt.Sprintf("github.com/goodluckxu-go/goapi/swagger.GetSwagger (%v Middleware)", len(middlewares)),
