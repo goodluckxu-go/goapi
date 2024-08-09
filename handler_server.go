@@ -61,7 +61,6 @@ func (h *handlerServer) handleStatic(static staticInfo) {
 		isPrefix: true,
 		method:   http.MethodGet,
 		handler: func(ctx *Context) {
-			ctx.index = -1
 			ctx.middlewares = h.handle.defaultMiddlewares
 			ctx.log = h.api.log
 			ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {

@@ -181,7 +181,6 @@ func (a *API) handleSwagger(router swagger.Router, middlewares []Middleware) *ap
 		path:   router.Path,
 		method: http.MethodGet,
 		handler: func(ctx *Context) {
-			ctx.index = -1
 			ctx.middlewares = middlewares
 			ctx.log = a.log
 			ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {

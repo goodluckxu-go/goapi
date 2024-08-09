@@ -24,6 +24,7 @@ type goAPIMux struct {
 // ServeHTTP Implement http.Handler interface
 func (m *goAPIMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := &Context{
+		index:   -1,
 		log:     m.log,
 		Request: r,
 		Writer:  &ResponseWriter{ResponseWriter: w},
