@@ -469,7 +469,7 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					continue
 				}
 				if fType.Kind() == reflect.Ptr {
-					securityList, ok, er := h.handleSecurity(fType, append(deepIdx, i))
+					securityList, ok, er := h.handleSecurity(field, fType, append(deepIdx, i))
 					if er != nil {
 						err = er
 						return
@@ -607,7 +607,11 @@ func (h *handler) parseType(fType reflect.Type) (rs []typeInfo) {
 	return
 }
 
-func (h *handler) handleSecurity(fType reflect.Type, deepIdx []int) (list []fieldInfo, ok bool, err error) {
+func (h *handler) handleSecurity(field reflect.StructField, fType reflect.Type, deepIdx []int) (list []fieldInfo, ok bool, err error) {
+	fTag := &fieldTagInfo{}
+	if fTag, err = h.handleTag(field.Tag, field.Type.Kind()); err != nil {
+		return
+	}
 	num := 0
 	for _, securityType := range securityTypes {
 		if !fType.Implements(securityType) {
@@ -626,6 +630,7 @@ func (h *handler) handleSecurity(fType reflect.Type, deepIdx []int) (list []fiel
 				_type:   fType,
 				inType:  inTypeSecurityHTTPBearer,
 				deepIdx: deepIdx,
+				tag:     fTag,
 			})
 		case securityTypeHTTPBasic:
 			list = append(list, fieldInfo{
@@ -633,6 +638,7 @@ func (h *handler) handleSecurity(fType reflect.Type, deepIdx []int) (list []fiel
 				_type:   fType,
 				inType:  inTypeSecurityHTTPBasic,
 				deepIdx: deepIdx,
+				tag:     fTag,
 			})
 		case securityTypeApiKey:
 			var cList []any
