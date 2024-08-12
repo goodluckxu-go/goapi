@@ -19,6 +19,7 @@ type goAPIMux struct {
 	routers     map[string]*routerPath
 	middlewares []Middleware
 	log         Logger
+	notFind     *appRouter
 }
 
 // ServeHTTP Implement http.Handler interface
@@ -29,14 +30,7 @@ func (m *goAPIMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Request: r,
 		Writer:  &ResponseWriter{ResponseWriter: w},
 	}
-	router, paths, exists := m.searchRouters(r.URL.Path, r.Method)
-	if !exists {
-		ctx.middlewares = append(m.middlewares, notFind())
-		ctx.Next()
-		return
-	}
-	ctx.paths = paths
-	router.handler(ctx)
+	m.handleHTTPRequest(ctx)
 }
 
 func (m *goAPIMux) addRouters(path, method string, router *appRouter) (err error) {
@@ -51,6 +45,20 @@ func (m *goAPIMux) addRouters(path, method string, router *appRouter) (err error
 	}
 	m.routers[method] = rPath
 	return
+}
+
+func (m *goAPIMux) notFindRouters(router *appRouter) {
+	m.notFind = router
+}
+
+func (m *goAPIMux) handleHTTPRequest(ctx *Context) {
+	router, paths, exists := m.searchRouters(ctx.Request.URL.Path, ctx.Request.Method)
+	if !exists {
+		m.notFind.handler(ctx)
+		return
+	}
+	ctx.paths = paths
+	router.handler(ctx)
 }
 
 func (m *goAPIMux) searchRouters(urlPath, method string) (router *appRouter, paths map[string]string, exists bool) {

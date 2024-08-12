@@ -51,6 +51,13 @@ func (h *handlerServer) HttpHandler() http.Handler {
 			log.Fatal(err)
 		}
 	}
+	mux.notFindRouters(&appRouter{
+		handler: func(ctx *Context) {
+			done := make(chan struct{})
+			go h.handlePath(ctx, nil, done)
+			<-done
+		},
+	})
 	return mux
 }
 
@@ -78,16 +85,15 @@ func (h *handlerServer) handlePaths(method string, path pathInfo, middlewares []
 		path:   path.path,
 		method: method,
 		handler: func(ctx *Context) {
-			ctx.index = -1
 			done := make(chan struct{})
-			go h.handlePath(ctx, path, done)
+			go h.handlePath(ctx, &path, done)
 			<-done
 		},
 		pos: fmt.Sprintf("%v (%v Middleware)", path.pos, len(middlewares)),
 	})
 }
 
-func (h *handlerServer) handlePath(ctx *Context, path pathInfo, done chan struct{}) {
+func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struct{}) {
 	ctx.log = h.api.log
 	mediaType := ctx.Request.URL.Query().Get("media_type")
 	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
@@ -104,6 +110,12 @@ func (h *handlerServer) handlePath(ctx *Context, path pathInfo, done chan struct
 		Header: map[string]string{
 			"Content-Type": string(typeToMediaTypeMap[mediaType]),
 		},
+	}
+	if path == nil {
+		ctx.middlewares = append(h.handle.publicMiddlewares, notFind())
+		ctx.Next()
+		done <- struct{}{}
+		return
 	}
 	var inputs []reflect.Value
 	ctx.middlewares = path.middlewares
