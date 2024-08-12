@@ -7,19 +7,17 @@ import (
 	"strings"
 )
 
-func newGoAPIMux(log Logger, middlewares []Middleware) *goAPIMux {
+func newGoAPIMux(log Logger) *goAPIMux {
 	return &goAPIMux{
-		routers:     map[string]*routerPath{},
-		middlewares: middlewares,
-		log:         log,
+		routers: map[string]*routerPath{},
+		log:     log,
 	}
 }
 
 type goAPIMux struct {
-	routers     map[string]*routerPath
-	middlewares []Middleware
-	log         Logger
-	notFind     *appRouter
+	routers map[string]*routerPath
+	log     Logger
+	notFind *appRouter
 }
 
 // ServeHTTP Implement http.Handler interface
