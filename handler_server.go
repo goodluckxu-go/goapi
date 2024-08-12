@@ -199,7 +199,8 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 			return
 		}
 	}
-	var securityApiKey reflect.Value
+	var securityApiKeyList []reflect.Value
+	securityApiKeyMap := map[string]struct{}{}
 	for _, field := range fields {
 		switch field.inType {
 		case inTypeHeader:
@@ -287,8 +288,10 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 			security := childField.Interface().(HTTPBasic)
 			security.HTTPBasic(username, password)
 		case inTypeSecurityApiKey:
-			if !securityApiKey.IsValid() {
-				securityApiKey = h.getChildFieldVal(inputValue, field.deepIdx[:len(field.deepIdx)-1])
+			pChildField := h.getChildFieldVal(inputValue, field.deepIdx[:len(field.deepIdx)-1])
+			if _, ok := securityApiKeyMap[pChildField.String()]; !ok {
+				securityApiKeyMap[pChildField.String()] = struct{}{}
+				securityApiKeyList = append(securityApiKeyList, pChildField)
 			}
 			childField := h.getChildFieldVal(inputValue, field.deepIdx)
 			h.initPtr(childField)
@@ -309,10 +312,12 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 			}
 		}
 	}
-	if securityApiKey.IsValid() {
-		h.handleSecurityDefaultParam(ctx, securityApiKey)
-		security := securityApiKey.Interface().(ApiKey)
-		security.ApiKey()
+	for _, securityApiKey := range securityApiKeyList {
+		if securityApiKey.IsValid() {
+			h.handleSecurityDefaultParam(ctx, securityApiKey)
+			security := securityApiKey.Interface().(ApiKey)
+			security.ApiKey()
+		}
 	}
 	return
 }
