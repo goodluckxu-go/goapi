@@ -56,6 +56,7 @@ func (m *goAPIMux) handleHTTPRequest(ctx *Context) {
 		return
 	}
 	ctx.paths = paths
+	ctx.fullPath = router.path
 	router.handler(ctx)
 }
 

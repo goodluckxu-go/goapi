@@ -17,6 +17,7 @@ type Context struct {
 	middlewares []Middleware
 	paths       map[string]string
 	index       int
+	fullPath    string
 }
 
 func (c *Context) Deadline() (deadline time.Time, ok bool) {
@@ -68,6 +69,12 @@ func (c *Context) Value(key any) any {
 		return c.Request.Context().Value(key)
 	}
 	return nil
+}
+
+// FullPath returns a matched route full path. For not found routes
+// returns an empty string.
+func (c *Context) FullPath() string {
+	return c.fullPath
 }
 
 // Next It is used in middleware, before Next is before interface request, and after Next is after interface request
