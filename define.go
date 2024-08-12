@@ -102,6 +102,8 @@ var typeFile = reflect.TypeOf(&multipart.FileHeader{})
 var typeFiles = reflect.TypeOf([]*multipart.FileHeader{})
 var typeCookie = reflect.TypeOf(&http.Cookie{})
 
+var typeContext = reflect.TypeOf(&Context{})
+
 var typeBytes = reflect.TypeOf([]byte{})
 var interfaceIoReadCloser = reflect.TypeOf(new(io.ReadCloser)).Elem()
 

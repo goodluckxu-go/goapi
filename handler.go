@@ -500,6 +500,9 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 			if field.Name[0] < 'A' || field.Name[0] > 'Z' {
 				continue
 			}
+			if field.Type == typeContext {
+				continue
+			}
 			requestType := ""
 			for _, inTypeStr := range []string{inTypeHeader, inTypeCookie, inTypeQuery} {
 				tag := field.Tag

@@ -276,12 +276,14 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 			}
 			childField := h.getChildFieldVal(inputValue, field.deepIdx)
 			h.initPtr(childField)
+			h.handleSecurityDefaultParam(ctx, childField)
 			security := childField.Interface().(HTTPBearer)
 			security.HTTPBearer(token)
 		case inTypeSecurityHTTPBasic:
 			username, password, _ := ctx.Request.BasicAuth()
 			childField := h.getChildFieldVal(inputValue, field.deepIdx)
 			h.initPtr(childField)
+			h.handleSecurityDefaultParam(ctx, childField)
 			security := childField.Interface().(HTTPBasic)
 			security.HTTPBasic(username, password)
 		case inTypeSecurityApiKey:
@@ -308,10 +310,25 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 		}
 	}
 	if securityApiKey.IsValid() {
+		h.handleSecurityDefaultParam(ctx, securityApiKey)
 		security := securityApiKey.Interface().(ApiKey)
 		security.ApiKey()
 	}
 	return
+}
+
+func (h *handlerServer) handleSecurityDefaultParam(ctx *Context, securityValue reflect.Value) {
+	numField := securityValue.Elem().NumField()
+	for i := 0; i < numField; i++ {
+		name := securityValue.Elem().Type().Field(i).Name
+		if name[0] < 'A' || name[0] > 'Z' {
+			continue
+		}
+		switch securityValue.Elem().Field(i).Type() {
+		case typeContext:
+			securityValue.Elem().Field(i).Set(reflect.ValueOf(ctx))
+		}
+	}
 }
 
 func (h *handlerServer) handleHeader(req *http.Request, inputValue reflect.Value, field fieldInfo) (err error) {
