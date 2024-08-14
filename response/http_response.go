@@ -83,14 +83,3 @@ func HTTPException(httpCode int, detail string, headers ...map[string]string) {
 	buf, _ := json.Marshal(&res)
 	panic(string(buf))
 }
-
-func parseHTTPException(errStr string) (httpCode int, header map[string]string, detail string, err error) {
-	var res exceptInfo
-	if err = json.Unmarshal([]byte(errStr), &res); err != nil {
-		return
-	}
-	httpCode = res.HttpCode
-	header = res.Header
-	detail = res.Detail
-	return
-}

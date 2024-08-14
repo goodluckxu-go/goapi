@@ -1,7 +1,6 @@
 package openapi
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -3082,7 +3081,7 @@ func validatorRef(ref, refType string, openapi *OpenAPI) error {
 }
 
 func handlePath(path string) (hPath string, err error) {
-	var buf bytes.Buffer
+	var builder strings.Builder
 	var symbol bool
 	for i := 0; i < len(path); i++ {
 		switch path[i] {
@@ -3092,21 +3091,21 @@ func handlePath(path string) (hPath string, err error) {
 				return
 			}
 			symbol = true
-			buf.WriteByte(path[i])
+			builder.WriteByte(path[i])
 		case '}':
 			if !symbol {
 				err = fmt.Errorf("path format error")
 				return
 			}
 			symbol = false
-			buf.WriteByte(path[i])
+			builder.WriteByte(path[i])
 		default:
 			if symbol {
-				if buf.Bytes()[buf.Len()-1] == '{' {
-					buf.WriteByte('-')
+				if builder.String()[builder.Len()-1] == '{' {
+					builder.WriteByte('-')
 				}
 			} else {
-				buf.WriteByte(path[i])
+				builder.WriteByte(path[i])
 			}
 		}
 	}
@@ -3114,6 +3113,6 @@ func handlePath(path string) (hPath string, err error) {
 		err = fmt.Errorf("path format error")
 		return
 	}
-	hPath = buf.String()
+	hPath = builder.String()
 	return
 }
