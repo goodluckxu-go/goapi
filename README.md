@@ -1,6 +1,8 @@
 # goapi
 Using the HTTP framework of OpenAPI3.1 documentation
 
+English|[中文](README_zh.md)
+
 ## usage
 ~~~bash
 go get github.com/goodluckxu-go/goapi
