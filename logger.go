@@ -37,6 +37,24 @@ func (d *defaultLogger) Fatal(format string, a ...any) {
 	fmt.Printf(spanFill(colorFatal("FATAL"), 5, 10)+" ["+timeFormat(time.Now())+"] "+format+"\n", a...)
 }
 
+type nullLogger struct {
+}
+
+func (d *nullLogger) Debug(format string, a ...any) {
+}
+
+func (d *nullLogger) Info(format string, a ...any) {
+}
+
+func (d *nullLogger) Warning(format string, a ...any) {
+}
+
+func (d *nullLogger) Error(format string, a ...any) {
+}
+
+func (d *nullLogger) Fatal(format string, a ...any) {
+}
+
 type levelHandleLogger struct {
 	log Logger
 }

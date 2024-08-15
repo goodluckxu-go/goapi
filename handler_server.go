@@ -117,13 +117,7 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struc
 		done <- struct{}{}
 		return
 	}
-	var inputs []reflect.Value
 	ctx.middlewares = path.middlewares
-	if len(path.inTypes) == 2 {
-		inputs = append(inputs, reflect.ValueOf(ctx))
-	}
-	inputFields, err := h.handleInputFields(ctx, path.inTypes[len(path.inTypes)-1], path.inputFields)
-	inputs = append(inputs, inputFields)
 	ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {
 		defer func() {
 			if er := recover(); er != nil {
@@ -131,6 +125,12 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struc
 				done <- struct{}{}
 			}
 		}()
+		var inputs []reflect.Value
+		if len(path.inTypes) == 2 {
+			inputs = append(inputs, reflect.ValueOf(ctx))
+		}
+		inputFields, err := h.handleInputFields(ctx, path.inTypes[len(path.inTypes)-1], path.inputFields)
+		inputs = append(inputs, inputFields)
 		if err != nil {
 			response.HTTPException(validErrorCode, err.Error())
 		}
@@ -345,15 +345,19 @@ func (h *handlerServer) handleHeader(req *http.Request, inputValue reflect.Value
 }
 
 func (h *handlerServer) handleCookie(req *http.Request, inputValue reflect.Value, field fieldInfo) (err error) {
+	name := strings.TrimSuffix(field.tag.desc, "Read the value of document.cookie")
+	if name == "" {
+		name = field.inTypeVal
+	}
 	cookie, er := req.Cookie(field.inTypeVal)
 	if er != nil {
+		if field.required {
+			err = fmt.Errorf(h.api.lang.Required(name))
+			return
+		}
 		return
 	}
 	if field._type == typeCookie {
-		name := field.tag.desc
-		if name == "" {
-			name = field.inTypeVal
-		}
 		if er != nil || cookie.Value == "" {
 			if field.required {
 				err = fmt.Errorf(h.api.lang.Required(name))
