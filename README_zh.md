@@ -128,11 +128,11 @@ func (h *AdminAuth) ApiKey() {
 ### 结构标签注释
 - regexp
     - 值的正则表达式
-    - 验证器限制**字符串**类型
-    - 相当于OpenAPI的**pattern**
+    - 验证器限制 **字符串** 类型
+    - 相当于OpenAPI的 **pattern**
 - enum
     - 值的枚举
-    - 验证器限制**整数** **数字** **布尔** **字符串**类型
+    - 验证器限制 **整数** **数字** **布尔** **字符串** 类型
     - 逗号分割(,)
 - default
     - 默认值
@@ -140,41 +140,41 @@ func (h *AdminAuth) ApiKey() {
     - 实例值
 - desc
     - 字段描述
-    - 相当于OpenAPI的**description**
+    - 相当于OpenAPI的 **description**
 - lt
     - 小于字段值
-    - 验证器限制**整数** **数字**类型
-    - 相当于OpenAPI的**exclusiveMaximum**
+    - 验证器限制 **整数** **数字** 类型
+    - 相当于OpenAPI的 **exclusiveMaximum**
 - lte
     - 小于等于字段值
-    - 验证器限制**整数** **数字**类型
-    - 相当于OpenAPI的**maximum**
+    - 验证器限制 **整数** **数字** 类型
+    - 相当于OpenAPI的 **maximum**
 - gt
     - 大于字段值
-    - 验证器限制**整数** **数字**类型
-    - 相当于OpenAPI的**exclusiveMinimum**
+    - 验证器限制 **整数** **数字** 类型
+    - 相当于OpenAPI的 **exclusiveMinimum**
 - gte
     - 大于等于字段值
-    - 验证器限制**整数** **数字**类型
-    - 相当于OpenAPI的**minimum**
+    - 验证器限制 **整数** **数字** 类型
+    - 相当于OpenAPI的 **minimum**
 - multiple
     - 值的乘数
-    - 验证器限制**整数** **数字**类型
+    - 验证器限制 **整数** **数字** 类型
 - max
     - 值的最大长度
-    - 验证器限制**字符串** **数组** **对象**类型
+    - 验证器限制 **字符串** **数组** **对象** 类型
 - min
     - 值的最小长度
-    - 验证器限制**字符串** **数组** **对象**类型
+    - 验证器限制 **字符串** **数组** **对象** 类型
 - unique
     - 验证数组值唯一
-    - 验证器限制**数组**类型
+    - 验证器限制 **数组** 类型
 ## 响应注释
 ### 如果响应是goapi的实现。响应界面，可以设置一些功能
-- **HTTPResponse[T]**可以设置http的code和header
-- **FileResponse**可以返回可下载文件
-- **SSEResponse**可以以服务器发送事件格式返回内容
-- **HTMLResponse**可以返回HTML页面
+- **HTTPResponse[T]** 可以设置http的code和header
+- **FileResponse** 可以返回可下载文件
+- **SSEResponse** 可以以服务器发送事件格式返回内容
+- **HTMLResponse** 可以返回HTML页面
 ## 错误对应注释以及用法
 ~~~go
 response.HTTPException(404, "error message")
