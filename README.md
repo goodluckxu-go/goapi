@@ -93,6 +93,16 @@ func (h *AdminAuth) ApiKey() {
 	h.Admin = "admin"
 }
 ~~~
+## Verify multilingual Settings
+You can implement the 'goapi.Lang' interface yourself
+~~~go
+api.SetLang(&lang.ZhCn{}) // Default 'EnUs' English comments
+~~~
+## Log output setting
+Set before initializing the api
+~~~go
+goapi.SetLogLevel(goapi.LogInfo | goapi.LogWarning)
+~~~
 ### 'goapi.Router' tag field annotation
 - path: Access Routing
 - method: Access method. Multiple contents separated by ','

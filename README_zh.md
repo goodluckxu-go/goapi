@@ -93,6 +93,16 @@ func (h *AdminAuth) ApiKey() {
 	h.Admin = "admin"
 }
 ~~~
+## 验证的多语言设置
+可以自己实现'goapi.Lang'接口
+~~~go
+api.SetLang(&lang.ZhCn{}) // 默认EnUs英文注释
+~~~
+## 日志输出设置
+在初始化api之前设置
+~~~go
+goapi.SetLogLevel(goapi.LogInfo | goapi.LogWarning)
+~~~
 ### 'goapi.Router'标记字段注释
 - path: 路由地址
 - method: 访问方法。多个内容用'，'分隔
