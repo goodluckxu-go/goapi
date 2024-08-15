@@ -26,7 +26,7 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 		log:      &levelHandleLogger{log: &defaultLogger{}},
 		docsPath: dPath,
 		addr:     ":8080",
-		lang:     &lang.EN{},
+		lang:     &lang.EnUs{},
 	}
 }
 
