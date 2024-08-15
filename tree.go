@@ -13,8 +13,11 @@ type node struct {
 	// Is it an exact matching prefix
 	isExact bool
 
-	// Do you want to abort the matching. After terminating the matching, children should not have any data
+	// Do you want to abort the matching.
 	isStop bool
+
+	// Is it a static file
+	isStatic bool
 
 	// A path that requires precise matching
 	fixedPaths []string
@@ -58,6 +61,7 @@ func (n *node) addRouter(path string, router *appRouter) (err error) {
 	if router.isPrefix {
 		// It is a static resource file path
 		tree.isExact = true
+		tree.isStatic = true
 	} else {
 		left := strings.Index(prefix, "{")
 		right := strings.Index(prefix, "}")
@@ -69,12 +73,15 @@ func (n *node) addRouter(path string, router *appRouter) (err error) {
 					break
 				}
 				if (left == -1 && right != -1) || (left != -1 && right == -1) || left > right {
+					// If the parentheses containing variable parameters are not a pair, it indicates
+					// that the path definition is incorrect
 					err = fmt.Errorf("path format error")
 					return
 				}
 				fixed := prefix[:left]
 				param := prefix[left+1 : right]
 				if !regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`).MatchString(param) {
+					// Variable parameters can only contain uppercase and lowercase numbers and underscores
 					err = fmt.Errorf("path format error")
 					return
 				}
@@ -91,8 +98,10 @@ func (n *node) addRouter(path string, router *appRouter) (err error) {
 	}
 	idx := n.findChildren(tree)
 	if idx != -1 {
+		// If the value of the prefix already exists, merge it
 		tmpTree := n.children[idx]
 		tmpTree.isStop = tree.isStop || tmpTree.isStop
+		tmpTree.isStatic = tree.isStatic || tmpTree.isStatic
 		if tmpTree.router == nil {
 			tmpTree.router = tree.router
 		}
@@ -130,7 +139,15 @@ out:
 		prefix := oldPrefix
 		paths = map[string]string{}
 		if v.isExact && prefix == v.prefix {
+			// Accurately match prefixes
+			if v.isStatic && v.isStop {
+				// Static resource file judgment
+				router = v.router
+				exists = true
+				return
+			}
 			if other != "" {
+				// Unfinished recursive judgment
 				if childRouter, childPaths, childExists := v.findRouter(other); childExists {
 					for key, val := range childPaths {
 						paths[key] = val
@@ -149,8 +166,14 @@ out:
 			}
 		}
 		if !v.isExact {
-			fixLeft := 0
-			paramLeft := -1
+			// When performing fuzzy matching
+			fixLeft := 0    // Index of the current prefix fixed string
+			paramLeft := -1 // Index of the current prefix variable parameter
+			// There will definitely be a fixed string stored first
+			// example: /user_{id}_{name}_info
+			// First, search for the first fixed value. Once found, add 1 to both indexes,
+			// and then search for the next fixed value. The value above the next fixed value is the
+			// value of the previous variable parameter
 			for fixLeft < len(v.fixedPaths) && paramLeft < len(v.pathParams) {
 				idx := strings.Index(prefix, v.fixedPaths[fixLeft])
 				if idx == -1 {
@@ -165,6 +188,7 @@ out:
 				paramLeft++
 			}
 			if fixLeft < len(v.fixedPaths) {
+				// When the last parameter is a fixed string
 				idx := strings.Index(prefix, v.fixedPaths[fixLeft])
 				if idx == -1 {
 					paths = nil
@@ -174,11 +198,14 @@ out:
 				fixLeft++
 				paramLeft++
 			} else if paramLeft < len(v.pathParams) && paramLeft != -1 {
+				// When the last parameter is a variable parameter
 				paths[v.pathParams[paramLeft]] = prefix
 				paramLeft++
 			}
 			if fixLeft == len(v.fixedPaths) && paramLeft == len(v.pathParams) {
+				// When both fixed and variable parameters have been determined, the matching is successful
 				if other != "" {
+					// Unfinished recursive judgment
 					if childRouter, childPaths, childExists := v.findRouter(other); childExists {
 						for key, val := range childPaths {
 							paths[key] = val

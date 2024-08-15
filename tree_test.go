@@ -50,6 +50,10 @@ func TestTree(t *testing.T) {
 		{struct {
 			path   string
 			router *appRouter
+		}{"/static", &appRouter{path: "/static", isPrefix: true}}, nil},
+		{struct {
+			path   string
+			router *appRouter
 		}{"/user/post/{}", &appRouter{path: "/user/post/{}"}}, fmt.Errorf("path format error")},
 	}
 	tr := &node{}
@@ -73,6 +77,7 @@ func TestTree(t *testing.T) {
 		{"/user/edit/3/file", addList[5].in.router, map[string]string{"id": "3"}, true},
 		{"/user/edit/1_2/3", addList[6].in.router, map[string]string{"id": "1", "name": "2", "uid": "3"}, true},
 		{"/articles", addList[7].in.router, map[string]string{}, true},
+		{"/static/1.html", addList[8].in.router, map[string]string{}, true},
 	}
 	for _, find := range findList {
 		out1, out2, out3 := tr.findRouter(find.in)
