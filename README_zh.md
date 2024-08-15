@@ -1,7 +1,7 @@
 # goapi
 使用OpenAPI3.1文档的HTTP框架
 
-[English](README.md)|中文
+[English](README.md) | 中文
 
 ## 用法
 ~~~bash
