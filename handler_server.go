@@ -91,6 +91,11 @@ func (h *handlerServer) handlePaths(method string, path *pathInfo, middlewares [
 
 func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 	ctx.log = h.api.log
+	if path == nil {
+		ctx.middlewares = append(h.handle.publicMiddlewares, notFind())
+		ctx.Next()
+		return
+	}
 	mediaType := ctx.Request.URL.Query().Get("media_type")
 	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
 		mediaType = mediaTypeToTypeMap[h.api.responseMediaTypes[0]]
@@ -100,11 +105,6 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 			h.handleException(ctx.Writer, er, mediaType)
 		}
 	}()
-	if path == nil {
-		ctx.middlewares = append(h.handle.publicMiddlewares, notFind())
-		ctx.Next()
-		return
-	}
 	ctx.middlewares = path.middlewares
 	ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {
 		defer func() {
