@@ -108,11 +108,17 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 	ctx.middlewares = path.middlewares
 	ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {
 		var inputs []reflect.Value
+		lastInputIdx := 0
 		if len(path.inTypes) == 2 {
-			inputs = append(inputs, reflect.ValueOf(ctx))
+			inputs = make([]reflect.Value, 2)
+			inputs[0] = reflect.ValueOf(ctx)
+			lastInputIdx = 1
+		} else {
+			inputs = make([]reflect.Value, 1)
+			lastInputIdx = 0
 		}
 		inputFields, err := h.handleInputFields(ctx, path.inTypes[len(path.inTypes)-1], path.inputFields)
-		inputs = append(inputs, inputFields)
+		inputs[lastInputIdx] = inputFields
 		if err != nil {
 			response.HTTPException(validErrorCode, err.Error())
 		}
