@@ -53,9 +53,7 @@ func (h *handlerServer) HttpHandler() http.Handler {
 	}
 	mux.notFindRouters(&appRouter{
 		handler: func(ctx *Context) {
-			done := make(chan struct{})
-			go h.handlePath(ctx, nil, done)
-			<-done
+			h.handlePath(ctx, nil)
 		},
 	})
 	return mux
@@ -85,15 +83,13 @@ func (h *handlerServer) handlePaths(method string, path pathInfo, middlewares []
 		path:   path.path,
 		method: method,
 		handler: func(ctx *Context) {
-			done := make(chan struct{})
-			go h.handlePath(ctx, &path, done)
-			<-done
+			h.handlePath(ctx, &path)
 		},
 		pos: fmt.Sprintf("%v (%v Middleware)", path.pos, len(middlewares)),
 	})
 }
 
-func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struct{}) {
+func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 	ctx.log = h.api.log
 	mediaType := ctx.Request.URL.Query().Get("media_type")
 	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
@@ -102,7 +98,6 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struc
 	defer func() {
 		if er := recover(); er != nil {
 			h.handleException(ctx.Writer, er, mediaType)
-			done <- struct{}{}
 		}
 	}()
 	httpRes := &response.HTTPResponse[any]{
@@ -114,7 +109,6 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struc
 	if path == nil {
 		ctx.middlewares = append(h.handle.publicMiddlewares, notFind())
 		ctx.Next()
-		done <- struct{}{}
 		return
 	}
 	ctx.middlewares = path.middlewares
@@ -122,7 +116,6 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struc
 		defer func() {
 			if er := recover(); er != nil {
 				h.handleException(ctx.Writer, er, mediaType)
-				done <- struct{}{}
 			}
 		}()
 		var inputs []reflect.Value
@@ -136,22 +129,18 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo, done chan struc
 		}
 		rs := path.funcValue.Call(inputs)
 		if len(rs) != 1 {
-			done <- struct{}{}
 			return
 		}
 		if rs[0].Type().Implements(typeResponse) {
 			resp := rs[0].Interface().(Response)
 			resp.SetContentType(string(typeToMediaTypeMap[mediaType]))
 			resp.Write(ctx.Writer)
-			done <- struct{}{}
 			return
 		}
 		httpRes.Body = rs[0].Interface()
 		httpRes.Write(ctx.Writer)
-		done <- struct{}{}
 	})
 	ctx.Next()
-	done <- struct{}{}
 }
 
 func (h *handlerServer) handleException(writer http.ResponseWriter, err any, mediaType string) {
