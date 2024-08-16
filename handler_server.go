@@ -59,7 +59,7 @@ func (h *handlerServer) HttpHandler() http.Handler {
 	return mux
 }
 
-func (h *handlerServer) handleStatic(static staticInfo) {
+func (h *handlerServer) handleStatic(static *staticInfo) {
 	root, _ := filepath.Abs(static.root)
 	h.api.routers = append(h.api.routers, &appRouter{
 		path:     static.path,
@@ -78,12 +78,12 @@ func (h *handlerServer) handleStatic(static staticInfo) {
 	})
 }
 
-func (h *handlerServer) handlePaths(method string, path pathInfo, middlewares []Middleware) {
+func (h *handlerServer) handlePaths(method string, path *pathInfo, middlewares []Middleware) {
 	h.api.routers = append(h.api.routers, &appRouter{
 		path:   path.path,
 		method: method,
 		handler: func(ctx *Context) {
-			h.handlePath(ctx, &path)
+			h.handlePath(ctx, path)
 		},
 		pos: fmt.Sprintf("%v (%v Middleware)", path.pos, len(middlewares)),
 	})

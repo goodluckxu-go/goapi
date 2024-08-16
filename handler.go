@@ -16,8 +16,8 @@ func newHandler(api *API) *handler {
 
 type handler struct {
 	api                *API
-	paths              []pathInfo
-	statics            []staticInfo
+	paths              []*pathInfo
+	statics            []*staticInfo
 	structFields       []fieldInfo
 	structs            map[string]*structInfo
 	defaultMiddlewares []Middleware
@@ -70,7 +70,7 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 			}
 			h.paths = append(h.paths, list...)
 		case *staticInfo:
-			h.statics = append(h.statics, *val)
+			h.statics = append(h.statics, val)
 		case *APIGroup:
 			h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs)
 		case Middleware:
@@ -198,7 +198,7 @@ func (h *handler) handleStructs() (err error) {
 	return
 }
 
-func (h *handler) handleIncludeRouter(router *includeRouter, prefix string) (list []pathInfo, err error) {
+func (h *handler) handleIncludeRouter(router *includeRouter, prefix string) (list []*pathInfo, err error) {
 	routerType := reflect.ValueOf(router.router)
 	var routerStructType reflect.Type
 	var pos string
@@ -312,13 +312,13 @@ func (h *handler) handleIncludeRouter(router *includeRouter, prefix string) (lis
 		pInfo.desc = rInfo.desc
 		pInfo.tags = rInfo.tags
 		pInfo.res = resp
-		list = append(list, pInfo)
+		list = append(list, &pInfo)
 	}
 	h.handlePathSort(list)
 	return
 }
 
-func (h *handler) handlePathSort(list []pathInfo) {
+func (h *handler) handlePathSort(list []*pathInfo) {
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].path < list[j].path
 	})

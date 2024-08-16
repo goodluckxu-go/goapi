@@ -131,7 +131,7 @@ func (h *handlerOpenAPI) handlePaths() {
 	}
 }
 
-func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInfo, method string) {
+func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathInfo, method string) {
 	operation.Summary = path.summary
 	operation.Description = path.desc
 	operation.Tags = path.tags
@@ -298,7 +298,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path pathInf
 	}
 }
 
-func (h *handlerOpenAPI) setSecuritySchemes(path pathInfo) {
+func (h *handlerOpenAPI) setSecuritySchemes(path *pathInfo) {
 	securitySchemes := map[string]*openapi.SecurityScheme{}
 	if len(h.api.responseMediaTypes) > 1 {
 		securitySchemes["mediaType"] = &openapi.SecurityScheme{
