@@ -100,12 +100,6 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 			h.handleException(ctx.Writer, er, mediaType)
 		}
 	}()
-	httpRes := &response.HTTPResponse[any]{
-		HttpCode: 200,
-		Header: map[string]string{
-			"Content-Type": string(typeToMediaTypeMap[mediaType]),
-		},
-	}
 	if path == nil {
 		ctx.middlewares = append(h.handle.publicMiddlewares, notFind())
 		ctx.Next()
@@ -137,7 +131,13 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 			resp.Write(ctx.Writer)
 			return
 		}
-		httpRes.Body = rs[0].Interface()
+		httpRes := &response.HTTPResponse[any]{
+			HttpCode: 200,
+			Header: map[string]string{
+				"Content-Type": string(typeToMediaTypeMap[mediaType]),
+			},
+			Body: rs[0].Interface(),
+		}
 		httpRes.Write(ctx.Writer)
 	})
 	ctx.Next()
