@@ -107,11 +107,6 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 	}()
 	ctx.middlewares = path.middlewares
 	ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {
-		defer func() {
-			if er := recover(); er != nil {
-				h.handleException(ctx.Writer, er, mediaType)
-			}
-		}()
 		var inputs []reflect.Value
 		if len(path.inTypes) == 2 {
 			inputs = append(inputs, reflect.ValueOf(ctx))
