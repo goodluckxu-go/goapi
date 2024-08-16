@@ -11,6 +11,7 @@ import (
 type Context struct {
 	Request     *http.Request
 	Writer      http.ResponseWriter
+	writermem   ResponseWriter
 	Values      map[string]any
 	log         Logger
 	mux         sync.RWMutex
@@ -18,6 +19,15 @@ type Context struct {
 	paths       map[string]string
 	index       int
 	fullPath    string
+}
+
+func (c *Context) reset() {
+	c.Writer = &c.writermem
+	c.Values = nil
+	c.middlewares = c.middlewares[:]
+	c.paths = nil
+	c.index = -1
+	c.fullPath = ""
 }
 
 func (c *Context) Deadline() (deadline time.Time, ok bool) {
@@ -93,6 +103,11 @@ func (c *Context) Logger() Logger {
 type ResponseWriter struct {
 	http.ResponseWriter
 	status int
+}
+
+func (r *ResponseWriter) reset(w http.ResponseWriter) {
+	r.ResponseWriter = w
+	r.status = 200
 }
 
 // Hijack implements the http.Hijacker interface.

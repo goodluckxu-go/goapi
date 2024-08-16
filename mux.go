@@ -2,30 +2,34 @@ package goapi
 
 import (
 	"net/http"
+	"sync"
 )
 
-func newGoAPIMux(log Logger) *goAPIMux {
-	return &goAPIMux{
+func newGoAPIMux() *goAPIMux {
+	mux := &goAPIMux{
 		routers: map[string]*node{},
-		log:     log,
 	}
+	mux.pool.New = func() any {
+		return &Context{}
+	}
+	return mux
 }
 
 type goAPIMux struct {
 	routers map[string]*node
 	log     Logger
 	notFind *appRouter
+	pool    sync.Pool
 }
 
 // ServeHTTP Implement http.Handler interface
 func (m *goAPIMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := &Context{
-		index:   -1,
-		log:     m.log,
-		Request: r,
-		Writer:  &ResponseWriter{ResponseWriter: w},
-	}
+	ctx := m.pool.Get().(*Context)
+	ctx.writermem.reset(w)
+	ctx.reset()
+	ctx.Request = r
 	m.handleHTTPRequest(ctx)
+	m.pool.Put(ctx)
 }
 
 func (m *goAPIMux) addRouters(path, method string, router *appRouter) (err error) {

@@ -9,6 +9,9 @@ import (
 func notFind() func(ctx *Context) {
 	return func(ctx *Context) {
 		http.NotFound(ctx.Writer, ctx.Request)
+		if lg, ok := ctx.log.(*levelHandleLogger); ok && lg.log == nil {
+			return
+		}
 		ctx.Logger().Info("[0.000ms] %v - \"%v %v\" %v %v", ctx.Request.RemoteAddr,
 			ctx.Request.Method, ctx.Request.URL.Path, colorError("404"), colorError(http.StatusText(404)))
 	}
@@ -16,16 +19,16 @@ func notFind() func(ctx *Context) {
 
 func setLogger() func(ctx *Context) {
 	return func(ctx *Context) {
+		if lg, ok := ctx.log.(*levelHandleLogger); ok && lg.log == nil {
+			ctx.Next()
+			return
+		}
 		begin := time.Now()
 		ctx.Next()
 		elapsed := time.Since(begin)
 		if resp, ok := ctx.Writer.(*ResponseWriter); ok {
 			status := fmt.Sprintf("%v", resp.Status())
 			statusText := http.StatusText(resp.Status())
-			if resp.Status() == 0 {
-				status = "200"
-				statusText = http.StatusText(200)
-			}
 			if len(status) == 3 {
 				if status[0] == '1' || status[0] == '2' {
 					status = colorInfo(status)

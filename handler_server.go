@@ -45,7 +45,7 @@ func (h *handlerServer) Handle() {
 }
 
 func (h *handlerServer) HttpHandler() http.Handler {
-	mux := newGoAPIMux(h.api.log)
+	mux := newGoAPIMux()
 	for _, router := range h.api.routers {
 		if err := mux.addRouters(router.path, router.method, router); err != nil {
 			log.Fatal(err)

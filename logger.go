@@ -37,29 +37,14 @@ func (d *defaultLogger) Fatal(format string, a ...any) {
 	fmt.Printf(spanFill(colorFatal("FATAL"), 5, 10)+" ["+timeFormat(time.Now())+"] "+format+"\n", a...)
 }
 
-type nullLogger struct {
-}
-
-func (d *nullLogger) Debug(format string, a ...any) {
-}
-
-func (d *nullLogger) Info(format string, a ...any) {
-}
-
-func (d *nullLogger) Warning(format string, a ...any) {
-}
-
-func (d *nullLogger) Error(format string, a ...any) {
-}
-
-func (d *nullLogger) Fatal(format string, a ...any) {
-}
-
 type levelHandleLogger struct {
 	log Logger
 }
 
 func (d *levelHandleLogger) Debug(format string, a ...any) {
+	if d.log == nil {
+		return
+	}
 	if logLevel&LogDebug == 0 {
 		return
 	}
@@ -67,6 +52,9 @@ func (d *levelHandleLogger) Debug(format string, a ...any) {
 }
 
 func (d *levelHandleLogger) Info(format string, a ...any) {
+	if d.log == nil {
+		return
+	}
 	if logLevel&LogInfo == 0 {
 		return
 	}
@@ -74,6 +62,9 @@ func (d *levelHandleLogger) Info(format string, a ...any) {
 }
 
 func (d *levelHandleLogger) Warning(format string, a ...any) {
+	if d.log == nil {
+		return
+	}
 	if logLevel&LogWarning == 0 {
 		return
 	}
@@ -81,6 +72,9 @@ func (d *levelHandleLogger) Warning(format string, a ...any) {
 }
 
 func (d *levelHandleLogger) Error(format string, a ...any) {
+	if d.log == nil {
+		return
+	}
 	if logLevel&LogError == 0 {
 		return
 	}
@@ -88,6 +82,9 @@ func (d *levelHandleLogger) Error(format string, a ...any) {
 }
 
 func (d *levelHandleLogger) Fatal(format string, a ...any) {
+	if d.log == nil {
+		return
+	}
 	if logLevel&LogFail == 0 {
 		return
 	}
