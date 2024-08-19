@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -98,6 +99,38 @@ func (c *Context) Next() {
 // Logger It is a method of obtaining logs
 func (c *Context) Logger() Logger {
 	return c.log
+}
+
+// RemoteIP parses the IP from Request.RemoteAddr, normalizes and returns the IP (without the port).
+func (c *Context) RemoteIP() string {
+	ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr))
+	if err != nil {
+		return ""
+	}
+	return ip
+}
+
+// ClientIP implements one best effort algorithm to return the real client IP.
+// It is it will then try to parse the headers defined in http.Header (defaulting to [X-Forwarded-For, X-Real-Ip]).
+// else the remote IP (coming from Request.RemoteAddr) is returned.
+func (c *Context) ClientIP() string {
+	remoteIP := net.ParseIP(c.RemoteIP())
+	if remoteIP == nil {
+		return ""
+	}
+	if xForwardedFor := c.Request.Header.Get("X-Forwarded-For"); xForwardedFor != "" {
+		ip := net.ParseIP(strings.Split(xForwardedFor, ",")[0])
+		if ip != nil && ip.To4() != nil {
+			return ip.String()
+		}
+	}
+	if xRealIP := c.Request.Header.Get("X-Real-IP"); xRealIP != "" {
+		ip := net.ParseIP(strings.Split(xRealIP, ",")[0])
+		if ip != nil && ip.To4() != nil {
+			return ip.String()
+		}
+	}
+	return remoteIP.String()
 }
 
 type ResponseWriter struct {
