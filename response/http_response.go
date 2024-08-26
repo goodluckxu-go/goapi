@@ -1,8 +1,8 @@
 package response
 
 import (
-	"encoding/json"
 	"encoding/xml"
+	json "github.com/json-iterator/go"
 	"net/http"
 )
 

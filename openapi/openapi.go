@@ -1,8 +1,8 @@
 package openapi
 
 import (
-	"encoding/json"
 	"fmt"
+	json "github.com/json-iterator/go"
 	"regexp"
 	"strconv"
 	"strings"

@@ -1,10 +1,10 @@
 package goapi
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"github.com/goodluckxu-go/goapi/response"
+	json "github.com/json-iterator/go"
 	"github.com/shopspring/decimal"
 	"io"
 	"log"

@@ -2,7 +2,7 @@ package goapi
 
 import (
 	"bytes"
-	"encoding/json"
+	json "github.com/json-iterator/go"
 	"io"
 	"mime/multipart"
 	"net/http"

@@ -1,12 +1,12 @@
 package goapi
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/goodluckxu-go/goapi/lang"
 	"github.com/goodluckxu-go/goapi/openapi"
 	"github.com/goodluckxu-go/goapi/response"
 	"github.com/goodluckxu-go/goapi/swagger"
+	json "github.com/json-iterator/go"
 	"net/http"
 	"os"
 )
