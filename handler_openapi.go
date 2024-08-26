@@ -11,7 +11,7 @@ import (
 )
 
 func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {
-	return &handlerOpenAPI{
+	handleApi := &handlerOpenAPI{
 		api:    api,
 		handle: handle,
 		openapi: &openapi.OpenAPI{
@@ -23,6 +23,10 @@ func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {
 		schemas:         map[string]map[MediaType]*openapi.Schema{},
 		isMullMediaType: len(handle.allMediaTypes) > 1,
 	}
+	for k, _ := range handle.allMediaTypes {
+		handleApi.singleMediaType = k
+	}
+	return handleApi
 }
 
 type handlerOpenAPI struct {
@@ -31,6 +35,7 @@ type handlerOpenAPI struct {
 	openapi         *openapi.OpenAPI
 	schemas         map[string]map[MediaType]*openapi.Schema
 	isMullMediaType bool
+	singleMediaType MediaType
 }
 
 func (h *handlerOpenAPI) Handle() *openapi.OpenAPI {
@@ -366,9 +371,7 @@ func (h *handlerOpenAPI) handleSchemas() {
 	h.openapi.Components.Schemas = map[string]*openapi.Schema{}
 	for key, schemas := range h.schemas {
 		if !h.isMullMediaType {
-			for _, v := range schemas {
-				h.openapi.Components.Schemas[key] = v
-			}
+			h.openapi.Components.Schemas[key] = schemas[h.singleMediaType]
 		} else {
 			for k, v := range schemas {
 				h.openapi.Components.Schemas[key+"_"+mediaTypeToTypeMap[k]] = v
