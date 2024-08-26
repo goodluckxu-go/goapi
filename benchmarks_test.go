@@ -55,6 +55,13 @@ func BenchmarkMiddlewareRouter(b *testing.B) {
 }
 
 func BenchmarkPostDataRouter(b *testing.B) {
+	req, err := http.NewRequest(http.MethodPost, "/post?type=125", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Token", "123")
+	req.Header.Set("Cookie", "Projectid=147")
 	buf, _ := json.Marshal(map[string]interface{}{
 		"Id":   15,
 		"Name": "zs",
@@ -62,27 +69,22 @@ func BenchmarkPostDataRouter(b *testing.B) {
 	writer := &ResponseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
-		req, err := http.NewRequest(http.MethodPost, "/post?type=125", io.NopCloser(bytes.NewBuffer(buf)))
-		if err != nil {
-			panic(err)
-		}
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Token", "123")
-		req.Header.Set("Cookie", "Projectid=147")
+		req.Body = io.NopCloser(bytes.NewBuffer(buf))
 		hd.ServeHTTP(writer, req)
 	}
 }
 
 func BenchmarkPostFileRouter(b *testing.B) {
+	req, err := http.NewRequest(http.MethodPost, "/post/file", nil)
+	if err != nil {
+		panic(err)
+	}
 	ctype, buf := createFile("./README.md")
+	req.Header.Set("Content-Type", ctype)
 	writer := &ResponseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
-		req, err := http.NewRequest(http.MethodPost, "/post/file", io.NopCloser(bytes.NewBuffer(buf.Bytes())))
-		if err != nil {
-			panic(err)
-		}
-		req.Header.Set("Content-Type", ctype)
+		req.Body = io.NopCloser(bytes.NewBuffer(buf.Bytes()))
 		hd.ServeHTTP(writer, req)
 	}
 }
