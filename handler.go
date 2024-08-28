@@ -429,8 +429,9 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 							}
 							if mediaType != XML && mediaType != JSON {
 								isNotJsonXml = true
+							} else {
+								h.allMediaTypes[mediaType] = struct{}{}
 							}
-							h.allMediaTypes[mediaType] = struct{}{}
 							mTypes = append(mTypes, mediaType)
 						}
 						fInfo.mediaTypes = mTypes
