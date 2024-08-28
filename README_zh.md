@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	color.NoColor = true // 关闭控制台颜色，默认颜色
+	color.NoColor = true // 关闭默认日志控制台颜色
 	api := goapi.GoAPI(true, "/docs")
 	api.SetResponseMediaType(goapi.JSON)
 	api.HTTPExceptionHandler(func(httpCode int, detail string) goapi.Response {

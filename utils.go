@@ -79,3 +79,15 @@ func spanFill(input string, inputLen, num int) string {
 	}
 	return input
 }
+
+func isDefaultLogger(log Logger) (ok bool) {
+	var levelLog *levelHandleLogger
+	if levelLog, ok = log.(*levelHandleLogger); !ok {
+		return
+	}
+	if levelLog.log == nil {
+		return
+	}
+	_, ok = levelLog.log.(*defaultLogger)
+	return
+}

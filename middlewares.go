@@ -12,8 +12,14 @@ func notFind() func(ctx *Context) {
 		if lg, ok := ctx.log.(*levelHandleLogger); ok && lg.log == nil {
 			return
 		}
+		status := "404"
+		statusText := http.StatusText(404)
+		if isDefaultLogger(ctx.log) {
+			status = colorError(status)
+			statusText = colorError(statusText)
+		}
 		ctx.Logger().Info("[0.000ms] %v - \"%v %v\" %v %v", ctx.Request.RemoteAddr,
-			ctx.Request.Method, ctx.Request.URL.Path, colorError("404"), colorError(http.StatusText(404)))
+			ctx.Request.Method, ctx.Request.URL.Path, status, statusText)
 	}
 }
 
@@ -29,7 +35,7 @@ func setLogger() func(ctx *Context) {
 		if resp, ok := ctx.Writer.(*ResponseWriter); ok {
 			status := fmt.Sprintf("%v", resp.Status())
 			statusText := http.StatusText(resp.Status())
-			if len(status) == 3 {
+			if isDefaultLogger(ctx.log) && len(status) == 3 {
 				if status[0] == '1' || status[0] == '2' {
 					status = colorInfo(status)
 					statusText = colorInfo(statusText)

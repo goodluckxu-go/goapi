@@ -9,6 +9,7 @@ import (
 	json "github.com/json-iterator/go"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 // GoAPI It is a newly created API function
@@ -158,7 +159,11 @@ func (a *API) Handler() http.Handler {
 	}
 	serverHandler := newHandlerServer(a, handle)
 	serverHandler.Handle()
-	a.log.Info("Started server process [%v]", colorDebug(os.Getpid()))
+	pid := strconv.Itoa(os.Getpid())
+	if isDefaultLogger(a.log) {
+		pid = colorDebug(pid)
+	}
+	a.log.Info("Started server process [%v]", pid)
 	a.log.Debug("All routes:")
 	maxMethodLen := 0
 	maxPathLen := 0

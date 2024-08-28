@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	color.NoColor = true // Turn off console color, default color
+	color.NoColor = true // Turn off the default logging console color
 	api := goapi.GoAPI(true, "/docs")
 	api.SetResponseMediaType(goapi.JSON)
 	api.HTTPExceptionHandler(func(httpCode int, detail string) goapi.Response {
