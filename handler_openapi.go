@@ -268,7 +268,11 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 		responseContent := map[string]*openapi.MediaType{}
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, resp.deepTypes, mediaType, false)
+			isBodyNotJsonXml := false
+			if mediaType != JSON && mediaType != XML {
+				isBodyNotJsonXml = true
+			}
+			h.setChildSchema(childSchema, resp.deepTypes, mediaType, isBodyNotJsonXml)
 			if mediaType == XML {
 				childSchema.XML = &openapi.XML{
 					Name: h.getStructBaseName(lastType._type.Name()),
@@ -289,7 +293,11 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 		responseContent := map[string]*openapi.MediaType{}
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, resp.deepTypes, mediaType, false)
+			isBodyNotJsonXml := false
+			if mediaType != JSON && mediaType != XML {
+				isBodyNotJsonXml = true
+			}
+			h.setChildSchema(childSchema, resp.deepTypes, mediaType, isBodyNotJsonXml)
 			if mediaType == XML {
 				childSchema.XML = &openapi.XML{
 					Name: h.getStructBaseName(lastType._type.Name()),

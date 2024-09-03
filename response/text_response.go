@@ -7,7 +7,7 @@ import (
 type TextResponse struct {
 	Header map[string]string
 	Cookie map[string]string
-	Body   string
+	Body   []byte
 }
 
 func (h *TextResponse) GetBody() any {
@@ -30,5 +30,5 @@ func (h *TextResponse) Write(w http.ResponseWriter) {
 	}
 	w.Header().Set("Content-Type", h.GetContentType())
 	w.WriteHeader(200)
-	_, _ = w.Write([]byte(h.Body))
+	_, _ = w.Write(h.Body)
 }
