@@ -182,7 +182,7 @@ goapi.SetLogLevel(goapi.LogInfo | goapi.LogWarning)
     - 验证器限制 **数组** 类型
 ## 响应注释
 ### 如果响应是goapi的实现。响应界面，可以设置一些功能
-- **HTTPResponse[T]** 可以设置http的code和header
+- **HTTPResponse[T]** 可以设置http的code,header,cookie
 - **FileResponse** 可以返回可下载文件
 - **SSEResponse** 可以以服务器发送事件格式返回内容
 - **HTMLResponse** 可以返回HTML页面
