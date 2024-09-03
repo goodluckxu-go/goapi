@@ -56,8 +56,11 @@ func (h *HTTPResponse[T]) Write(w http.ResponseWriter) {
 		buf, err = xml.Marshal(h.Body)
 	default:
 		var anyVal any = h.Body
-		if val, ok := anyVal.([]byte); ok {
+		switch val := anyVal.(type) {
+		case []byte:
 			buf = val
+		case string:
+			buf = []byte(val)
 		}
 	}
 	if err != nil {
