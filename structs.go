@@ -99,6 +99,9 @@ type typeInfo struct {
 	typeStr  string // openapi use
 	format   string // openapi use
 	isStruct bool
+	// 'int8', 'int16', 'uint8', 'uint16' verification use
+	lte *float64
+	gte *float64
 }
 
 type exceptInfo struct {

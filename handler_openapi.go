@@ -157,6 +157,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 		switch inputField.inType {
 		case inTypePath, inTypeQuery, inTypeCookie, inTypeHeader:
 			fType := h.convertType(inputField._type, false)
+			h.mergeTag(inputField.tag, fType)
 			childSchema := &openapi.Schema{
 				Type:   fType.typeStr,
 				Format: fType.format,
@@ -180,8 +181,10 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 				childSchema.UniqueItems = inputField.tag.unique
 				cfType := h.convertType(fType._type.Elem(), false)
 				childSchema.Items = &openapi.Schema{
-					Type:   cfType.typeStr,
-					Format: cfType.format,
+					Type:    cfType.typeStr,
+					Format:  cfType.format,
+					Maximum: cfType.lte,
+					Minimum: cfType.gte,
 				}
 			case "object":
 				childSchema.MaxProperties = inputField.tag.max
@@ -399,6 +402,7 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 			childSchema.Example = v1.tag.example
 			childSchema.Description = v1.tag.desc
 			fType := h.convertType(v1._type, false)
+			h.mergeTag(v1.tag, fType)
 			switch fType.typeStr {
 			case "integer", "number":
 				childSchema.Maximum = v1.tag.lte
@@ -414,6 +418,14 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 				childSchema.MaxItems = v1.tag.max
 				childSchema.MinItems = v1.tag.min
 				childSchema.UniqueItems = v1.tag.unique
+				cfType := h.convertType(fType._type.Elem(), false)
+				if childSchema.Items != nil {
+					childSchema.Items = &openapi.Schema{}
+				}
+				childSchema.Items.Type = cfType.typeStr
+				childSchema.Items.Format = cfType.format
+				childSchema.Items.Maximum = cfType.lte
+				childSchema.Items.Minimum = cfType.gte
 			case "object":
 				childSchema.MaxProperties = v1.tag.max
 				childSchema.MinProperties = v1.tag.min
@@ -501,9 +513,35 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type, isBodyNotJsonXml bool) 
 	switch fType.Kind() {
 	case reflect.Int, reflect.Uint:
 		rs.typeStr = "integer"
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		switch systemBit() {
+		case 32:
+			rs.format = "int32"
+		case 64:
+			rs.format = "int64"
+		}
+	case reflect.Int8:
 		rs.typeStr = "integer"
 		rs.format = "int32"
+		rs.gte = toPtr(float64(-int64(1) << 7))
+		rs.lte = toPtr(float64(int64(1)<<7 - 1))
+	case reflect.Uint8:
+		rs.typeStr = "integer"
+		rs.format = "int32"
+		rs.gte = toPtr(float64(0))
+		rs.lte = toPtr(float64(int64(1)<<8 - 1))
+	case reflect.Int16:
+		rs.typeStr = "integer"
+		rs.format = "int32"
+		rs.gte = toPtr(float64(-int64(1) << 15))
+		rs.lte = toPtr(float64(int64(1)<<15 - 1))
+	case reflect.Uint16:
+		rs.format = "int32"
+		rs.typeStr = "integer"
+		rs.gte = toPtr(float64(0))
+		rs.lte = toPtr(float64(int64(1)<<16 - 1))
+	case reflect.Int32, reflect.Uint32:
+		rs.format = "int32"
+		rs.typeStr = "integer"
 	case reflect.Int64, reflect.Uint64:
 		rs.typeStr = "integer"
 		rs.format = "int64"
@@ -619,4 +657,20 @@ func (h *handlerOpenAPI) getStructBaseName(structName string) string {
 		structName = structName[idx+1:]
 	}
 	return structName
+}
+
+func (h *handlerOpenAPI) mergeTag(tag *fieldTagInfo, fType typeInfo) {
+	if fType.typeStr != "integer" {
+		return
+	}
+	if tag.lte == nil {
+		tag.lte = fType.lte
+	} else if fType.lte != nil && *fType.lte < *tag.lte {
+		tag.lte = fType.lte
+	}
+	if tag.gte == nil {
+		tag.gte = fType.gte
+	} else if fType.gte != nil && *fType.gte > *tag.gte {
+		tag.gte = fType.gte
+	}
 }

@@ -91,3 +91,8 @@ func isDefaultLogger(log Logger) (ok bool) {
 	_, ok = levelLog.log.(*defaultLogger)
 	return
 }
+
+func systemBit() int {
+	bit := 32 << (^uint(0) >> 63)
+	return bit
+}
