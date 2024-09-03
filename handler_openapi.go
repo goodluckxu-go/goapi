@@ -156,7 +156,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 	for _, inputField := range path.inputFields {
 		switch inputField.inType {
 		case inTypePath, inTypeQuery, inTypeCookie, inTypeHeader:
-			fType := h.convertType(inputField._type)
+			fType := h.convertType(inputField._type, false)
 			childSchema := &openapi.Schema{
 				Type:   fType.typeStr,
 				Format: fType.format,
@@ -178,7 +178,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 				childSchema.MaxItems = inputField.tag.max
 				childSchema.MinItems = inputField.tag.min
 				childSchema.UniqueItems = inputField.tag.unique
-				cfType := h.convertType(fType._type.Elem())
+				cfType := h.convertType(fType._type.Elem(), false)
 				childSchema.Items = &openapi.Schema{
 					Type:   cfType.typeStr,
 					Format: cfType.format,
@@ -200,7 +200,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 				bodyMediaType = formUrlencoded
 			}
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, inputField.deepTypes, "")
+			h.setChildSchema(childSchema, inputField.deepTypes, "", false)
 			bodyProperties[inputField.inTypeVal] = childSchema
 			if inputField.required {
 				bodyRequireds = append(bodyRequireds, inputField.inTypeVal)
@@ -208,7 +208,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 		case inTypeFile:
 			bodyMediaType = formMultipart
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, inputField.deepTypes, "")
+			h.setChildSchema(childSchema, inputField.deepTypes, "", false)
 			bodyProperties[inputField.inTypeVal] = childSchema
 			if inputField.required {
 				bodyRequireds = append(bodyRequireds, inputField.inTypeVal)
@@ -220,7 +220,11 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 			}
 			for _, mediaType := range inputField.mediaTypes {
 				childSchema := &openapi.Schema{}
-				h.setChildSchema(childSchema, inputField.deepTypes, mediaType)
+				isBodyNotJsonXml := false
+				if mediaType != JSON && mediaType != XML {
+					isBodyNotJsonXml = true
+				}
+				h.setChildSchema(childSchema, inputField.deepTypes, mediaType, isBodyNotJsonXml)
 				if mediaType == XML {
 					childSchema.XML = &openapi.XML{
 						Name: h.getStructBaseName(lastType._type.Name()),
@@ -261,7 +265,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 		responseContent := map[string]*openapi.MediaType{}
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, resp.deepTypes, mediaType)
+			h.setChildSchema(childSchema, resp.deepTypes, mediaType, false)
 			if mediaType == XML {
 				childSchema.XML = &openapi.XML{
 					Name: h.getStructBaseName(lastType._type.Name()),
@@ -282,7 +286,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 		responseContent := map[string]*openapi.MediaType{}
 		for _, mediaType := range resp.mediaTypes {
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, resp.deepTypes, mediaType)
+			h.setChildSchema(childSchema, resp.deepTypes, mediaType, false)
 			if mediaType == XML {
 				childSchema.XML = &openapi.XML{
 					Name: h.getStructBaseName(lastType._type.Name()),
@@ -389,12 +393,12 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 				continue
 			}
 			childSchema := &openapi.Schema{}
-			h.setChildSchema(childSchema, v1.deepTypes, mType)
+			h.setChildSchema(childSchema, v1.deepTypes, mType, false)
 			childSchema.Enum = v1.tag.enum
 			childSchema.Default = v1.tag._default
 			childSchema.Example = v1.tag.example
 			childSchema.Description = v1.tag.desc
-			fType := h.convertType(v1._type)
+			fType := h.convertType(v1._type, false)
 			switch fType.typeStr {
 			case "integer", "number":
 				childSchema.Maximum = v1.tag.lte
@@ -492,7 +496,7 @@ func (h *handlerOpenAPI) parseOpenapiName(s string) (pkg, name, baseName string)
 	return
 }
 
-func (h *handlerOpenAPI) convertType(fType reflect.Type) (rs typeInfo) {
+func (h *handlerOpenAPI) convertType(fType reflect.Type, isBodyNotJsonXml bool) (rs typeInfo) {
 	rs._type = fType
 	switch fType.Kind() {
 	case reflect.Int, reflect.Uint:
@@ -514,7 +518,7 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type) (rs typeInfo) {
 	case reflect.Bool:
 		rs.typeStr = "boolean"
 	case reflect.Slice:
-		if fType == typeBytes {
+		if fType == typeBytes && isBodyNotJsonXml {
 			rs.typeStr = "string"
 			return
 		}
@@ -536,7 +540,7 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type) (rs typeInfo) {
 			rs.format = "binary"
 			return
 		}
-		rs = h.convertType(fType.Elem())
+		rs = h.convertType(fType.Elem(), isBodyNotJsonXml)
 	case reflect.Struct:
 		rs.typeStr = "object"
 		rs.isStruct = true
@@ -561,27 +565,27 @@ func (h *handlerOpenAPI) setXmlChildList(schema *openapi.Schema, childList []str
 	}
 }
 
-func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo, mediaType MediaType) {
+func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo, mediaType MediaType, isBodyNotJsonXml bool) {
 	if len(types) == 0 {
 		return
 	}
-	tyInfo := h.convertType(types[0]._type)
+	tyInfo := h.convertType(types[0]._type, isBodyNotJsonXml)
 	types = types[1:]
 	schema.Type = tyInfo.typeStr
 	schema.Format = tyInfo.format
 	switch tyInfo._type.Kind() {
 	case reflect.Map:
 		childSchema := &openapi.Schema{}
-		h.setChildSchema(childSchema, types, mediaType)
+		h.setChildSchema(childSchema, types, mediaType, isBodyNotJsonXml)
 		schema.Properties = map[string]*openapi.Schema{
 			"string": childSchema,
 		}
 	case reflect.Slice:
-		if tyInfo._type == typeBytes {
+		if tyInfo._type == typeBytes && isBodyNotJsonXml {
 			return
 		}
 		childSchema := &openapi.Schema{}
-		h.setChildSchema(childSchema, types, mediaType)
+		h.setChildSchema(childSchema, types, mediaType, isBodyNotJsonXml)
 		schema.Items = childSchema
 	case reflect.Struct:
 		key := fmt.Sprintf("%v.%v", tyInfo._type.PkgPath(), tyInfo._type.Name())
