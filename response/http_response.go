@@ -9,6 +9,7 @@ import (
 type HTTPResponse[T any] struct {
 	HttpCode int
 	Header   map[string]string
+	Cookie   map[string]string
 	Body     T
 }
 
@@ -33,6 +34,9 @@ func (h *HTTPResponse[T]) SetContentType(contentType string) {
 func (h *HTTPResponse[T]) Write(w http.ResponseWriter) {
 	for k, v := range h.Header {
 		w.Header().Set(k, v)
+	}
+	for k, v := range h.Cookie {
+		w.Header().Add("Set-Cookie", k+"="+v)
 	}
 	if h.HttpCode == 0 {
 		h.HttpCode = 200

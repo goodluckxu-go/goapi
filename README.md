@@ -135,6 +135,7 @@ goapi.SetLogLevel(goapi.LogInfo | goapi.LogWarning)
   - The value is for other media types(example 'text/plain'), The type is '[]byte', 'string' or 'io.ReadCloser'
   - Value of json is media type 'application/json', xml is media type 'application/xml'
   - Body of tag use value, 'omitempty' is nullable
+  - When the value is 'application/octet-stream', indicates that the body is uploaded as a file
 ### Structure tag annotation
 - regexp
     - Regular expression of value

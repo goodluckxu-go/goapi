@@ -135,6 +135,7 @@ goapi.SetLogLevel(goapi.LogInfo | goapi.LogWarning)
   - 该值适用于其他媒体类型(例如'text/plain')，值类型为'[]byte'， 'string'或'io.ReadCloser'
   - 值json表示媒体类型'application/json', 值xml表示媒体类型'application/xml'
   - 标签使用值的主体, 添加'omitempty'则可为空
+  - 值为'application/octet-stream'时，表示body以文件的方式上传
 ### 结构标签注释
 - regexp
     - 值的正则表达式
