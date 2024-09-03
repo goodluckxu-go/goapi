@@ -182,10 +182,11 @@ goapi.SetLogLevel(goapi.LogInfo | goapi.LogWarning)
     - Validator limit **array** type
 ## Response annotation
 ### if response is an implementation of the goapi.Response interface, you can set some functions
-- **HTTPResponse[T]** can set httpCode, header, cookie
-- **FileResponse** can return downloadable files
-- **SSEResponse** can return content in Server Sent Events format
-- **HTMLResponse** can return to HTML page
+- **HTTPResponse[T]** can set httpCode, header, cookie. Content-Type value is 'application/json','application/xml'
+- **FileResponse** can return downloadable files. Content-Type value is 'application/octet-stream'
+- **SSEResponse** can return content in Server Sent Events format. Content-Type value is 'text/event-stream'
+- **HTMLResponse** can return to HTML page. Content-Type value is 'text/html'
+- **TextResponse** return in text mode, can set header, cookie. Content-Type default value is 'text/plain',resettable Content-Type
 ## Error corresponding comment
 ~~~go
 response.HTTPException(404, "error message")
