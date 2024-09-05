@@ -12,8 +12,11 @@ type fileInfo struct {
 }
 
 type Config struct {
-	DocExpansion string // list, full, none.
-	DeepLinking  bool
+	// label expansion mode, value in list, full, none
+	DocExpansion string
+
+	// whether to enable deep linking
+	DeepLinking bool
 }
 
 type Swagger struct {
