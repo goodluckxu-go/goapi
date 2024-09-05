@@ -14,7 +14,7 @@ func notFind() func(ctx *Context) {
 		}
 		status := "404"
 		statusText := http.StatusText(404)
-		if IsDefaultLogger(ctx.log) {
+		if isDefaultLogger(ctx.log) {
 			status = colorError(status)
 			statusText = colorError(statusText)
 		}
@@ -35,7 +35,7 @@ func setLogger() func(ctx *Context) {
 		if resp, ok := ctx.Writer.(*ResponseWriter); ok {
 			status := fmt.Sprintf("%v", resp.Status())
 			statusText := http.StatusText(resp.Status())
-			if IsDefaultLogger(ctx.log) && len(status) == 3 {
+			if isDefaultLogger(ctx.log) && len(status) == 3 {
 				if status[0] == '1' || status[0] == '2' {
 					status = colorInfo(status)
 					statusText = colorInfo(statusText)

@@ -165,7 +165,7 @@ func (a *API) Handler() http.Handler {
 	serverHandler := newHandlerServer(a, handle)
 	serverHandler.Handle()
 	pid := strconv.Itoa(os.Getpid())
-	if IsDefaultLogger(a.log) {
+	if isDefaultLogger(a.log) {
 		pid = colorDebug(pid)
 	}
 	a.log.Info("Started server process [%v]", pid)
