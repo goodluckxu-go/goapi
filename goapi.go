@@ -24,6 +24,10 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 			Title:   "GoAPI",
 			Version: "1.0.0",
 		},
+		Swagger: swagger.Config{
+			DocExpansion: "full",
+			DeepLinking:  true,
+		},
 		log:      &levelHandleLogger{log: &defaultLogger{}},
 		docsPath: dPath,
 		addr:     ":8080",
@@ -39,6 +43,7 @@ type API struct {
 	isDocs                bool
 	OpenAPIServers        []*openapi.Server
 	OpenAPITags           []*openapi.Tag
+	Swagger               swagger.Config
 	docsPath              string
 	exceptFunc            func(httpCode int, detail string) Response
 	lang                  Lang
@@ -152,7 +157,7 @@ func (a *API) Handler() http.Handler {
 	if a.isDocs {
 		api := newHandlerOpenAPI(a, handle).Handle()
 		openapiBody, _ := json.Marshal(api)
-		list := swagger.GetSwagger(a.docsPath, api.Info.Title, logo, openapiBody)
+		list := swagger.GetSwagger(a.docsPath, api.Info.Title, logo, openapiBody, a.Swagger)
 		for _, v := range list {
 			a.routers = append(a.routers, a.handleSwagger(v, handle.defaultMiddlewares))
 		}

@@ -9,7 +9,8 @@ const jsSwaggerInitializer = `window.onload = function() {
   window.ui = SwaggerUIBundle({
     url: "%s",
     dom_id: '#swagger-ui',
-    deepLinking: true,
+	docExpansion: '%s',
+    deepLinking: %v,
     presets: [
       SwaggerUIBundle.presets.apis,
       SwaggerUIStandalonePreset

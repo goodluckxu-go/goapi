@@ -11,6 +11,11 @@ type fileInfo struct {
 	Content string
 }
 
+type Config struct {
+	DocExpansion string // list, full, none.
+	DeepLinking  bool
+}
+
 type Swagger struct {
 	Title                       string
 	Index                       fileInfo
@@ -27,7 +32,7 @@ type Router struct {
 	Handler func(writer http.ResponseWriter, request *http.Request)
 }
 
-func GetSwagger(path, title, favicon string, openapiJsonBody []byte) (routers []Router) {
+func GetSwagger(path, title, favicon string, openapiJsonBody []byte, config Config) (routers []Router) {
 	openapiPath := path + "/openapi.json"
 	routers = append(routers, Router{
 		Path: path,
@@ -63,7 +68,7 @@ func GetSwagger(path, title, favicon string, openapiJsonBody []byte) (routers []
 			if handleCache(writer, request) {
 				return
 			}
-			_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, openapiPath)))
+			_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, openapiPath, config.DocExpansion, config.DeepLinking)))
 		},
 	}, Router{
 		Path: path + "/swagger-ui-bundle.js",
