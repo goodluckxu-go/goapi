@@ -403,7 +403,9 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 			if fInfo.name == "-" {
 				continue
 			}
-			childSchema := &openapi.Schema{}
+			childSchema := &openapi.Schema{
+				Description: v1.tag.desc,
+			}
 			h.setChildSchema(childSchema, v1.deepTypes, mType, false)
 			childSchema.Enum = v1.tag.enum
 			childSchema.Default = v1.tag._default
@@ -641,10 +643,14 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 			if h.isMullMediaType {
 				schemaKey = stInfo.openapiName + "_" + mediaTypeToTypeMap[mediaType]
 			}
-			schema.AllOf = []*openapi.Schema{
-				{
-					Ref: "#/components/schemas/" + schemaKey,
-				},
+			if schema.Description == "" {
+				schema.Ref = "#/components/schemas/" + schemaKey
+			} else {
+				schema.AllOf = []*openapi.Schema{
+					{
+						Ref: "#/components/schemas/" + schemaKey,
+					},
+				}
 			}
 			return
 		}
