@@ -523,38 +523,29 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type, isBodyNotJsonXml bool) 
 	switch fType.Kind() {
 	case reflect.Int, reflect.Uint:
 		rs.typeStr = "integer"
-		switch systemBit() {
-		case 32:
-			rs.format = "int32"
-		case 64:
-			rs.format = "int64"
-		}
 	case reflect.Int8:
 		rs.typeStr = "integer"
-		rs.format = "int32"
+		rs.format = "int8"
 		rs.gte = toPtr(float64(-int64(1) << 7))
 		rs.lte = toPtr(float64(int64(1)<<7 - 1))
 	case reflect.Uint8:
 		rs.typeStr = "integer"
-		rs.format = "int32"
+		rs.format = "uint8"
 		rs.gte = toPtr(float64(0))
 		rs.lte = toPtr(float64(int64(1)<<8 - 1))
 	case reflect.Int16:
 		rs.typeStr = "integer"
-		rs.format = "int32"
+		rs.format = "int16"
 		rs.gte = toPtr(float64(-int64(1) << 15))
 		rs.lte = toPtr(float64(int64(1)<<15 - 1))
 	case reflect.Uint16:
-		rs.format = "int32"
 		rs.typeStr = "integer"
+		rs.format = "uint16"
 		rs.gte = toPtr(float64(0))
 		rs.lte = toPtr(float64(int64(1)<<16 - 1))
-	case reflect.Int32, reflect.Uint32:
-		rs.format = "int32"
+	case reflect.Int32, reflect.Uint32, reflect.Int64, reflect.Uint64:
 		rs.typeStr = "integer"
-	case reflect.Int64, reflect.Uint64:
-		rs.typeStr = "integer"
-		rs.format = "int64"
+		rs.format = reflect.Int64.String()
 	case reflect.Float32:
 		rs.typeStr = "number"
 		rs.format = "float"
