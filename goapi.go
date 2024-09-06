@@ -25,7 +25,7 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 			Version: "1.0.0",
 		},
 		Swagger: swagger.Config{
-			DocExpansion: "full",
+			DocExpansion: "list",
 			DeepLinking:  true,
 		},
 		log:      &levelHandleLogger{log: &defaultLogger{}},
