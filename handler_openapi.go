@@ -403,13 +403,13 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 			if fInfo.name == "-" {
 				continue
 			}
-			childSchema := &openapi.Schema{
-				Description: v1.tag.desc,
-			}
+			childSchema := &openapi.Schema{}
 			h.setChildSchema(childSchema, v1.deepTypes, mType, false)
 			childSchema.Enum = v1.tag.enum
 			childSchema.Default = v1.tag._default
-			childSchema.Example = v1.tag.example
+			if v1.tag.example != nil {
+				childSchema.Examples = []any{v1.tag.example}
+			}
 			childSchema.Description = v1.tag.desc
 			fType := h.convertType(v1._type, false)
 			h.mergeTag(v1.tag, fType)
