@@ -643,15 +643,7 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 			if h.isMullMediaType {
 				schemaKey = stInfo.openapiName + "_" + mediaTypeToTypeMap[mediaType]
 			}
-			if schema.Description == "" {
-				schema.Ref = "#/components/schemas/" + schemaKey
-			} else {
-				schema.AllOf = []*openapi.Schema{
-					{
-						Ref: "#/components/schemas/" + schemaKey,
-					},
-				}
-			}
+			schema.Ref = "#/components/schemas/" + schemaKey
 			return
 		}
 		key = fmt.Sprintf("%s%p", prefixTempStruct, tyInfo._type)
