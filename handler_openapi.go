@@ -427,7 +427,7 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 				childSchema.MinItems = v1.tag.min
 				childSchema.UniqueItems = v1.tag.unique
 				cfType := h.convertType(fType._type.Elem(), false)
-				if childSchema.Items != nil {
+				if childSchema.Items == nil {
 					childSchema.Items = &openapi.Schema{}
 				}
 				childSchema.Items.Type = cfType.typeStr
