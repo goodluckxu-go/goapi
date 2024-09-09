@@ -142,29 +142,18 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 }
 
 func (h *handlerServer) handleException(writer http.ResponseWriter, err any, mediaType string) {
-	httpRes := &response.HTTPResponse[any]{
-		HttpCode: 200,
-		Header: map[string]string{
-			"Content-Type": string(typeToMediaTypeMap[mediaType]),
-		},
-	}
 	errStr := fmt.Sprintf("%v", err)
 	var res exceptInfo
 	err = json.Unmarshal([]byte(errStr), &res)
+	var exceptRes Response
 	if err != nil {
-		exceptRes := h.api.exceptFunc(http.StatusInternalServerError, errStr)
-		httpRes.HttpCode = http.StatusInternalServerError
-		httpRes.Body = exceptRes.GetBody()
+		exceptRes = h.api.exceptFunc(http.StatusInternalServerError, errStr)
 		h.api.log.Error("panic: %v [recovered]\n%v", errStr, string(debug.Stack()))
 	} else {
-		exceptRes := h.api.exceptFunc(res.HttpCode, res.Detail)
-		for k, v := range res.Header {
-			httpRes.Header[k] = v
-		}
-		httpRes.HttpCode = res.HttpCode
-		httpRes.Body = exceptRes.GetBody()
+		exceptRes = h.api.exceptFunc(res.HttpCode, res.Detail)
 	}
-	httpRes.Write(writer)
+	exceptRes.SetContentType(string(typeToMediaTypeMap[mediaType]))
+	exceptRes.Write(writer)
 }
 
 func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type, fields []fieldInfo) (inputValue reflect.Value, err error) {

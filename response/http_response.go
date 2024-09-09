@@ -70,21 +70,13 @@ func (h *HTTPResponse[T]) Write(w http.ResponseWriter) {
 }
 
 type exceptInfo struct {
-	HttpCode int               `json:"http_code"`
-	Header   map[string]string `json:"header"`
-	Detail   string            `json:"detail"`
+	HttpCode int    `json:"http_code"`
+	Detail   string `json:"detail"`
 }
 
-func HTTPException(httpCode int, detail string, headers ...map[string]string) {
-	header := map[string]string{}
-	for _, item := range headers {
-		for k, v := range item {
-			header[k] = v
-		}
-	}
+func HTTPException(httpCode int, detail string) {
 	res := exceptInfo{
 		HttpCode: httpCode,
-		Header:   header,
 		Detail:   detail,
 	}
 	buf, _ := json.Marshal(&res)
