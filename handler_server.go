@@ -161,6 +161,7 @@ func (h *handlerServer) handleException(writer http.ResponseWriter, err any, med
 		for k, v := range res.Header {
 			httpRes.Header[k] = v
 		}
+		httpRes.HttpCode = res.HttpCode
 		httpRes.Body = exceptRes.GetBody()
 	}
 	httpRes.Write(writer)
