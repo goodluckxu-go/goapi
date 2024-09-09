@@ -100,11 +100,8 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
 		mediaType = mediaTypeToTypeMap[h.api.responseMediaTypes[0]]
 	}
-	defer func() {
-		if er := recover(); er != nil {
-			h.handleException(ctx.Writer, er, mediaType)
-		}
-	}()
+	ctx.mediaType = mediaType
+	ctx.handleServer = h
 	ctx.middlewares = path.middlewares
 	ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {
 		var inputs []reflect.Value

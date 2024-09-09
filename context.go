@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"bufio"
+	"math"
 	"net"
 	"net/http"
 	"strings"
@@ -10,16 +11,18 @@ import (
 )
 
 type Context struct {
-	Request     *http.Request
-	Writer      http.ResponseWriter
-	writermem   ResponseWriter
-	Values      map[string]any
-	log         Logger
-	mux         sync.RWMutex
-	middlewares []Middleware
-	paths       map[string]string
-	index       int
-	fullPath    string
+	Request      *http.Request
+	Writer       http.ResponseWriter
+	writermem    ResponseWriter
+	Values       map[string]any
+	log          Logger
+	mux          sync.RWMutex
+	middlewares  []Middleware
+	paths        map[string]string
+	index        int
+	fullPath     string
+	mediaType    string
+	handleServer *handlerServer
 }
 
 func (c *Context) reset() {
@@ -90,6 +93,12 @@ func (c *Context) FullPath() string {
 
 // Next It is used in middleware, before Next is before interface request, and after Next is after interface request
 func (c *Context) Next() {
+	defer func() {
+		if err := recover(); err != nil {
+			c.index = math.MaxUint16
+			c.handleServer.handleException(c.Writer, err, c.mediaType)
+		}
+	}()
 	c.index++
 	for ; c.index < len(c.middlewares); c.index++ {
 		c.middlewares[c.index](c)

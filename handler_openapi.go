@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/goodluckxu-go/goapi/openapi"
 	"log"
+	"math"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -526,26 +527,26 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type, isBodyNotJsonXml bool) 
 	case reflect.Int8:
 		rs.typeStr = "integer"
 		rs.format = "int8"
-		rs.gte = toPtr(float64(-int64(1) << 7))
-		rs.lte = toPtr(float64(int64(1)<<7 - 1))
+		rs.gte = toPtr(float64(math.MinInt8))
+		rs.lte = toPtr(float64(math.MaxInt8))
 	case reflect.Uint8:
 		rs.typeStr = "integer"
 		rs.format = "uint8"
 		rs.gte = toPtr(float64(0))
-		rs.lte = toPtr(float64(int64(1)<<8 - 1))
+		rs.lte = toPtr(float64(math.MaxUint8))
 	case reflect.Int16:
 		rs.typeStr = "integer"
 		rs.format = "int16"
-		rs.gte = toPtr(float64(-int64(1) << 15))
-		rs.lte = toPtr(float64(int64(1)<<15 - 1))
+		rs.gte = toPtr(float64(math.MinInt16))
+		rs.lte = toPtr(float64(math.MaxInt16))
 	case reflect.Uint16:
 		rs.typeStr = "integer"
 		rs.format = "uint16"
 		rs.gte = toPtr(float64(0))
-		rs.lte = toPtr(float64(int64(1)<<16 - 1))
+		rs.lte = toPtr(float64(math.MaxUint16))
 	case reflect.Int32, reflect.Uint32, reflect.Int64, reflect.Uint64:
 		rs.typeStr = "integer"
-		rs.format = reflect.Int64.String()
+		rs.format = fType.Kind().String()
 	case reflect.Float32:
 		rs.typeStr = "number"
 		rs.format = "float"
