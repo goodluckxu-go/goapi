@@ -22,13 +22,13 @@ func (h *TextResponse) SetContentType(contentType string) {
 }
 
 func (h *TextResponse) Write(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", h.GetContentType())
 	for k, v := range h.Header {
 		w.Header().Set(k, v)
 	}
 	for k, v := range h.Cookie {
 		w.Header().Add("Set-Cookie", k+"="+v)
 	}
-	w.Header().Set("Content-Type", h.GetContentType())
 	w.WriteHeader(200)
 	_, _ = w.Write(h.Body)
 }
