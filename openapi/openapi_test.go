@@ -8,6 +8,34 @@ import (
 
 var jsonStr = `{"components":{"securitySchemes":{"httpBasic":{"scheme":"basic","type":"http"}}},"info":{"title":"GoAPI","version":"1.0.0"},"openapi":"3.1.0","paths":{"/user/{id}":{"description":"user handle","get":{"description":"user info","operationId":"/user/{id}_get","parameters":[{"description":"pk","in":"path","name":"id","required":true,"schema":{"type":"integer"}},{"description":"type","in":"query","name":"type","schema":{"type":"string"}}],"responses":{"default":{"content":{"application/json":{"schema":{"description":"content","properties":{"age":{"type":"integer"},"id":{"type":"integer"},"name":{"type":"string"}},"title":"content","type":"object"}}},"description":"desc","headers":{"Set-Token":{"description":"set token","required":false,"schema":{"type":"string"}}},"links":{"bd":{"description":"baidu link","operationRef":"https://www.baidu.com","parameters":{"id":"1"},"requestBody":"test"}}}},"summary":"user info","tags":["admin"]},"put":{"callbacks":{"callback":{"{$request.query.callbackUrl}":{"description":"callback","post":{"description":"callback","operationId":"callback_post","parameters":[{"description":"type","in":"query","name":"callbackUrl","required":true,"schema":{"type":"string"}}],"requestBody":{"$ref":"#/paths/~1user~1%7Bid%7D/put/requestBody"},"responses":{"default":{"$ref":"#/paths/~1user~1%7Bid%7D/put/responses/default"}},"summary":"callback","tags":["admin"]},"summary":"callback"}}},"description":"edit user","operationId":"/user/{id}_put","parameters":[{"description":"pk","in":"path","name":"id","required":true,"schema":{"type":"integer"}}],"requestBody":{"content":{"application/json":{"schema":{"$ref":"#/paths/~1user~1%7Bid%7D/get/responses/default/content/application~1json/schema"}}},"description":"set body"},"responses":{"default":{"content":{"application/json":{"schema":{"type":"boolean"}}},"description":"aaa"}},"summary":"edit user","tags":["admin"]},"summary":"user handle"}},"security":[{"httpBasic":[]}],"tags":[{"description":"admin manager","name":"admin"}]}`
 
+func TestValidator(t *testing.T) {
+	openapi := &OpenAPI{
+		OpenAPI: "3.1.0",
+		Info: &Info{
+			Title:   "GoAPI",
+			Version: "1.0.0",
+		},
+		Components: &Components{
+			SecuritySchemes: map[string]*SecurityScheme{
+				"httpBasic": {
+					Type:   "http",
+					Scheme: "basic",
+				},
+			},
+		},
+		Security: []*SecurityRequirement{
+			{"httpBasic": []string{}},
+		},
+		Tags: []*Tag{
+			{Name: "admin", Description: "admin manager"},
+		},
+		Extensions: map[string]any{
+			"x-internal-id": "abc",
+		},
+	}
+	assert.Equal(t, openapi.Validate(), nil)
+}
+
 func TestMarshalJSON(t *testing.T) {
 	callback := &Callback{}
 	callback.Set("{$request.query.callbackUrl}", &PathItem{

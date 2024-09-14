@@ -148,6 +148,12 @@ func (o *OpenAPI) Validate() error {
 			return verifyError("externalDocs", err)
 		}
 	}
+
+	if o.Extensions != nil {
+		if err := validatorExtensions(o.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -231,6 +237,12 @@ func (i *Info) Validate() error {
 	if i.Version == "" {
 		return verifyError("version", fmt.Errorf("must be a non empty string"))
 	}
+
+	if i.Extensions != nil {
+		if err := validatorExtensions(i.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -274,6 +286,11 @@ func (c *Contact) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (c *Contact) Validate() error {
+	if c.Extensions != nil {
+		if err := validatorExtensions(c.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -324,6 +341,12 @@ func (l *License) Validate() error {
 
 	if l.Identifier != "" && l.URL != "" {
 		return fmt.Errorf("fields identifier and url are mutually exclusive")
+	}
+
+	if l.Extensions != nil {
+		if err := validatorExtensions(l.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
 	}
 	return nil
 }
@@ -380,6 +403,12 @@ func (s *Server) Validate() error {
 			return verifyError(fmt.Sprintf("variables[%v]", k), err)
 		}
 	}
+
+	if s.Extensions != nil {
+		if err := validatorExtensions(s.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -429,6 +458,12 @@ func (s *ServerVariable) UnmarshalJSON(buf []byte) (err error) {
 func (s *ServerVariable) Validate() error {
 	if s.Default == "" {
 		return verifyError("default", fmt.Errorf("must be a non empty string"))
+	}
+
+	if s.Extensions != nil {
+		if err := validatorExtensions(s.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
 	}
 	return nil
 }
@@ -567,6 +602,12 @@ func (c *Components) Validate(openapi *OpenAPI) error {
 			return verifyError(fmt.Sprintf("pathItems[%v]", k), err)
 		}
 	}
+
+	if c.Extensions != nil {
+		if err := validatorExtensions(c.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -632,6 +673,12 @@ func (p *Paths) Validate(openapi *OpenAPI) error {
 		handlePaths[hPath] = true
 		if err = v.Validate(openapi, k); err != nil {
 			return verifyError(k, err)
+		}
+	}
+
+	if p.Extensions != nil {
+		if err := validatorExtensions(p.Extensions); err != nil {
+			return verifyError("extensions", err)
 		}
 	}
 	return nil
@@ -820,6 +867,12 @@ func (p *PathItem) Validate(openapi *OpenAPI, path string) error {
 			return verifyError(fmt.Sprintf("parameters[%v]", k), err)
 		}
 	}
+
+	if p.Extensions != nil {
+		if err := validatorExtensions(p.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -1001,6 +1054,12 @@ func (o *Operation) Validate(openapi *OpenAPI, path string) error {
 			return verifyError(fmt.Sprintf("servers[%v]", k), err)
 		}
 	}
+
+	if o.Extensions != nil {
+		if err := validatorExtensions(o.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -1041,6 +1100,12 @@ func (e *ExternalDocumentation) UnmarshalJSON(buf []byte) (err error) {
 func (e *ExternalDocumentation) Validate() error {
 	if e.URL == "" {
 		return verifyError("url", fmt.Errorf("must be a non empty string"))
+	}
+
+	if e.Extensions != nil {
+		if err := validatorExtensions(e.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
 	}
 	return nil
 }
@@ -1219,6 +1284,12 @@ func (p *Parameter) Validate(openapi *OpenAPI, path string) error {
 			return verifyError(fmt.Sprintf("content[%v]", k), err)
 		}
 	}
+
+	if p.Extensions != nil {
+		if err := validatorExtensions(p.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -1289,6 +1360,12 @@ func (r *RequestBody) Validate(openapi *OpenAPI) error {
 		}
 	} else {
 		return verifyError("content", fmt.Errorf("must be a non empty object"))
+	}
+
+	if r.Extensions != nil {
+		if err := validatorExtensions(r.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
 	}
 	return nil
 }
@@ -1363,6 +1440,12 @@ func (m *MediaType) Validate(openapi *OpenAPI) error {
 	for k, v := range m.Encoding {
 		if err := v.Validate(openapi); err != nil {
 			return verifyError(fmt.Sprintf("encoding[%v]", k), err)
+		}
+	}
+
+	if m.Extensions != nil {
+		if err := validatorExtensions(m.Extensions); err != nil {
+			return verifyError("extensions", err)
 		}
 	}
 	return nil
@@ -1441,6 +1524,12 @@ func (e *Encoding) Validate(openapi *OpenAPI) error {
 			return verifyError(fmt.Sprintf("headers[%v]", k), err)
 		}
 	}
+
+	if e.Extensions != nil {
+		if err := validatorExtensions(e.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -1512,6 +1601,12 @@ func (r *Responses) Validate(openapi *OpenAPI) error {
 	for k, v := range r.m {
 		if err := v.Validate(openapi); err != nil {
 			return verifyError(k, err)
+		}
+	}
+
+	if r.Extensions != nil {
+		if err := validatorExtensions(r.Extensions); err != nil {
+			return verifyError("extensions", err)
 		}
 	}
 	return nil
@@ -1619,6 +1714,12 @@ func (r *Response) Validate(openapi *OpenAPI) error {
 	for k, v := range r.Links {
 		if err := v.Validate(openapi); err != nil {
 			return verifyError(fmt.Sprintf("links[%v]", k), err)
+		}
+	}
+
+	if r.Extensions != nil {
+		if err := validatorExtensions(r.Extensions); err != nil {
+			return verifyError("extensions", err)
 		}
 	}
 	return nil
@@ -1753,6 +1854,12 @@ func (c *Callback) Validate(openapi *OpenAPI) error {
 			return verifyError(k, err)
 		}
 	}
+
+	if c.Extensions != nil {
+		if err := validatorExtensions(c.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -1833,6 +1940,12 @@ func (e *Example) Validate(openapi *OpenAPI) error {
 			return err
 		}
 		return nil
+	}
+
+	if e.Extensions != nil {
+		if err := validatorExtensions(e.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
 	}
 	return nil
 }
@@ -1931,6 +2044,12 @@ func (l *Link) Validate(openapi *OpenAPI) error {
 			return verifyError("server", err)
 		}
 	}
+
+	if l.Extensions != nil {
+		if err := validatorExtensions(l.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -2026,6 +2145,12 @@ func (h *Header) Validate(openapi *OpenAPI) error {
 			return verifyError(fmt.Sprintf("content[%v]", k), err)
 		}
 	}
+
+	if h.Extensions != nil {
+		if err := validatorExtensions(h.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -2076,6 +2201,12 @@ func (t *Tag) Validate() error {
 	if t.ExternalDocs != nil {
 		if err := t.ExternalDocs.Validate(); err != nil {
 			return verifyError("externalDocs", err)
+		}
+	}
+
+	if t.Extensions != nil {
+		if err := validatorExtensions(t.Extensions); err != nil {
+			return verifyError("extensions", err)
 		}
 	}
 	return nil
@@ -2334,6 +2465,12 @@ func (s *Schema) Validate(openapi *OpenAPI) error {
 			return verifyError("externalDocs", err)
 		}
 	}
+
+	if s.Extensions != nil {
+		if err := validatorExtensions(s.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -2374,6 +2511,12 @@ func (d *Discriminator) UnmarshalJSON(buf []byte) (err error) {
 func (d *Discriminator) Validate() error {
 	if d.PropertyName == "" {
 		return verifyError("propertyName", fmt.Errorf("must be a non empty string"))
+	}
+
+	if d.Extensions != nil {
+		if err := validatorExtensions(d.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
 	}
 	return nil
 }
@@ -2434,6 +2577,11 @@ func (x *XML) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (x *XML) Validate() error {
+	if x.Extensions != nil {
+		if err := validatorExtensions(x.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -2559,6 +2707,12 @@ func (s *SecurityScheme) Validate(openapi *OpenAPI) error {
 		return verifyError("type", fmt.Errorf("must be within \"apiKey\", \"http\", \"mutualTLS\", "+
 			"\"oauth2\", \"openIdConnect\""))
 	}
+
+	if s.Extensions != nil {
+		if err := validatorExtensions(s.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -2628,6 +2782,12 @@ func (o *OAuthFlows) Validate() error {
 	if o.AuthorizationCode != nil {
 		if err := o.AuthorizationCode.Validate("authorizationCode"); err != nil {
 			return verifyError("authorizationCode", err)
+		}
+	}
+
+	if o.Extensions != nil {
+		if err := validatorExtensions(o.Extensions); err != nil {
+			return verifyError("extensions", err)
 		}
 	}
 	return nil
@@ -2711,6 +2871,12 @@ func (o *OAuthFlow) Validate(applyTo string) error {
 	if o.Scopes == nil {
 		return verifyError("scopes", fmt.Errorf("must be a non empty object"))
 	}
+
+	if o.Extensions != nil {
+		if err := validatorExtensions(o.Extensions); err != nil {
+			return verifyError("extensions", err)
+		}
+	}
 	return nil
 }
 
@@ -2761,6 +2927,15 @@ func verifyError(field string, err error, isMapOrArray ...bool) error {
 		field += oldField
 	}
 	return fmt.Errorf("verify %s error: %s", field, errStr)
+}
+
+func validatorExtensions(extensions map[string]any) error {
+	for k, _ := range extensions {
+		if len(k) < 2 || k[:2] != "x-" {
+			return fmt.Errorf("the extended fields name must begin with 'x-'")
+		}
+	}
+	return nil
 }
 
 func validatorRef(ref, refType string, openapi *OpenAPI) error {
