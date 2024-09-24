@@ -12,4 +12,5 @@ type Lang interface {
 	Unique(field string) string
 	Regexp(field string, val string) string
 	Enum(field string, val []any) string
+	JwtTranslate(msg string) string
 }

@@ -1,6 +1,9 @@
 package lang
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type EnUs struct {
 }
@@ -54,4 +57,15 @@ func (e *EnUs) Enum(field string, val []any) string {
 		s = s[1:]
 	}
 	return fmt.Sprintf("The value of %v must be in %v", field, s)
+}
+
+func (e *EnUs) JwtTranslate(msg string) string {
+	list := strings.Split(msg, ": ")
+	for _, v := range jwtErrors {
+		if list[0] == v || list[1] == v {
+			msg = strings.ToUpper(v[0:1]) + v[1:]
+			break
+		}
+	}
+	return msg
 }

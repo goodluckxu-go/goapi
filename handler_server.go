@@ -269,7 +269,10 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 			h.handleSecurityDefaultParam(ctx, childField)
 			security := childField.Interface().(HTTPBearerJWT)
 			jwt := &JWT{}
-			err = decryptJWT(jwt, token, security)
+			if err = decryptJWT(jwt, token, security); err != nil {
+				err = fmt.Errorf(h.api.lang.JwtTranslate(err.Error()))
+				return
+			}
 			security.HTTPBearerJWT(jwt)
 		case inTypeSecurityHTTPBasic:
 			username, password, _ := ctx.Request.BasicAuth()
