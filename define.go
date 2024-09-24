@@ -16,6 +16,7 @@ const inTypeForm = "form" // default application/x-www-form-urlencoded, If a inT
 const inTypeFile = "file" // default multipart/form-data
 
 const inTypeSecurityHTTPBearer = "HTTPBearer"
+const inTypeSecurityHTTPBearerJWT = "HTTPBearerJWT"
 const inTypeSecurityHTTPBasic = "HTTPBasic"
 const inTypeSecurityApiKey = "ApiKey"
 
@@ -87,6 +88,7 @@ const (
 )
 
 var securityTypeHTTPBearer = reflect.TypeOf(new(HTTPBearer)).Elem()
+var securityTypeHTTPBearerJWT = reflect.TypeOf(new(HTTPBearerJWT)).Elem()
 var securityTypeHTTPBasic = reflect.TypeOf(new(HTTPBasic)).Elem()
 var securityTypeApiKey = reflect.TypeOf(new(ApiKey)).Elem()
 
@@ -94,6 +96,7 @@ var typeResponse = reflect.TypeOf(new(Response)).Elem()
 
 var securityTypes = []reflect.Type{
 	securityTypeHTTPBearer,
+	securityTypeHTTPBearerJWT,
 	securityTypeHTTPBasic,
 	securityTypeApiKey,
 }

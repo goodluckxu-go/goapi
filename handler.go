@@ -635,6 +635,14 @@ func (h *handler) handleSecurity(field reflect.StructField, fType reflect.Type, 
 				deepIdx: deepIdx,
 				tag:     fTag,
 			})
+		case securityTypeHTTPBearerJWT:
+			list = append(list, fieldInfo{
+				name:    fType.Elem().Name(),
+				_type:   fType,
+				inType:  inTypeSecurityHTTPBearerJWT,
+				deepIdx: deepIdx,
+				tag:     fTag,
+			})
 		case securityTypeHTTPBasic:
 			list = append(list, fieldInfo{
 				name:    fType.Elem().Name(),

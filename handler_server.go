@@ -257,6 +257,20 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 			h.handleSecurityDefaultParam(ctx, childField)
 			security := childField.Interface().(HTTPBearer)
 			security.HTTPBearer(token)
+		case inTypeSecurityHTTPBearerJWT:
+			authorization := ctx.Request.Header.Get("Authorization")
+			authList := strings.Split(authorization, " ")
+			token := ""
+			if len(authList) == 2 && authList[0] == "Bearer" {
+				token = authList[1]
+			}
+			childField := h.getChildFieldVal(inputValue, field.deepIdx)
+			h.initPtr(childField)
+			h.handleSecurityDefaultParam(ctx, childField)
+			security := childField.Interface().(HTTPBearerJWT)
+			jwt := &JWT{}
+			err = decryptJWT(jwt, token, security)
+			security.HTTPBearerJWT(jwt)
 		case inTypeSecurityHTTPBasic:
 			username, password, _ := ctx.Request.BasicAuth()
 			childField := h.getChildFieldVal(inputValue, field.deepIdx)

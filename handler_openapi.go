@@ -238,7 +238,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 					Schema: childSchema,
 				}
 			}
-		case inTypeSecurityHTTPBearer, inTypeSecurityHTTPBasic, inTypeSecurityApiKey:
+		case inTypeSecurityHTTPBearer, inTypeSecurityHTTPBearerJWT, inTypeSecurityHTTPBasic, inTypeSecurityApiKey:
 			securityRequirements = append(securityRequirements, &openapi.SecurityRequirement{
 				inputField.name: []string{},
 			})
@@ -342,6 +342,13 @@ func (h *handlerOpenAPI) setSecuritySchemes(path *pathInfo) {
 				Type:        "http",
 				Scheme:      "bearer",
 				Description: inputFiled.tag.desc,
+			}
+		case inTypeSecurityHTTPBearerJWT:
+			securitySchemes[inputFiled.name] = &openapi.SecurityScheme{
+				Type:         "http",
+				Scheme:       "bearer",
+				BearerFormat: "JWT",
+				Description:  inputFiled.tag.desc,
 			}
 		case inTypeSecurityHTTPBasic:
 			securitySchemes[inputFiled.name] = &openapi.SecurityScheme{

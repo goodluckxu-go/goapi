@@ -42,6 +42,7 @@ type UserListRouter struct {
 }
 
 type Req struct {
+	JwtStr string `json:"jwt_str" desc:"json web token"`
 	Page int `json:"page" desc:"now page" gt:"0"`
 	Limit int `json:"page" desc:"limit a page count" gte:"10" lte:"100"`
 }
@@ -52,7 +53,26 @@ func (u *UserListRouter) Index(input struct {
 	ID      string `path:"id" regexp:"^\d+$"` // path 
 	Req     Req `body:"json"`
 }) Resp {
-	return Resp{}
+	jwt := &goapi.JWT{
+		Iss: "custom", 
+		Sub: input.Name,
+		Aud: []string{"/v1"}, 
+		Exp: time.Now().Add(5 * time.Minute), 
+		Nbf: time.Now(), 
+		Iat: time.Now(), 
+		Extensions: map[string]any{
+			"name":     1, 
+			"age":      15, 
+			"zhangsan": "user",
+		},
+	}
+	jwtStr, err := jwt.Encrypt(&AuthToken{})
+	if err != nil {
+		response.HTTPException(-1, err.Error())
+	}
+	return Resp{
+		JwtStr: jwtStr
+	}
 }
 
 // 实现HTTPBearer接口
@@ -65,6 +85,33 @@ func (h *AdminAuth) HTTPBearer(token string) {
 		response.HTTPException(401, "token is error")   
 	}
 	h.Admin = "admin"
+}
+
+// 实现HTTPBearerJWT接口
+type AuthToken struct {
+	Name string // 定义一个值并从控制器检索它
+}
+
+var privateKey, _ = os.ReadFile("private.pem")
+var publicKey, _ = os.ReadFile("public.pem")
+
+func (a *AuthToken) EncryptKey() (any, error) {
+	block, _ := pem.Decode(privateKey)
+	return x509.ParsePKCS8PrivateKey(block.Bytes)
+}
+
+func (a *AuthToken) DecryptKey() (any, error) {
+	block, _ := pem.Decode(publicKey)
+	return x509.ParsePKIXPublicKey(block.Bytes)
+}
+
+func (a *AuthToken) SigningMethod() goapi.SigningMethod {
+	return goapi.SigningMethodRS256
+}
+
+func (a *AuthToken) HTTPBearerJWT(jwt *goapi.JWT) {
+	fmt.Println(jwt)
+	a.Name = jwt.Sub
 }
 
 // 实现HTTPBasic接口

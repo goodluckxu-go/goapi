@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"fmt"
+	"github.com/golang-jwt/jwt/v5"
 	"reflect"
 	"strconv"
 	"strings"
@@ -90,4 +91,41 @@ func isDefaultLogger(log Logger) (ok bool) {
 	}
 	_, ok = levelLog.log.(*defaultLogger)
 	return
+}
+
+// decryptJWT encrypted string based on JWT encryption
+func decryptJWT(j *JWT, jwtStr string, bearerJWT HTTPBearerJWT) error {
+	pToken, err := jwt.Parse(jwtStr, func(token *jwt.Token) (interface{}, error) {
+		return bearerJWT.DecryptKey()
+	})
+	if err != nil {
+		return err
+	}
+	if !pToken.Valid {
+		return fmt.Errorf("invalid token")
+	}
+	mapClaims, ok := pToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return fmt.Errorf("invalid claims")
+	}
+	j.Sub, _ = mapClaims.GetSubject()
+	j.Iss, _ = mapClaims.GetIssuer()
+	j.Aud, _ = mapClaims.GetAudience()
+	if exp, _ := mapClaims.GetExpirationTime(); exp != nil {
+		j.Exp = exp.Time
+	}
+	if nbf, _ := mapClaims.GetNotBefore(); nbf != nil {
+		j.Nbf = nbf.Time
+	}
+	if iat, _ := mapClaims.GetIssuedAt(); iat != nil {
+		j.Iat = iat.Time
+	}
+	delete(mapClaims, "sub")
+	delete(mapClaims, "iss")
+	delete(mapClaims, "aud")
+	delete(mapClaims, "exp")
+	delete(mapClaims, "nbf")
+	delete(mapClaims, "iat")
+	j.Extensions = mapClaims
+	return nil
 }
