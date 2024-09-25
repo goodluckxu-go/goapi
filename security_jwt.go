@@ -47,49 +47,52 @@ type HTTPBearerJWT interface {
 }
 
 type JWT struct {
-	// Issuer
-	Iss string `json:"iss"`
+	// the `iss` (Issuer) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1
+	Issuer string `json:"iss"`
 
-	// Subject, usually a user ID
-	Sub string `json:"sub"`
+	// the `sub` (Subject) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.2
+	Subject string `json:"sub"`
 
-	// The audience is usually the server API
-	Aud []string `json:"aud"`
+	// the `aud` (Audience) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3
+	Audience []string `json:"aud"`
 
-	// Expiration time
-	Exp time.Time `json:"exp"`
+	// the `exp` (Expiration Time) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4
+	ExpiresAt time.Time `json:"exp"`
 
-	// Effective time
-	Nbf time.Time `json:"nbf"`
+	// the `nbf` (Not Before) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.5
+	NotBefore time.Time `json:"nbf"`
 
-	// Issuance Times
-	Iat time.Time `json:"iat"`
+	// the `iat` (Issued At) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.6
+	IssuedAt time.Time `json:"iat"`
 
-	Extensions map[string]any
+	// the `jti` (JWT ID) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.7
+	ID string `json:"jti"`
+
+	Extensions map[string]any `json:"ext"`
 }
 
 func (j *JWT) GetExpirationTime() (*jwt.NumericDate, error) {
-	return &jwt.NumericDate{Time: j.Exp}, nil
+	return &jwt.NumericDate{Time: j.ExpiresAt}, nil
 }
 
 func (j *JWT) GetIssuedAt() (*jwt.NumericDate, error) {
-	return &jwt.NumericDate{Time: j.Iat}, nil
+	return &jwt.NumericDate{Time: j.IssuedAt}, nil
 }
 
 func (j *JWT) GetNotBefore() (*jwt.NumericDate, error) {
-	return &jwt.NumericDate{Time: j.Nbf}, nil
+	return &jwt.NumericDate{Time: j.NotBefore}, nil
 }
 
 func (j *JWT) GetIssuer() (string, error) {
-	return j.Iss, nil
+	return j.Issuer, nil
 }
 
 func (j *JWT) GetSubject() (string, error) {
-	return j.Sub, nil
+	return j.Subject, nil
 }
 
 func (j *JWT) GetAudience() (jwt.ClaimStrings, error) {
-	return j.Aud, nil
+	return j.Audience, nil
 }
 
 // Encrypt Get Jwt encrypted string
@@ -104,28 +107,29 @@ func (j *JWT) Encrypt(bearerJWT HTTPBearerJWT) (string, error) {
 
 func (j *JWT) MarshalJSON() ([]byte, error) {
 	m := map[string]any{}
-	if j.Iss != "" {
-		m["iss"] = j.Iss
+	if j.Issuer != "" {
+		m["iss"] = j.Issuer
 	}
-	if j.Sub != "" {
-		m["sub"] = j.Sub
+	if j.Subject != "" {
+		m["sub"] = j.Subject
 	}
-	if len(j.Aud) > 0 {
-		m["aud"] = j.Aud
+	if len(j.Audience) > 0 {
+		m["aud"] = j.Audience
 	}
-	if !j.Exp.IsZero() {
-		m["exp"] = j.Exp.Unix()
+	if !j.ExpiresAt.IsZero() {
+		m["exp"] = j.ExpiresAt.Unix()
 	}
-	if !j.Nbf.IsZero() {
-		m["nbf"] = j.Nbf.Unix()
+	if !j.NotBefore.IsZero() {
+		m["nbf"] = j.NotBefore.Unix()
 	}
-	if !j.Iat.IsZero() {
-		m["iat"] = j.Iat.Unix()
+	if !j.IssuedAt.IsZero() {
+		m["iat"] = j.IssuedAt.Unix()
 	}
-	for k, v := range j.Extensions {
-		if k != "iss" && k != "sub" && k != "aud" && k != "exp" && k != "nbf" && k != "iat" {
-			m[k] = v
-		}
+	if j.ID != "" {
+		m["jti"] = j.ID
+	}
+	if len(j.Extensions) > 0 {
+		m["ext"] = j.Extensions
 	}
 	return json.Marshal(m)
 }

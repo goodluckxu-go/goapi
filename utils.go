@@ -108,24 +108,23 @@ func decryptJWT(j *JWT, jwtStr string, bearerJWT HTTPBearerJWT) error {
 	if !ok {
 		return fmt.Errorf("invalid claims")
 	}
-	j.Sub, _ = mapClaims.GetSubject()
-	j.Iss, _ = mapClaims.GetIssuer()
-	j.Aud, _ = mapClaims.GetAudience()
+	j.Subject, _ = mapClaims.GetSubject()
+	j.Issuer, _ = mapClaims.GetIssuer()
+	j.Audience, _ = mapClaims.GetAudience()
 	if exp, _ := mapClaims.GetExpirationTime(); exp != nil {
-		j.Exp = exp.Time
+		j.ExpiresAt = exp.Time
 	}
 	if nbf, _ := mapClaims.GetNotBefore(); nbf != nil {
-		j.Nbf = nbf.Time
+		j.NotBefore = nbf.Time
 	}
 	if iat, _ := mapClaims.GetIssuedAt(); iat != nil {
-		j.Iat = iat.Time
+		j.IssuedAt = iat.Time
 	}
-	delete(mapClaims, "sub")
-	delete(mapClaims, "iss")
-	delete(mapClaims, "aud")
-	delete(mapClaims, "exp")
-	delete(mapClaims, "nbf")
-	delete(mapClaims, "iat")
-	j.Extensions = mapClaims
+	if jti, _ := mapClaims["jti"].(string); jti != "" {
+		j.ID = jti
+	}
+	if ext, _ := mapClaims["ext"].(map[string]any); len(ext) > 0 {
+		j.Extensions = ext
+	}
 	return nil
 }
