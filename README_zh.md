@@ -54,12 +54,13 @@ func (u *UserListRouter) Index(input struct {
 	Req     Req `body:"json"`
 }) Resp {
 	jwt := &goapi.JWT{
-		Iss: "custom", 
-		Sub: input.Name,
-		Aud: []string{"/v1"}, 
-		Exp: time.Now().Add(5 * time.Minute), 
-		Nbf: time.Now(), 
-		Iat: time.Now(), 
+		Issuer: "custom", 
+		Subject: input.Name,
+		Audience: []string{"/v1"}, 
+		ExpiresAt: time.Now().Add(5 * time.Minute), 
+		NotBefore: time.Now(), 
+		IssuedAt: time.Now(), 
+		ID: "uuid",
 		Extensions: map[string]any{
 			"name":     1, 
 			"age":      15, 
@@ -111,7 +112,7 @@ func (a *AuthToken) SigningMethod() goapi.SigningMethod {
 
 func (a *AuthToken) HTTPBearerJWT(jwt *goapi.JWT) {
 	fmt.Println(jwt)
-	a.Name = jwt.Sub
+	a.Name = jwt.Subject
 }
 
 // 实现HTTPBasic接口
