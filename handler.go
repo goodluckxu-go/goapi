@@ -89,6 +89,9 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 			if h.openapiSetMap[docsPath+val.docsPath] != nil {
 				log.Fatal("the childAPI docsPath repeats")
 			}
+			if val.prefix == "" {
+				log.Fatal("childAPI must have prefix")
+			}
 			if _, ok := h.childPrefixMap[prefix+val.prefix]; ok {
 				log.Fatal("the childAPI prefix repeats")
 			}
