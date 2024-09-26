@@ -263,6 +263,7 @@ func (g *APIGroup) IncludeGroup(group *APIGroup) {
 }
 
 type ChildAPI struct {
+	prefix         string
 	isDocs         bool
 	docsPath       string
 	OpenAPIInfo    *openapi.Info
@@ -272,8 +273,9 @@ type ChildAPI struct {
 }
 
 // NewChildAPI It is a newly created ChildAPI function
-func NewChildAPI(isDocs bool, docsPath string) *ChildAPI {
+func NewChildAPI(prefix string, isDocs bool, docsPath string) *ChildAPI {
 	return &ChildAPI{
+		prefix:   prefix,
 		isDocs:   isDocs,
 		docsPath: docsPath,
 		OpenAPIInfo: &openapi.Info{

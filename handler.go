@@ -12,7 +12,12 @@ import (
 )
 
 func newHandler(api *API) *handler {
-	return &handler{api: api, allMediaTypes: map[MediaType]struct{}{}, openapiSetMap: map[string]*openapi.OpenAPI{}}
+	return &handler{
+		api:            api,
+		allMediaTypes:  map[MediaType]struct{}{},
+		openapiSetMap:  map[string]*openapi.OpenAPI{},
+		childPrefixMap: map[string]struct{}{},
+	}
 }
 
 type handler struct {
@@ -25,6 +30,7 @@ type handler struct {
 	publicMiddlewares  []Middleware
 	allMediaTypes      map[MediaType]struct{}
 	openapiSetMap      map[string]*openapi.OpenAPI
+	childPrefixMap     map[string]struct{}
 }
 
 func (h *handler) Handle() {
@@ -77,6 +83,16 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 		case *APIGroup:
 			h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs, docsPath)
 		case *ChildAPI:
+			if val.docsPath == "" {
+				log.Fatal("childAPI must have docsPath")
+			}
+			if h.openapiSetMap[docsPath+val.docsPath] != nil {
+				log.Fatal("the childAPI docsPath repeats")
+			}
+			if _, ok := h.childPrefixMap[prefix+val.prefix]; ok {
+				log.Fatal("the childAPI prefix repeats")
+			}
+			h.childPrefixMap[prefix+val.prefix] = struct{}{}
 			if val.isDocs {
 				h.openapiSetMap[docsPath+val.docsPath] = &openapi.OpenAPI{
 					Info:    val.OpenAPIInfo,
@@ -84,7 +100,7 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 					Tags:    val.OpenAPITags,
 				}
 			}
-			h.handleHandlers(val.handlers, middlewares, prefix, isDocs && val.isDocs, docsPath+val.docsPath)
+			h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs, docsPath+val.docsPath)
 		case Middleware:
 			middlewares = append(middlewares, val)
 			public = append(public, val)
