@@ -110,6 +110,11 @@ func (a *API) IncludeGroup(group *APIGroup) {
 	a.handlers = append(a.handlers, group)
 }
 
+// IncludeChildAPI It is an introduction routing children
+func (a *API) IncludeChildAPI(child *ChildAPI) {
+	a.handlers = append(a.handlers, child)
+}
+
 // DebugPprof Open the system's built-in pprof
 func (a *API) DebugPprof() {
 	a.handlers = append(a.handlers, &includeRouter{
@@ -155,11 +160,13 @@ func (a *API) Handler() http.Handler {
 	handle := newHandler(a)
 	handle.Handle()
 	if a.isDocs {
-		api := newHandlerOpenAPI(a, handle).Handle()
-		openapiBody, _ := json.Marshal(api)
-		list := swagger.GetSwagger(a.docsPath, api.Info.Title, logo, openapiBody, a.Swagger)
-		for _, v := range list {
-			a.routers = append(a.routers, a.handleSwagger(v, handle.defaultMiddlewares))
+		apiMap := newHandlerOpenAPI(a, handle).Handle()
+		for docsPath, api := range apiMap {
+			openapiBody, _ := json.Marshal(api)
+			list := swagger.GetSwagger(docsPath, api.Info.Title, logo, openapiBody, a.Swagger)
+			for _, v := range list {
+				a.routers = append(a.routers, a.handleSwagger(v, handle.defaultMiddlewares))
+			}
 		}
 	}
 	serverHandler := newHandlerServer(a, handle)
@@ -253,4 +260,47 @@ func (g *APIGroup) IncludeRouter(router any, prefix string, isDocs bool, middlew
 // IncludeGroup It is an introduction routing group
 func (g *APIGroup) IncludeGroup(group *APIGroup) {
 	g.handlers = append(g.handlers, group)
+}
+
+type ChildAPI struct {
+	isDocs         bool
+	docsPath       string
+	OpenAPIInfo    *openapi.Info
+	OpenAPIServers []*openapi.Server
+	OpenAPITags    []*openapi.Tag
+	handlers       []any
+}
+
+// NewChildAPI It is a newly created ChildAPI function
+func NewChildAPI(isDocs bool, docsPath string) *ChildAPI {
+	return &ChildAPI{
+		isDocs:   isDocs,
+		docsPath: docsPath,
+		OpenAPIInfo: &openapi.Info{
+			Title:   "GoAPI",
+			Version: "1.0.0",
+		},
+	}
+}
+
+// AddMiddleware It is a function for adding middleware
+func (c *ChildAPI) AddMiddleware(middlewares ...Middleware) {
+	for _, middleware := range middlewares {
+		c.handlers = append(c.handlers, middleware)
+	}
+}
+
+// IncludeRouter It is a function that introduces routing structures
+func (c *ChildAPI) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...Middleware) {
+	c.handlers = append(c.handlers, &includeRouter{
+		router:      router,
+		prefix:      prefix,
+		isDocs:      isDocs,
+		middlewares: middlewares,
+	})
+}
+
+// IncludeGroup It is an introduction routing group
+func (c *ChildAPI) IncludeGroup(group *APIGroup) {
+	c.handlers = append(c.handlers, group)
 }

@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"fmt"
+	"github.com/goodluckxu-go/goapi/openapi"
 	"log"
 	"net/http"
 	"reflect"
@@ -11,7 +12,7 @@ import (
 )
 
 func newHandler(api *API) *handler {
-	return &handler{api: api, allMediaTypes: map[MediaType]struct{}{}}
+	return &handler{api: api, allMediaTypes: map[MediaType]struct{}{}, openapiSetMap: map[string]*openapi.OpenAPI{}}
 }
 
 type handler struct {
@@ -23,6 +24,7 @@ type handler struct {
 	defaultMiddlewares []Middleware
 	publicMiddlewares  []Middleware
 	allMediaTypes      map[MediaType]struct{}
+	openapiSetMap      map[string]*openapi.OpenAPI
 }
 
 func (h *handler) Handle() {
@@ -30,7 +32,7 @@ func (h *handler) Handle() {
 		h.allMediaTypes[v] = struct{}{}
 	}
 	h.defaultMiddlewares = append(h.defaultMiddlewares, setLogger())
-	h.publicMiddlewares = h.handleHandlers(h.api.handlers, h.defaultMiddlewares, "", true)
+	h.publicMiddlewares = h.handleHandlers(h.api.handlers, h.defaultMiddlewares, "", true, h.api.docsPath)
 	if h.api.httpExceptionResponse != nil {
 		resp := fieldInfo{
 			deepTypes: h.parseType(reflect.TypeOf(h.api.httpExceptionResponse.GetBody())),
@@ -54,7 +56,7 @@ func (h *handler) Handle() {
 	}
 }
 
-func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefix string, isDocs bool) (public []Middleware) {
+func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefix string, isDocs bool, docsPath string) (public []Middleware) {
 	for _, hd := range handlers {
 		switch val := hd.(type) {
 		case *includeRouter:
@@ -66,13 +68,23 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 			for k, v := range list {
 				v.middlewares = pathMiddlewares
 				v.isDocs = isDocs && v.isDocs
+				v.docsPath = docsPath
 				list[k] = v
 			}
 			h.paths = append(h.paths, list...)
 		case *staticInfo:
 			h.statics = append(h.statics, val)
 		case *APIGroup:
-			h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs)
+			h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs, docsPath)
+		case *ChildAPI:
+			if val.isDocs {
+				h.openapiSetMap[docsPath+val.docsPath] = &openapi.OpenAPI{
+					Info:    val.OpenAPIInfo,
+					Servers: val.OpenAPIServers,
+					Tags:    val.OpenAPITags,
+				}
+			}
+			h.handleHandlers(val.handlers, middlewares, prefix, isDocs && val.isDocs, docsPath+val.docsPath)
 		case Middleware:
 			middlewares = append(middlewares, val)
 			public = append(public, val)

@@ -12,15 +12,24 @@ import (
 )
 
 func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {
-	handleApi := &handlerOpenAPI{
-		api:    api,
-		handle: handle,
-		openapi: &openapi.OpenAPI{
+	openapiMap := map[string]*openapi.OpenAPI{}
+	if len(handle.openapiSetMap) > 0 {
+		for k, v := range handle.openapiSetMap {
+			v.OpenAPI = openapi.Version
+			openapiMap[k] = v
+		}
+	} else {
+		openapiMap[api.docsPath] = &openapi.OpenAPI{
 			OpenAPI: openapi.Version,
 			Info:    api.OpenAPIInfo,
 			Servers: api.OpenAPIServers,
 			Tags:    api.OpenAPITags,
-		},
+		}
+	}
+	handleApi := &handlerOpenAPI{
+		api:             api,
+		handle:          handle,
+		openapiMap:      openapiMap,
 		schemas:         map[string]map[MediaType]*openapi.Schema{},
 		isMullMediaType: len(handle.allMediaTypes) > 1,
 	}
@@ -33,49 +42,59 @@ func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {
 type handlerOpenAPI struct {
 	api             *API
 	handle          *handler
-	openapi         *openapi.OpenAPI
+	openapiMap      map[string]*openapi.OpenAPI
 	schemas         map[string]map[MediaType]*openapi.Schema
 	isMullMediaType bool
 	singleMediaType MediaType
 }
 
-func (h *handlerOpenAPI) Handle() *openapi.OpenAPI {
+func (h *handlerOpenAPI) Handle() map[string]*openapi.OpenAPI {
 	h.handleStructs()
 	h.handlePaths()
 	h.handleSchemas()
 	h.handleUseSchemas()
-	if err := h.openapi.Validate(); err != nil {
-		log.Fatal(err)
+	for _, oApi := range h.openapiMap {
+		if err := oApi.Validate(); err != nil {
+			log.Fatal(err)
+		}
 	}
-	return h.openapi
+	return h.openapiMap
 }
 
 func (h *handlerOpenAPI) handleUseSchemas() {
-	isDel := true
-	for isDel {
-		buf, _ := h.openapi.MarshalJSON()
-		str := string(buf)
-		isDel = false
-		for k, _ := range h.openapi.Components.Schemas {
-			ref := "#/components/schemas/" + k
-			if !strings.Contains(str, ref) {
-				delete(h.openapi.Components.Schemas, k)
-				isDel = true
+	for _, oApi := range h.openapiMap {
+		isDel := true
+		for isDel {
+			buf, _ := oApi.MarshalJSON()
+			str := string(buf)
+			isDel = false
+			for k, _ := range oApi.Components.Schemas {
+				ref := "#/components/schemas/" + k
+				if !strings.Contains(str, ref) {
+					delete(oApi.Components.Schemas, k)
+					isDel = true
+				}
 			}
 		}
 	}
+
 }
 
 func (h *handlerOpenAPI) handlePaths() {
-	h.openapi.Paths = &openapi.Paths{}
 	for _, path := range h.handle.paths {
 		if !path.isDocs {
 			continue
 		}
+		if h.openapiMap[path.docsPath] == nil {
+			continue
+		}
+		if h.openapiMap[path.docsPath].Paths == nil {
+			h.openapiMap[path.docsPath].Paths = &openapi.Paths{}
+		}
 		h.setSecuritySchemes(path)
 		pathItem := &openapi.PathItem{}
-		if h.openapi.Paths.Value(path.path) != nil {
-			pathItem = h.openapi.Paths.Value(path.path)
+		if h.openapiMap[path.docsPath].Paths.Value(path.path) != nil {
+			pathItem = h.openapiMap[path.docsPath].Paths.Value(path.path)
 		}
 		for _, method := range path.methods {
 			operation := &openapi.Operation{}
@@ -132,7 +151,7 @@ func (h *handlerOpenAPI) handlePaths() {
 			case http.MethodTrace:
 				pathItem.Trace = operation
 			}
-			h.openapi.Paths.Set(path.path, pathItem)
+			h.openapiMap[path.docsPath].Paths.Set(path.path, pathItem)
 		}
 	}
 }
@@ -320,6 +339,9 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 }
 
 func (h *handlerOpenAPI) setSecuritySchemes(path *pathInfo) {
+	if h.openapiMap[path.docsPath] == nil {
+		return
+	}
 	securitySchemes := map[string]*openapi.SecurityScheme{}
 	if len(h.api.responseMediaTypes) > 1 {
 		securitySchemes["mediaType"] = &openapi.SecurityScheme{
@@ -329,11 +351,11 @@ func (h *handlerOpenAPI) setSecuritySchemes(path *pathInfo) {
 			Description: "Switch the media type returned",
 		}
 	}
-	if h.openapi.Components == nil {
-		h.openapi.Components = &openapi.Components{}
+	if h.openapiMap[path.docsPath].Components == nil {
+		h.openapiMap[path.docsPath].Components = &openapi.Components{}
 	}
-	if h.openapi.Components.SecuritySchemes != nil {
-		securitySchemes = h.openapi.Components.SecuritySchemes
+	if h.openapiMap[path.docsPath].Components.SecuritySchemes != nil {
+		securitySchemes = h.openapiMap[path.docsPath].Components.SecuritySchemes
 	}
 	for _, inputFiled := range path.inputFields {
 		switch inputFiled.inType {
@@ -366,15 +388,11 @@ func (h *handlerOpenAPI) setSecuritySchemes(path *pathInfo) {
 		}
 	}
 	if len(securitySchemes) > 0 {
-		h.openapi.Components.SecuritySchemes = securitySchemes
+		h.openapiMap[path.docsPath].Components.SecuritySchemes = securitySchemes
 	}
 }
 
 func (h *handlerOpenAPI) handleSchemas() {
-	if h.openapi.Components == nil {
-		h.openapi.Components = &openapi.Components{}
-	}
-
 	for k, v := range h.handle.structs {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
@@ -391,15 +409,23 @@ func (h *handlerOpenAPI) handleSchemas() {
 			}
 		}
 	}
-	h.openapi.Components.Schemas = map[string]*openapi.Schema{}
+	allSchemas := map[string]*openapi.Schema{}
 	for key, schemas := range h.schemas {
 		if !h.isMullMediaType {
-			h.openapi.Components.Schemas[key] = schemas[h.singleMediaType]
+			allSchemas[key] = schemas[h.singleMediaType]
 		} else {
 			for k, v := range schemas {
-				h.openapi.Components.Schemas[key+"_"+mediaTypeToTypeMap[k]] = v
+				allSchemas[key+"_"+mediaTypeToTypeMap[k]] = v
 			}
 		}
+	}
+	for _, oApi := range h.handle.openapiSetMap {
+		schemas := map[string]*openapi.Schema{}
+		for k, v := range allSchemas {
+			tmp := v
+			schemas[k] = tmp
+		}
+		oApi.Components.Schemas = schemas
 	}
 }
 
