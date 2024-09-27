@@ -419,7 +419,7 @@ func (h *handlerOpenAPI) handleSchemas() {
 			}
 		}
 	}
-	for _, oApi := range h.handle.openapiSetMap {
+	for _, oApi := range h.openapiMap {
 		schemas := map[string]*openapi.Schema{}
 		for k, v := range allSchemas {
 			tmp := v
