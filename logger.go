@@ -3,6 +3,7 @@ package goapi
 import (
 	"fmt"
 	"github.com/fatih/color"
+	"strings"
 	"time"
 )
 
@@ -18,23 +19,33 @@ type defaultLogger struct {
 }
 
 func (d *defaultLogger) Debug(format string, a ...any) {
-	fmt.Printf(spanFill(colorDebug("DEBUG"), 5, 10)+" ["+timeFormat(time.Now())+"] "+format+"\n", a...)
+	format = fmt.Sprintf(format, a...)
+	format = strings.ReplaceAll(format, "\n", "\n"+spanFill("", 0, 10))
+	fmt.Printf(spanFill(colorDebug("DEBUG"), 5, 10) + "[" + timeFormat(time.Now()) + "] " + format + "\n")
 }
 
 func (d *defaultLogger) Info(format string, a ...any) {
-	fmt.Printf(spanFill(colorInfo("INFO"), 4, 10)+" ["+timeFormat(time.Now())+"] "+format+"\n", a...)
+	format = fmt.Sprintf(format, a...)
+	format = strings.ReplaceAll(format, "\n", "\n"+spanFill("", 0, 10))
+	fmt.Printf(spanFill(colorInfo("INFO"), 4, 10) + "[" + timeFormat(time.Now()) + "] " + format + "\n")
 }
 
 func (d *defaultLogger) Warning(format string, a ...any) {
-	fmt.Printf(spanFill(colorWarning("WARNING"), 7, 10)+" ["+timeFormat(time.Now())+"] "+format+"\n", a...)
+	format = fmt.Sprintf(format, a...)
+	format = strings.ReplaceAll(format, "\n", "\n"+spanFill("", 0, 10))
+	fmt.Printf(spanFill(colorWarning("WARNING"), 7, 10) + "[" + timeFormat(time.Now()) + "] " + format + "\n")
 }
 
 func (d *defaultLogger) Error(format string, a ...any) {
-	fmt.Printf(spanFill(colorError("ERROR"), 5, 10)+" ["+timeFormat(time.Now())+"] "+format+"\n", a...)
+	format = fmt.Sprintf(format, a...)
+	format = strings.ReplaceAll(format, "\n", "\n"+spanFill("", 0, 10))
+	fmt.Printf(spanFill(colorError("ERROR"), 5, 10) + "[" + timeFormat(time.Now()) + "] " + format + "\n")
 }
 
 func (d *defaultLogger) Fatal(format string, a ...any) {
-	fmt.Printf(spanFill(colorFatal("FATAL"), 5, 10)+" ["+timeFormat(time.Now())+"] "+format+"\n", a...)
+	format = fmt.Sprintf(format, a...)
+	format = strings.ReplaceAll(format, "\n", "\n"+spanFill("", 0, 10))
+	fmt.Printf(spanFill(colorFatal("FATAL"), 5, 10) + "[" + timeFormat(time.Now()) + "] " + format + "\n")
 }
 
 type levelHandleLogger struct {
