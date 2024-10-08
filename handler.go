@@ -364,8 +364,8 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 		case "in":
 			switch fType {
 			case reflect.TypeOf(Router{}):
-				path := field.Tag.Get("path")
-				method := field.Tag.Get("method")
+				path := field.Tag.Get(tagPath)
+				method := field.Tag.Get(tagMethod)
 				if path == "" || method == "" {
 					err = fmt.Errorf("the parameters must have a path and method present")
 					return
@@ -378,9 +378,9 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					err = fmt.Errorf("the method in the parameter does not exist " + strings.Join(methods, ", "))
 					return
 				}
-				summary := field.Tag.Get("summary")
-				desc := field.Tag.Get("desc")
-				tag := field.Tag.Get("tags")
+				summary := field.Tag.Get(tagSummary)
+				desc := field.Tag.Get(tagDesc)
+				tag := field.Tag.Get(tagTags)
 				var tags []string
 				if tag != "" {
 					tags = strings.Split(tag, ",")

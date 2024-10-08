@@ -72,6 +72,10 @@ const tagMultiple = "multiple" // VALIDATION. openapi's multipleOf
 const tagMax = "max"           // VALIDATION. openapi's maxLength,maxItems,maxProperties
 const tagMin = "min"           // VALIDATION. openapi's minLength,minItems,minProperties
 const tagUnique = "unique"     // VALIDATION. openapi's uniqueItems
+const tagPath = "path"
+const tagMethod = "method"
+const tagSummary = "summary"
+const tagTags = "tags"
 
 const validErrorCode = 422
 
