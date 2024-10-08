@@ -378,8 +378,8 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					err = fmt.Errorf("the method in the parameter does not exist " + strings.Join(methods, ", "))
 					return
 				}
-				summary := field.Tag.Get(tagSummary)
-				desc := field.Tag.Get(tagDesc)
+				summary := h.getMappingTag(tagSummary, field.Tag.Get(tagSummary))
+				desc := h.getMappingTag(tagDesc, field.Tag.Get(tagDesc))
 				tag := field.Tag.Get(tagTags)
 				var tags []string
 				if tag != "" {
@@ -788,7 +788,7 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 func (h *handler) handleTag(tag reflect.StructTag, fKind reflect.Kind) (fTag *fieldTagInfo, err error) {
 	fTag = &fieldTagInfo{
 		regexp: tag.Get(tagRegexp),
-		desc:   tag.Get(tagDesc),
+		desc:   h.getMappingTag(tagDesc, tag.Get(tagDesc)),
 	}
 	if tagVal := tag.Get(tagEnum); tagVal != "" {
 		if err = h.parseTagValByKind(tagVal, &fTag.enum, fKind); err != nil {
@@ -846,4 +846,19 @@ func (h *handler) handleTag(tag reflect.StructTag, fKind reflect.Kind) (fTag *fi
 		}
 	}
 	return
+}
+
+func (h *handler) getMappingTag(tagName, tagVal string) string {
+	if len(tagVal) < 5 {
+		return tagVal
+	}
+	if tagVal[:2] != "{{" || tagVal[len(tagVal)-2:] != "}}" {
+		return tagVal
+	}
+	tag := tagName + "." + tagVal[2:len(tagVal)-2]
+	val := h.api.structTagVariableMap[tag]
+	if val == nil {
+		return tagVal
+	}
+	return val.(string)
 }

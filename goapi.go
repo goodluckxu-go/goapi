@@ -7,9 +7,11 @@ import (
 	"github.com/goodluckxu-go/goapi/response"
 	"github.com/goodluckxu-go/goapi/swagger"
 	json "github.com/json-iterator/go"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // GoAPI It is a newly created API function
@@ -28,10 +30,11 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 			DocExpansion: "list",
 			DeepLinking:  true,
 		},
-		log:      &levelHandleLogger{log: &defaultLogger{}},
-		docsPath: dPath,
-		addr:     ":8080",
-		lang:     &lang.EnUs{},
+		log:                  &levelHandleLogger{log: &defaultLogger{}},
+		docsPath:             dPath,
+		addr:                 ":8080",
+		lang:                 &lang.EnUs{},
+		structTagVariableMap: map[string]any{},
 	}
 }
 
@@ -50,6 +53,7 @@ type API struct {
 	log                   Logger
 	addr                  string
 	routers               []*appRouter
+	structTagVariableMap  map[string]any
 }
 
 // HTTPExceptionHandler It is an exception handling registration for HTTP
@@ -85,6 +89,25 @@ func (a *API) SetResponseMediaType(mediaTypes ...MediaType) {
 		}
 		m[v] = struct{}{}
 		a.responseMediaTypes = append(a.responseMediaTypes, v)
+	}
+}
+
+// SetStructTagVariableMapping It is set struct tag variable mapping
+// example:
+//
+//	summary.UserId: Replace when representing the value {{UserId}} of tag summary
+//	desc.UserName: Replace when representing the value {{UserName}} of tag desc
+func (a *API) SetStructTagVariableMapping(m map[string]string) {
+	for k, v := range m {
+		idx := strings.Index(k, ".")
+		if idx == -1 {
+			log.Fatal("the struct tag variable mapping key prefix must be in 'summary', 'desc'")
+		}
+		tagName := k[:idx]
+		if !inArray(tagName, tagVariableNames) {
+			log.Fatal("the struct tag variable mapping key prefix '" + tagName + "' is not in 'summary', 'desc'")
+		}
+		a.structTagVariableMap[k] = v
 	}
 }
 

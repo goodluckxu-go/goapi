@@ -77,6 +77,11 @@ const tagMethod = "method"
 const tagSummary = "summary"
 const tagTags = "tags"
 
+var tagVariableNames = []string{
+	tagSummary,
+	tagDesc,
+}
+
 const validErrorCode = 422
 
 type LogLevel uint
