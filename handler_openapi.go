@@ -425,6 +425,9 @@ func (h *handlerOpenAPI) handleSchemas() {
 			tmp := v
 			schemas[k] = tmp
 		}
+		if oApi.Components == nil {
+			oApi.Components = &openapi.Components{}
+		}
 		oApi.Components.Schemas = schemas
 	}
 }
