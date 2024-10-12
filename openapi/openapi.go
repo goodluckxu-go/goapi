@@ -4,6 +4,7 @@ import (
 	"fmt"
 	json "github.com/json-iterator/go"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -625,7 +626,7 @@ func (p *Paths) MarshalJSON() ([]byte, error) {
 	for k, v := range p.m {
 		m[k] = v
 	}
-	return json.Marshal(m)
+	return packageJsonByMap(m)
 }
 
 func (p *Paths) UnmarshalJSON(buf []byte) (err error) {
@@ -2890,7 +2891,7 @@ type marshalField struct {
 
 func marshalJson(list []marshalField, extensions ...map[string]any) ([]byte, error) {
 	m := map[string]any{}
-	if !(len(list) == 1 && list[0].key == "$ref") {
+	if !(len(list) > 0 && list[0].key == "$ref") {
 		for _, val := range extensions {
 			for k, v := range val {
 				m[k] = v
@@ -2903,7 +2904,30 @@ func marshalJson(list []marshalField, extensions ...map[string]any) ([]byte, err
 		}
 		m[v.key] = v.value
 	}
-	return json.Marshal(m)
+	return packageJsonByMap(m)
+}
+
+func packageJsonByMap(m map[string]any) ([]byte, error) {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	str := "{"
+	for _, k := range keys {
+		str += `"` + k + `":`
+		buf, err := json.Marshal(m[k])
+		if err != nil {
+			return nil, err
+		}
+		str += string(buf)
+		str += ","
+	}
+	if len(keys) > 0 {
+		str = str[:len(str)-1]
+	}
+	str += "}"
+	return []byte(str), nil
 }
 
 func verifyError(field string, err error, isMapOrArray ...bool) error {
