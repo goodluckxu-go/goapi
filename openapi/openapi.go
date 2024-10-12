@@ -3,6 +3,7 @@ package openapi
 import (
 	"fmt"
 	json "github.com/json-iterator/go"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -2907,7 +2908,7 @@ func marshalJson(list []marshalField, extensions ...map[string]any) ([]byte, err
 	return packageJsonByMap(m)
 }
 
-func packageJsonByMap(m map[string]any) ([]byte, error) {
+func packageJsonByMap(m map[string]any) (buf []byte, err error) {
 	var keys []string
 	for k := range m {
 		keys = append(keys, k)
@@ -2916,7 +2917,16 @@ func packageJsonByMap(m map[string]any) ([]byte, error) {
 	str := "{"
 	for _, k := range keys {
 		str += `"` + k + `":`
-		buf, err := json.Marshal(m[k])
+		val := reflect.ValueOf(m[k])
+		if val.Kind() == reflect.Map {
+			childM := map[string]any{}
+			for _, key := range val.MapKeys() {
+				childM[key.String()] = val.MapIndex(key).Interface()
+			}
+			buf, err = packageJsonByMap(childM)
+		} else {
+			buf, err = json.Marshal(m[k])
+		}
 		if err != nil {
 			return nil, err
 		}
