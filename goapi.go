@@ -143,7 +143,7 @@ func (a *API) DebugPprof() {
 	a.handlers = append(a.handlers, &includeRouter{
 		router: &pprofInfo{},
 		prefix: "/debug",
-		isDocs: true,
+		isDocs: false,
 	})
 }
 

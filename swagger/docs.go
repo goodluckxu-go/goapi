@@ -3,6 +3,7 @@ package swagger
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -37,67 +38,60 @@ type Router struct {
 
 func GetSwagger(path, title, favicon string, openapiJsonBody []byte, config Config) (routers []Router) {
 	openapiPath := path + "/openapi.json"
-	routers = append(routers, Router{
-		Path: path,
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
-			writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-			if handleCache(writer, request) {
-				return
-			}
-			_, _ = writer.Write([]byte(fmt.Sprintf(index, title, path, path, favicon, path, path, path)))
+	routers = []Router{
+		{
+			Path: path,
+			Handler: func(writer http.ResponseWriter, request *http.Request) {
+				writer.Header().Set("Content-Type", "text/html; charset=utf-8")
+				if handleCache(writer, request) {
+					return
+				}
+				_, _ = writer.Write([]byte(fmt.Sprintf(index, title, path, path, favicon, path, path, path)))
+			},
 		},
-	}, Router{
-		Path: path + "/index.css",
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
-			writer.Header().Set("Content-Type", "text/css; charset=utf-8")
-			if handleCache(writer, request) {
-				return
-			}
-			_, _ = writer.Write([]byte(cssIndex))
+		{
+			Path: path + "/{path}",
+			Handler: func(writer http.ResponseWriter, request *http.Request) {
+				switch strings.TrimPrefix(request.URL.Path, path) {
+				case "/index.css":
+					writer.Header().Set("Content-Type", "text/css; charset=utf-8")
+					if handleCache(writer, request) {
+						return
+					}
+					_, _ = writer.Write([]byte(cssIndex))
+				case "/swagger-ui.css":
+					writer.Header().Set("Content-Type", "text/css; charset=utf-8")
+					if handleCache(writer, request) {
+						return
+					}
+					_, _ = writer.Write([]byte(cssSwaggerUi))
+				case "/swagger-initializer.js":
+					writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+					if handleCache(writer, request) {
+						return
+					}
+					_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, openapiPath, config.DocExpansion, config.DeepLinking)))
+				case "/swagger-ui-bundle.js":
+					writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+					if handleCache(writer, request) {
+						return
+					}
+					_, _ = writer.Write([]byte(jsSwaggerUiBundle))
+				case "/swagger-ui-standalone-preset.js":
+					writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+					if handleCache(writer, request) {
+						return
+					}
+					_, _ = writer.Write([]byte(jsSwaggerUiStandalonePreset))
+				case "/openapi.json":
+					writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+					_, _ = writer.Write(openapiJsonBody)
+				default:
+					http.NotFound(writer, request)
+				}
+			},
 		},
-	}, Router{
-		Path: path + "/swagger-ui.css",
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
-			writer.Header().Set("Content-Type", "text/css; charset=utf-8")
-			if handleCache(writer, request) {
-				return
-			}
-			_, _ = writer.Write([]byte(cssSwaggerUi))
-		},
-	}, Router{
-		Path: path + "/swagger-initializer.js",
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
-			writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-			if handleCache(writer, request) {
-				return
-			}
-			_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, openapiPath, config.DocExpansion, config.DeepLinking)))
-		},
-	}, Router{
-		Path: path + "/swagger-ui-bundle.js",
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
-			writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-			if handleCache(writer, request) {
-				return
-			}
-			_, _ = writer.Write([]byte(jsSwaggerUiBundle))
-		},
-	}, Router{
-		Path: path + "/swagger-ui-standalone-preset.js",
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
-			writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-			if handleCache(writer, request) {
-				return
-			}
-			_, _ = writer.Write([]byte(jsSwaggerUiStandalonePreset))
-		},
-	}, Router{
-		Path: openapiPath,
-		Handler: func(writer http.ResponseWriter, request *http.Request) {
-			writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-			_, _ = writer.Write(openapiJsonBody)
-		},
-	})
+	}
 	return
 }
 
