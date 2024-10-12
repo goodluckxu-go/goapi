@@ -37,7 +37,6 @@ type Router struct {
 }
 
 func GetSwagger(path, title, favicon string, openapiJsonBody []byte, config Config) (routers []Router) {
-	openapiPath := path + "/openapi.json"
 	routers = []Router{
 		{
 			Path: path,
@@ -53,37 +52,37 @@ func GetSwagger(path, title, favicon string, openapiJsonBody []byte, config Conf
 			Path: path + "/{path}",
 			Handler: func(writer http.ResponseWriter, request *http.Request) {
 				switch strings.TrimPrefix(request.URL.Path, path) {
-				case "/index.css":
+				case cssIndexPath:
 					writer.Header().Set("Content-Type", "text/css; charset=utf-8")
 					if handleCache(writer, request) {
 						return
 					}
 					_, _ = writer.Write([]byte(cssIndex))
-				case "/swagger-ui.css":
+				case cssSwaggerUiPath:
 					writer.Header().Set("Content-Type", "text/css; charset=utf-8")
 					if handleCache(writer, request) {
 						return
 					}
 					_, _ = writer.Write([]byte(cssSwaggerUi))
-				case "/swagger-initializer.js":
+				case jsSwaggerInitializerPath:
 					writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 					if handleCache(writer, request) {
 						return
 					}
-					_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, openapiPath, config.DocExpansion, config.DeepLinking)))
-				case "/swagger-ui-bundle.js":
+					_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, path, config.DocExpansion, config.DeepLinking)))
+				case jsSwaggerUiBundlePath:
 					writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 					if handleCache(writer, request) {
 						return
 					}
 					_, _ = writer.Write([]byte(jsSwaggerUiBundle))
-				case "/swagger-ui-standalone-preset.js":
+				case jsSwaggerUiStandalonePresetPath:
 					writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 					if handleCache(writer, request) {
 						return
 					}
 					_, _ = writer.Write([]byte(jsSwaggerUiStandalonePreset))
-				case "/openapi.json":
+				case openapiPath:
 					writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 					_, _ = writer.Write(openapiJsonBody)
 				default:
