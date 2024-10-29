@@ -17,6 +17,7 @@ func newHandler(api *API) *handler {
 		allMediaTypes:  map[MediaType]struct{}{},
 		openapiSetMap:  map[string]*openapi.OpenAPI{},
 		childPrefixMap: map[string]struct{}{},
+		sameRoute:      map[string]struct{}{},
 	}
 }
 
@@ -31,6 +32,7 @@ type handler struct {
 	allMediaTypes      map[MediaType]struct{}
 	openapiSetMap      map[string]*openapi.OpenAPI
 	childPrefixMap     map[string]struct{}
+	sameRoute          map[string]struct{}
 }
 
 func (h *handler) Handle() {
@@ -76,6 +78,13 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 				v.isDocs = isDocs && v.isDocs
 				v.docsPath = docsPath
 				list[k] = v
+				for _, v1 := range v.methods {
+					tmpRoute := fmt.Sprintf("%v_%v", v1, v.path)
+					if _, ok := h.sameRoute[tmpRoute]; ok {
+						log.Fatal(fmt.Sprintf("there are multiple methods for '%v' and routing '%v'", v1, v.path))
+					}
+					h.sameRoute[tmpRoute] = struct{}{}
+				}
 			}
 			h.paths = append(h.paths, list...)
 		case *staticInfo:
