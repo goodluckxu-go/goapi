@@ -20,15 +20,16 @@ type SSEventData struct {
 func (s *SSEvent) Write(data SSEventData) {
 	var buf bytes.Buffer
 	if data.Event != "" {
-		buf.WriteString("event: " + data.Event + "\n\n")
+		buf.WriteString("event: " + data.Event + "\n")
 	}
-	buf.WriteString("data: " + data.Data + "\n\n")
+	buf.WriteString("data: " + data.Data + "\n")
 	if data.Id != "" {
-		buf.WriteString("id: " + data.Id + "\n\n")
+		buf.WriteString("id: " + data.Id + "\n")
 	}
 	if data.Retry > 0 {
-		buf.WriteString("retry: " + strconv.Itoa(int(data.Retry)) + "\n\n")
+		buf.WriteString("retry: " + strconv.Itoa(int(data.Retry)) + "\n")
 	}
+	buf.WriteString("\n")
 	_, _ = s.w.Write(buf.Bytes())
 	if f, ok := s.w.(http.Flusher); ok {
 		f.Flush()
