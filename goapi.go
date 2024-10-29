@@ -173,7 +173,7 @@ func (a *API) Run(addr ...string) (err error) {
 func (a *API) RunTLS(addr, certFile, keyFile string) (err error) {
 	a.addr = addr
 	httpHandler := a.Handler()
-	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
+	a.log.Info("GoAPI running on https://%v (Press CTRL+C to quit)", a.addr)
 	return http.ListenAndServeTLS(a.addr, certFile, keyFile, httpHandler)
 }
 
