@@ -86,7 +86,7 @@ const validErrorCode = 422
 
 type LogLevel uint
 
-var logLevel LogLevel = LogInfo | LogDebug | LogWarning | LogError | LogFail
+var logLevel = LogInfo | LogDebug | LogWarning | LogError | LogFail
 
 const (
 	LogInfo LogLevel = 1 << iota

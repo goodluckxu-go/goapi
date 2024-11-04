@@ -344,7 +344,7 @@ func (h *handlerServer) handleCookie(req *http.Request, inputValue reflect.Value
 		name = field.inTypeVal
 	}
 	cookie, er := req.Cookie(field.inTypeVal)
-	if er != nil {
+	if er != nil || cookie.Value == "" {
 		if field.required {
 			err = fmt.Errorf(h.api.lang.Required(name))
 			return
@@ -352,13 +352,6 @@ func (h *handlerServer) handleCookie(req *http.Request, inputValue reflect.Value
 		return
 	}
 	if field._type == typeCookie {
-		if er != nil || cookie.Value == "" {
-			if field.required {
-				err = fmt.Errorf(h.api.lang.Required(name))
-				return
-			}
-			return
-		}
 		if err = h.validString(cookie.Value, name, field.tag); err != nil {
 			return
 		}

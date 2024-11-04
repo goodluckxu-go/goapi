@@ -33,7 +33,7 @@ func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {
 		schemas:         map[string]map[MediaType]*openapi.Schema{},
 		isMullMediaType: len(handle.allMediaTypes) > 1,
 	}
-	for k, _ := range handle.allMediaTypes {
+	for k := range handle.allMediaTypes {
 		handleApi.singleMediaType = k
 	}
 	return handleApi
@@ -68,7 +68,7 @@ func (h *handlerOpenAPI) handleUseSchemas() {
 			buf, _ := oApi.MarshalJSON()
 			str := string(buf)
 			isDel = false
-			for k, _ := range oApi.Components.Schemas {
+			for k := range oApi.Components.Schemas {
 				ref := "#/components/schemas/" + k
 				if !strings.Contains(str, ref) {
 					delete(oApi.Components.Schemas, k)
@@ -508,7 +508,7 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 func (h *handlerOpenAPI) handleStructs() {
 	nameMap := map[string]map[string]struct{}{}
 	nameBaseMap := map[string]map[string]struct{}{}
-	for k, _ := range h.handle.structs {
+	for k := range h.handle.structs {
 		if strings.HasPrefix(k, prefixTempStruct) {
 			continue
 		}

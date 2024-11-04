@@ -13,7 +13,7 @@ type node struct {
 	// Is it an exact matching prefix
 	isExact bool
 
-	// Do you want to abort the matching.
+	// Do you want to abort the matching
 	isStop bool
 
 	// Is it a static file

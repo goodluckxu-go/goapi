@@ -2964,7 +2964,7 @@ func verifyError(field string, err error, isMapOrArray ...bool) error {
 }
 
 func validatorExtensions(extensions map[string]any) error {
-	for k, _ := range extensions {
+	for k := range extensions {
 		if len(k) < 2 || k[:2] != "x-" {
 			return fmt.Errorf("the extended fields name must begin with 'x-'")
 		}
