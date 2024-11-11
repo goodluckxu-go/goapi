@@ -510,7 +510,7 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					continue
 				}
 				if fType.Kind() == reflect.Ptr {
-					securityList, ok, er := h.handleSecurity(field, fType, append(deepIdx, i))
+					securityList, ok, er := h.handleSecurity(fType, append(deepIdx, i))
 					if er != nil {
 						err = er
 						return
@@ -651,11 +651,7 @@ func (h *handler) parseType(fType reflect.Type) (rs []typeInfo) {
 	return
 }
 
-func (h *handler) handleSecurity(field reflect.StructField, fType reflect.Type, deepIdx []int) (list []fieldInfo, ok bool, err error) {
-	fTag := &fieldTagInfo{}
-	if fTag, err = h.handleTag(field.Tag, field.Type.Kind()); err != nil {
-		return
-	}
+func (h *handler) handleSecurity(fType reflect.Type, deepIdx []int) (list []fieldInfo, ok bool, err error) {
 	num := 0
 	for _, securityType := range securityTypes {
 		if !fType.Implements(securityType) {
@@ -665,6 +661,12 @@ func (h *handler) handleSecurity(field reflect.StructField, fType reflect.Type, 
 			err = fmt.Errorf("security can only implement one of the interfaces 'goapi.HTTPBearer', " +
 				"'goapi.HTTPBasic', and 'goapi.ApiKey'")
 			return
+		}
+		fTag := &fieldTagInfo{}
+		value := reflect.New(fType.Elem())
+		var desc SecurityDescription
+		if desc, ok = value.Interface().(SecurityDescription); ok {
+			fTag.desc = desc.Desc()
 		}
 		num++
 		switch securityType {
