@@ -1,9 +1,9 @@
 # goapi
-Using the HTTP framework of OpenAPI3.1 documentation
+使用OpenAPI3.1文档的HTTP框架
 
-English | [中文](README_zh.md)
+中文 | [English](README_en.md)
 
-## usage
+## 用法
 ~~~bash
 go get github.com/goodluckxu-go/goapi
 ~~~
@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	color.NoColor = true // Turn off the default logging console color
+	color.NoColor = true // 关闭默认日志控制台颜色
 	api := goapi.GoAPI(true, "/docs")
 	api.SetResponseMediaType(goapi.JSON)
 	api.HTTPExceptionHandler(func(httpCode int, detail string) goapi.Response {
@@ -76,9 +76,9 @@ func (u *UserListRouter) Index(input struct {
 	}
 }
 
-// Implement HTTPBearer interface
+// 实现HTTPBearer接口
 type AdminAuth struct {
-	Admin  string          // Define a value and retrieve it from the controller
+	Admin  string          // 定义一个值并从控制器检索它
 }
 
 func (h *AdminAuth) HTTPBearer(token string) {
@@ -88,9 +88,9 @@ func (h *AdminAuth) HTTPBearer(token string) {
 	h.Admin = "admin"
 }
 
-// Implement HTTPBearerJWT interface
+// 实现HTTPBearerJWT接口
 type AuthToken struct {
-	Name string // Define a value and retrieve it from the controller
+	Name string // 定义一个值并从控制器检索它
 }
 
 var privateKey, _ = os.ReadFile("private.pem")
@@ -115,9 +115,9 @@ func (a *AuthToken) HTTPBearerJWT(jwt *goapi.JWT) {
 	a.Name = jwt.Subject
 }
 
-// Implement HTTPBasic interface
+// 实现HTTPBasic接口
 type AdminAuth struct {
-	Admin  string          // Define a value and retrieve it from the controller
+	Admin  string          // 定义一个值并从控制器检索它
 }
 
 func (h *AdminAuth) HTTPBasic(username,password string) {
@@ -128,10 +128,10 @@ func (h *AdminAuth) HTTPBasic(username,password string) {
 }
 
 
-// Implement ApiKey interface
+// 实现ApiKey接口
 type AdminAuth struct {
 	Token  string   `header:"Token"`
-	Admin  string          // Define a value and retrieve it from the controller
+	Admin  string          // 定义一个值并从控制器检索它
 }
 
 func (h *AdminAuth) ApiKey() {
@@ -141,105 +141,105 @@ func (h *AdminAuth) ApiKey() {
 	h.Admin = "admin"
 }
 ~~~
-## Verify multilingual Settings
-You can implement the 'goapi.Lang' interface yourself
+## 验证的多语言设置
+可以自己实现'goapi.Lang'接口
 ~~~go
-api.SetLang(&lang.ZhCn{}) // Default 'EnUs' English comments
+api.SetLang(&lang.ZhCn{}) // 默认EnUs英文注释
 ~~~
-## Log output setting
-Set before initializing the api
+## 日志输出设置
+在初始化api之前设置
 ~~~go
 goapi.SetLogLevel(goapi.LogInfo | goapi.LogWarning)
 ~~~
-### 'goapi.Router' tag field annotation
-- path: Access Routing
-- method: Access method. Multiple contents separated by ','
-- summary: A short summary of the API.
-- desc: A description of the API. CommonMark syntax MAY be used for rich text representation.
-- tags: Multiple contents separated by ','
-### Annotation of parameter structure tag in the method
+### 'goapi.Router'标记字段注释
+- path: 路由地址
+- method: 访问方法。多个内容用'，'分隔
+- summary: 该API的简短摘要。
+- desc: API的描述。CommonMark语法可用于富文本表示。
+- tags: 多个内容用'，'分隔
+### 方法中参数结构标签的标注
 - header
-  - Can use commonly used types(ptr, slice), in slice type use ',' split
-  - Value is an alias for a field, 'omitempty' is nullable
+  - 可以使用常用类型(ptr, slice)，在切片类型中使用'，'拆分
+  - 值是字段的别名，添加'omitempty'则可为空
 - cookie
-  - Can use commonly used types(ptr, slice) or '*http.Cookie', in slice type use ',' split
-  - Value is an alias for a field, 'omitempty' is nullable
+  - 可以使用常用的类型(ptr, slice)或`*http.Cookie'，在切片类型中使用'，'拆分
+  - 值是字段的别名，添加'omitempty'则可为空
 - query
-  - Can use commonly used types(ptr, slice)
-  - Value is an alias for a field, 'omitempty' is nullable
+  - 可以使用常用类型(ptr, slice)
+  - 值是字段的别名，添加'omitempty'则可为空
 - path
-  - Can use commonly used types(ptr, slice), in slice type use ',' split
-  - Value is an alias for a field, 'omitempty' is nullable
+  - 可以使用常用类型(ptr, slice)，在切片类型中使用'，'拆分
+  - 值是字段的别名，添加'omitempty'则可为空
 - form
-  - Can use commonly used types(ptr, slice), in slice type use ',' split
-  - default media type 'application/x-www-form-urlencoded', if file exists 'multipart/form-data'
-  - Value is an alias for a field, 'omitempty' is nullable
+  - 可以使用常用类型(ptr, slice)，在切片类型中使用'，'拆分
+  - 默认媒体类型'application/x-www-form-urlencoded'，如果有file文件存在媒体类型为'multipart/form-data'
+  - 值是字段的别名，添加'omitempty'则可为空
 - file
-  - Can use commonly used '*multipart.FileHeader' or '[]*multipart.FileHeader'
-  - default media type 'multipart/form-data'
-  - Value is an alias for a field, 'omitempty' is nullable
+  - 可以使用类型为‘*multipart.FileHeader'或'[]*multipart.FileHeader'
+  - 默认媒体类型“multipart/form-data”
+  - 值是字段的别名，添加'omitempty'则可为空
 - body
-  - The values are 'xml' and 'json', Multiple uses ',' segmentation
-  - The value is for other media types(example 'text/plain'), The type is '[]byte', 'string' or 'io.ReadCloser'
-  - Value of json is media type 'application/json', xml is media type 'application/xml'
-  - Body of tag use value, 'omitempty' is nullable
-  - When the value is 'application/octet-stream', indicates that the body is uploaded as a file
-### Structure tag annotation
+  - 固定常用值为'xml'和'json', 多个值用','分割
+  - 该值适用于其他媒体类型(例如'text/plain')，值类型为'[]byte'， 'string'或'io.ReadCloser'
+  - 值json表示媒体类型'application/json', 值xml表示媒体类型'application/xml'
+  - 标签使用值的主体, 添加'omitempty'则可为空
+  - 值为'application/octet-stream'时，表示body以文件的方式上传
+### 结构标签注释
 - regexp
-    - Regular expression of value
-    - Validator limit **string** type
-    - Equivalent to OpenAPI **pattern**
+    - 值的正则表达式
+    - 验证器限制 **字符串** 类型
+    - 相当于OpenAPI的 **pattern**
 - enum
-    - Enumeration of values
-    - Validator limit **integer** **number** **boolean** **string** type
-    - Comma division (**,**)
+    - 值的枚举
+    - 验证器限制 **整数** **数字** **布尔** **字符串** 类型
+    - 逗号分割(,)
 - default
-    - Default value
+    - 默认值
 - example
-    - Example value
+    - 实例值
 - desc
-    - Field description
-    - Equivalent to OpenAPI **description**
+    - 字段描述
+    - 相当于OpenAPI的 **description**
 - lt
-    - Less than value
-    - Validator limit **integer** **number** type
-    - Equivalent to OpenAPI **exclusiveMaximum**
+    - 小于字段值
+    - 验证器限制 **整数** **数字** 类型
+    - 相当于OpenAPI的 **exclusiveMaximum**
 - lte
-    - Less than or equal to value
-    - Validator limit **integer** **number** type
-    - Equivalent to OpenAPI **maximum**
+    - 小于等于字段值
+    - 验证器限制 **整数** **数字** 类型
+    - 相当于OpenAPI的 **maximum**
 - gt
-    - Greater than value
-    - Validator limit **integer** **number** type
-    - Equivalent to OpenAPI **exclusiveMinimum**
+    - 大于字段值
+    - 验证器限制 **整数** **数字** 类型
+    - 相当于OpenAPI的 **exclusiveMinimum**
 - gte
-    - Greater than or equal to value
-    - Validator limit **integer** **number** type
-    - Equivalent to OpenAPI **minimum**
+    - 大于等于字段值
+    - 验证器限制 **整数** **数字** 类型
+    - 相当于OpenAPI的 **minimum**
 - multiple
-    - Multipliers of values
-    - Validator limit **integer** **number** type
+    - 值的乘数
+    - 验证器限制 **整数** **数字** 类型
 - max
-    - The maximum length of the value
-    - Validator limit **string** **array** **object** type
+    - 值的最大长度
+    - 验证器限制 **字符串** **数组** **对象** 类型
 - min
-    - The minimum length of the value
-    - Validator limit **string** **array** **object** type
+    - 值的最小长度
+    - 验证器限制 **字符串** **数组** **对象** 类型
 - unique
-    - The value of the array is unique
-    - Validator limit **array** type
-## Response annotation
-### if response is an implementation of the goapi.Response interface, you can set some functions
-- **HTTPResponse[T]** can set httpCode, header, cookie. Content-Type value is 'application/json','application/xml'
-- **FileResponse** can return downloadable files. Content-Type value is 'application/octet-stream'
-- **SSEResponse** can return content in Server Sent Events format. Content-Type value is 'text/event-stream'
-- **HTMLResponse** can return to HTML page. Content-Type value is 'text/html'
-- **TextResponse** return in text mode, can set header, cookie. Content-Type default value is 'text/plain',resettable Content-Type
-## Error corresponding comment
+    - 验证数组值唯一
+    - 验证器限制 **数组** 类型
+## 响应注释
+### 如果响应是goapi的实现。响应界面，可以设置一些功能
+- **HTTPResponse[T]** 可以设置http的code,header,cookie，Content-Type值为'application/json','application/xml'
+- **FileResponse** 可以返回可下载文件，Content-Type值为'application/octet-stream'
+- **SSEResponse** 可以以服务器发送事件格式返回内容，Content-Type值为'text/event-stream'
+- **HTMLResponse** 可以返回HTML页面，Content-Type值为'text/html'
+- **TextResponse** 文本方式的返回，可以设置header, cookie，Content-Type默认值为'text/plain'，可重置Content-Type
+## 错误对应注释以及用法
 ~~~go
 response.HTTPException(404, "error message")
 ~~~
-- Specific return information can be configured using the 'HTTPExceptionHandler' method
-- The first parameter is the HTTP status code, the second is the error message, and the third is the header setting returned
-## About
-Generate documentation using an API similar to FastAPI in Python
+- 具体的返回信息可以使用'HTTPExceptionHandler'方法配置
+- 第一个参数是HTTP状态码，第二个是错误消息，第三个是返回的报头设置
+## 关于
+使用类似于Python中的FastAPI的API生成文档
