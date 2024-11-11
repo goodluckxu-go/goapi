@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -200,18 +201,34 @@ func (a *API) Handler() http.Handler {
 	}
 	a.log.Info("Started server process [%v]", pid)
 	a.log.Debug("All routes:")
+	mergeMap := map[string][]string{}
+	for _, v := range a.routers {
+		mergeName := v.path + v.pos
+		mergeMap[mergeName] = append(mergeMap[mergeName], v.method)
+	}
 	maxMethodLen := 0
 	maxPathLen := 0
 	for _, v := range a.routers {
-		if maxMethodLen < len(v.method) {
-			maxMethodLen = len(v.method)
+		mergeName := v.path + v.pos
+		methods := mergeMap[mergeName]
+		methodLen := len(strings.Join(methods, ","))
+		if maxMethodLen < methodLen {
+			maxMethodLen = methodLen
 		}
 		if maxPathLen < len(v.path) {
 			maxPathLen = len(v.path)
 		}
 	}
 	for _, v := range a.routers {
-		a.log.Debug("%v%v--> %v", spanFill(v.method, len(v.method), maxMethodLen+1), spanFill(v.path, len(v.path), maxPathLen+1), v.pos)
+		mergeName := v.path + v.pos
+		methods := mergeMap[mergeName]
+		if len(methods) == 0 {
+			continue
+		}
+		sort.Strings(methods)
+		delete(mergeMap, mergeName)
+		method := strings.Join(methods, ",")
+		a.log.Debug("%v%v--> %v", spanFill(method, len(method), maxMethodLen+1), spanFill(v.path, len(v.path), maxPathLen+1), v.pos)
 	}
 	return serverHandler.HttpHandler()
 }
