@@ -208,6 +208,7 @@ func (a *API) Handler() http.Handler {
 	}
 	maxMethodLen := 0
 	maxPathLen := 0
+	maxPosLen := 0
 	for _, v := range a.routers {
 		mergeName := v.path + v.pos
 		methods := mergeMap[mergeName]
@@ -218,7 +219,31 @@ func (a *API) Handler() http.Handler {
 		if maxPathLen < len(v.path) {
 			maxPathLen = len(v.path)
 		}
+		if maxPosLen < len(v.pos) {
+			maxPosLen = len(v.pos)
+		}
 	}
+	headMethod := "METHODS"
+	headPath := "PATH"
+	headPos := "POSITION"
+	if maxMethodLen < len(headMethod) {
+		maxMethodLen = len(headMethod)
+	}
+	if maxPathLen < len(headPath) {
+		maxPathLen = len(headPath)
+	}
+	if maxPosLen < len(headPos) {
+		maxPosLen = len(headPos)
+	}
+	lineLen := maxMethodLen + maxPathLen + maxPosLen + 10
+	line := ""
+	for i := 0; i < lineLen; i++ {
+		line += "-"
+	}
+	a.log.Debug(line)
+	a.log.Debug("| %v | %v | %v |", spanFill(headMethod, len(headMethod), maxMethodLen),
+		spanFill(headPath, len(headPath), maxPathLen), spanFill(headPos, len(headPos), maxPosLen))
+	a.log.Debug(line)
 	for _, v := range a.routers {
 		mergeName := v.path + v.pos
 		methods := mergeMap[mergeName]
@@ -228,8 +253,10 @@ func (a *API) Handler() http.Handler {
 		sort.Strings(methods)
 		delete(mergeMap, mergeName)
 		method := strings.Join(methods, ",")
-		a.log.Debug("%v%v--> %v", spanFill(method, len(method), maxMethodLen+1), spanFill(v.path, len(v.path), maxPathLen+1), v.pos)
+		a.log.Debug("| %v | %v | %v |", spanFill(method, len(method), maxMethodLen),
+			spanFill(v.path, len(v.path), maxPathLen), spanFill(v.pos, len(v.pos), maxPosLen))
 	}
+	a.log.Debug(line)
 	return serverHandler.HttpHandler()
 }
 
