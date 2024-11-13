@@ -2289,6 +2289,7 @@ func (s *Schema) marshalField() []marshalField {
 		return []marshalField{
 			{"$ref", s.Ref, false},
 			{"description", s.Description, s.Description == ""},
+			{"xml", s.XML, s.XML == nil},
 		}
 	}
 	return []marshalField{
