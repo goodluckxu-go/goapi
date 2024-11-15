@@ -193,7 +193,7 @@ func (h *handler) handleStructs() (err error) {
 										attr: true,
 									}
 								}
-							case "innerxml":
+							case "innerxml", "chardata":
 								if v == XML {
 									fInfo.xml = &xmlInfo{
 										innerxml: true,

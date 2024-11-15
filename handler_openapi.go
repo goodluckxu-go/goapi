@@ -485,8 +485,7 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 					}
 				}
 				if fInfo.xml.innerxml {
-					fInfo.name = ""
-					childSchema.Description = "innerxml"
+					continue
 				}
 				if len(fInfo.xml.childs) > 0 {
 					childSchema.Type = "object"
