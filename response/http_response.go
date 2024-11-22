@@ -54,6 +54,7 @@ func (h *HTTPResponse[T]) Write(w http.ResponseWriter) {
 		buf, err = json.Marshal(h.Body)
 	case "application/xml":
 		buf, err = xml.Marshal(h.Body)
+		buf = append([]byte(`<?xml version="1.0" encoding="UTF-8"?>`), buf...)
 	default:
 		var anyVal any = h.Body
 		switch val := anyVal.(type) {
