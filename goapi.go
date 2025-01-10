@@ -94,19 +94,23 @@ func (a *API) SetResponseMediaType(mediaTypes ...MediaType) {
 }
 
 // SetStructTagVariableMapping It is set struct tag variable mapping
+// Only supports the replacement of tags 'summary' and 'desc'
 // example:
 //
-//	summary.UserId: Replace when representing the value {{UserId}} of tag summary
-//	desc.UserName: Replace when representing the value {{UserName}} of tag desc
+//	mapping:
+//		username: test
+//		password: 123456
+//	tag value:
+//		username is {{username}} and password is {{password}}
+//	result value:
+//		username is test and password is 123456
 func (a *API) SetStructTagVariableMapping(m map[string]string) {
 	for k, v := range m {
-		idx := strings.Index(k, ".")
-		if idx == -1 {
-			log.Fatal("the struct tag variable mapping key prefix must be in 'summary', 'desc'")
-		}
-		tagName := k[:idx]
-		if !inArray(tagName, tagVariableNames) {
-			log.Fatal("the struct tag variable mapping key prefix '" + tagName + "' is not in 'summary', 'desc'")
+		n := len(k)
+		for i := 0; i < n; i++ {
+			if k[i] == '{' || k[i] == '}' {
+				log.Fatal("the struct tag variable mapping key cannot be within '{', '}'")
+			}
 		}
 		a.structTagVariableMap[k] = v
 	}

@@ -387,8 +387,8 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					err = fmt.Errorf("the method in the parameter does not exist " + strings.Join(methods, ", "))
 					return
 				}
-				summary := h.getMappingTag(tagSummary, field.Tag.Get(tagSummary))
-				desc := h.getMappingTag(tagDesc, field.Tag.Get(tagDesc))
+				summary := h.getMappingTag(field.Tag.Get(tagSummary))
+				desc := h.getMappingTag(field.Tag.Get(tagDesc))
 				tag := field.Tag.Get(tagTags)
 				var tags []string
 				if tag != "" {
@@ -800,7 +800,7 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 func (h *handler) handleTag(tag reflect.StructTag, fKind reflect.Kind) (fTag *fieldTagInfo, err error) {
 	fTag = &fieldTagInfo{
 		regexp: tag.Get(tagRegexp),
-		desc:   h.getMappingTag(tagDesc, tag.Get(tagDesc)),
+		desc:   h.getMappingTag(tag.Get(tagDesc)),
 	}
 	if tagVal := tag.Get(tagEnum); tagVal != "" {
 		if err = h.parseTagValByKind(tagVal, &fTag.enum, fKind); err != nil {
@@ -860,17 +860,36 @@ func (h *handler) handleTag(tag reflect.StructTag, fKind reflect.Kind) (fTag *fi
 	return
 }
 
-func (h *handler) getMappingTag(tagName, tagVal string) string {
-	if len(tagVal) < 5 {
-		return tagVal
+func (h *handler) getMappingTag(tagVal string) string {
+	n := len(tagVal)
+	left := 0 // 变量左边坐标
+	i := 0
+	var buf []byte
+	for i < n {
+		if i+1 < n && tagVal[i:i+2] == "{{" {
+			if i+2 < n && tagVal[i+2] == '{' {
+				buf = append(buf, tagVal[i])
+				i++
+				continue
+			}
+			buf = append(buf, "{{"...)
+			left = i + 2
+			i += 2
+			continue
+		} else if left > 0 && i+1 < n && tagVal[i:i+2] == "}}" {
+			oldVal := tagVal[left:i]
+			val := h.api.structTagVariableMap[oldVal]
+			if val != nil {
+				buf = append(buf[0:len(buf)-len(oldVal)-2], val.(string)...)
+			} else {
+				buf = append(buf, "}}"...)
+			}
+			left = 0
+			i += 2
+			continue
+		}
+		buf = append(buf, tagVal[i])
+		i++
 	}
-	if tagVal[:2] != "{{" || tagVal[len(tagVal)-2:] != "}}" {
-		return tagVal
-	}
-	tag := tagName + "." + tagVal[2:len(tagVal)-2]
-	val := h.api.structTagVariableMap[tag]
-	if val == nil {
-		return tagVal
-	}
-	return val.(string)
+	return string(buf)
 }

@@ -1,6 +1,7 @@
 package goapi
 
 import (
+	"encoding/xml"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"reflect"
@@ -127,4 +128,16 @@ func decryptJWT(j *JWT, jwtStr string, bearerJWT HTTPBearerJWT) error {
 		j.Extensions = ext
 	}
 	return nil
+}
+
+func ParseCommentXml(v any) (rs string) {
+	vType := reflect.TypeOf(v)
+	for vType.Kind() == reflect.Ptr {
+		vType = vType.Elem()
+	}
+
+	fmt.Println(vType)
+	b, e := xml.Marshal(v)
+	fmt.Println(string(b), e)
+	return ""
 }
