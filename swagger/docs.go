@@ -36,7 +36,7 @@ type Router struct {
 	Handler func(writer http.ResponseWriter, request *http.Request)
 }
 
-func GetSwagger(path, title, favicon string, openapiJsonBody []byte, config Config) (routers []Router) {
+func GetSwagger(path, title string, openapiJsonBody []byte, config Config) (routers []Router) {
 	routers = []Router{
 		{
 			Path: path,

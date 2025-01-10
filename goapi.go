@@ -191,7 +191,7 @@ func (a *API) Handler() http.Handler {
 		apiMap := newHandlerOpenAPI(a, handle).Handle()
 		for docsPath, api := range apiMap {
 			openapiBody, _ := json.Marshal(api)
-			list := swagger.GetSwagger(docsPath, api.Info.Title, logo, openapiBody, a.Swagger)
+			list := swagger.GetSwagger(docsPath, api.Info.Title, openapiBody, a.Swagger)
 			for _, v := range list {
 				a.routers = append(a.routers, a.handleSwagger(v, handle.defaultMiddlewares))
 			}
