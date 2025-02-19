@@ -30,6 +30,8 @@ var inTypes = []string{
 	inTypeFile,
 }
 
+type Middleware func(ctx *Context)
+
 type MediaType string
 
 const jsonType = "json"
