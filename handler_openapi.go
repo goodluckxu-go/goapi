@@ -557,29 +557,29 @@ func (h *handlerOpenAPI) parseOpenapiName(s string) (pkg, name, baseName string)
 func (h *handlerOpenAPI) convertType(fType reflect.Type, isBodyNotJsonXml bool) (rs typeInfo) {
 	rs._type = fType
 	switch fType.Kind() {
-	case reflect.Int, reflect.Uint:
+	case reflect.Int:
 		rs.typeStr = "integer"
 	case reflect.Int8:
 		rs.typeStr = "integer"
 		rs.format = "int8"
 		rs.gte = toPtr(float64(math.MinInt8))
 		rs.lte = toPtr(float64(math.MaxInt8))
-	case reflect.Uint8:
-		rs.typeStr = "integer"
-		rs.format = "uint8"
-		rs.gte = toPtr(float64(0))
-		rs.lte = toPtr(float64(math.MaxUint8))
 	case reflect.Int16:
 		rs.typeStr = "integer"
 		rs.format = "int16"
 		rs.gte = toPtr(float64(math.MinInt16))
 		rs.lte = toPtr(float64(math.MaxInt16))
+	case reflect.Uint8:
+		rs.typeStr = "integer"
+		rs.format = "uint8"
+		rs.gte = toPtr(float64(0))
+		rs.lte = toPtr(float64(math.MaxUint8))
 	case reflect.Uint16:
 		rs.typeStr = "integer"
 		rs.format = "uint16"
 		rs.gte = toPtr(float64(0))
 		rs.lte = toPtr(float64(math.MaxUint16))
-	case reflect.Int32, reflect.Uint32, reflect.Int64, reflect.Uint64:
+	case reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint32, reflect.Uint64:
 		rs.typeStr = "integer"
 		rs.format = fType.Kind().String()
 	case reflect.Float32:
