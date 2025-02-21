@@ -648,12 +648,17 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 	types = types[1:]
 	schema.Type = tyInfo.typeStr
 	schema.Format = tyInfo.format
+	switch tyInfo.typeStr {
+	case "integer":
+		schema.Minimum = tyInfo.gte
+		schema.Maximum = tyInfo.lte
+	}
 	switch tyInfo._type.Kind() {
 	case reflect.Map:
 		childSchema := &openapi.Schema{}
 		h.setChildSchema(childSchema, types, mediaType, isBodyNotJsonXml)
 		schema.Properties = map[string]*openapi.Schema{
-			"string": childSchema,
+			tyInfo._type.Key().String(): childSchema,
 		}
 	case reflect.Slice:
 		if tyInfo._type == typeBytes && isBodyNotJsonXml {
