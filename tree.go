@@ -2,7 +2,6 @@ package goapi
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 )
 
@@ -68,30 +67,39 @@ func (n *node) addRouter(path string, router *appRouter) (err error) {
 		if left == -1 && right == -1 {
 			tree.isExact = true
 		} else {
-			for {
-				if left == -1 && right == -1 {
-					break
+			count := len(tree.prefix)
+			prefix = ""      // 参数前缀
+			param := ""      // 参数
+			isParam := false // 是否是参数
+			for i := 0; i < count; i++ {
+				if tree.prefix[i] == '{' {
+					if isParam {
+						return fmt.Errorf("path format error")
+					}
+					isParam = true
+				} else if tree.prefix[i] == '}' {
+					if !isParam {
+						return fmt.Errorf("path format error")
+					}
+					isParam = false
+					if len(prefix) > 0 {
+						tree.fixedPaths = append(tree.fixedPaths, prefix)
+					}
+					if len(param) == 0 {
+						return fmt.Errorf("path format error")
+					}
+					tree.pathParams = append(tree.pathParams, param)
+					prefix = ""
+					param = ""
+				} else {
+					if !isParam {
+						prefix += string(tree.prefix[i])
+					} else {
+						param += string(tree.prefix[i])
+					}
 				}
-				if (left == -1 && right != -1) || (left != -1 && right == -1) || left > right {
-					// If the parentheses containing variable parameters are not a pair, it indicates
-					// that the path definition is incorrect
-					err = fmt.Errorf("path format error")
-					return
-				}
-				fixed := prefix[:left]
-				param := prefix[left+1 : right]
-				if !regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`).MatchString(param) {
-					// Variable parameters can only contain uppercase and lowercase numbers and underscores
-					err = fmt.Errorf("path format error")
-					return
-				}
-				prefix = prefix[right+1:]
-				tree.fixedPaths = append(tree.fixedPaths, fixed)
-				tree.pathParams = append(tree.pathParams, param)
-				left = strings.Index(prefix, "{")
-				right = strings.Index(prefix, "}")
 			}
-			if prefix != "" {
+			if len(prefix) > 0 {
 				tree.fixedPaths = append(tree.fixedPaths, prefix)
 			}
 		}
