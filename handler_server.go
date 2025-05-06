@@ -234,7 +234,7 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 			}
 			if bodyBytes, er := io.ReadAll(ctx.Request.Body); er == nil {
 				if len(bodyBytes) == 0 {
-					err = fmt.Errorf(h.api.lang.Required("body"))
+					err = fmt.Errorf("%v", h.api.lang.Required("body"))
 					return
 				}
 				childField := h.getChildFieldVal(inputValue, field.deepIdx)
@@ -242,7 +242,7 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 					return
 				}
 			} else {
-				err = fmt.Errorf(h.api.lang.Required("body"))
+				err = fmt.Errorf("%v", h.api.lang.Required("body"))
 				return
 			}
 		case inTypeSecurityHTTPBearer:
@@ -270,7 +270,7 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 			security := childField.Interface().(HTTPBearerJWT)
 			jwt := &JWT{}
 			if err = decryptJWT(jwt, token, security); err != nil {
-				err = fmt.Errorf(h.api.lang.JwtTranslate(err.Error()))
+				err = fmt.Errorf("%v", h.api.lang.JwtTranslate(err.Error()))
 				return
 			}
 			security.HTTPBearerJWT(jwt)
@@ -346,7 +346,7 @@ func (h *handlerServer) handleCookie(req *http.Request, inputValue reflect.Value
 	cookie, er := req.Cookie(field.inTypeVal)
 	if er != nil || cookie.Value == "" {
 		if field.required {
-			err = fmt.Errorf(h.api.lang.Required(name))
+			err = fmt.Errorf("%v", h.api.lang.Required(name))
 			return
 		}
 		return
@@ -391,7 +391,7 @@ func (h *handlerServer) handleValue(inputValue reflect.Value, field fieldInfo, v
 	required := field.required
 	if values == nil {
 		if required {
-			err = fmt.Errorf(h.api.lang.Required(name))
+			err = fmt.Errorf("%v", h.api.lang.Required(name))
 		}
 		return
 	}
@@ -402,14 +402,14 @@ func (h *handlerServer) handleValue(inputValue reflect.Value, field fieldInfo, v
 	if fType.Kind() == reflect.Slice {
 		if len(values) == 0 {
 			if required {
-				err = fmt.Errorf(h.api.lang.Required(name))
+				err = fmt.Errorf("%v", h.api.lang.Required(name))
 			}
 			return
 		}
 	} else {
 		if len(values) == 0 || values[0] == "" {
 			if required {
-				err = fmt.Errorf(h.api.lang.Required(name))
+				err = fmt.Errorf("%v", h.api.lang.Required(name))
 			}
 			return
 		}
@@ -558,7 +558,7 @@ func (h *handlerServer) setValue(fVal reflect.Value, values []string, name strin
 			}
 			for _, count := range valCount {
 				if count > 1 {
-					err = fmt.Errorf(h.api.lang.Unique(name))
+					err = fmt.Errorf("%v", h.api.lang.Unique(name))
 					return
 				}
 			}
@@ -577,29 +577,29 @@ func (h *handlerServer) setValue(fVal reflect.Value, values []string, name strin
 
 func (h *handlerServer) validFloat64(f float64, name string, tag *fieldTagInfo) (err error) {
 	if tag.lt != nil && f >= *tag.lt {
-		err = fmt.Errorf(h.api.lang.Lt(name, *tag.lt))
+		err = fmt.Errorf("%v", h.api.lang.Lt(name, *tag.lt))
 		return
 	}
 	if tag.lte != nil && f > *tag.lte {
-		err = fmt.Errorf(h.api.lang.Lte(name, *tag.lte))
+		err = fmt.Errorf("%v", h.api.lang.Lte(name, *tag.lte))
 		return
 	}
 	if tag.gt != nil && f <= *tag.gt {
-		err = fmt.Errorf(h.api.lang.Gt(name, *tag.gt))
+		err = fmt.Errorf("%v", h.api.lang.Gt(name, *tag.gt))
 		return
 	}
 	if tag.gte != nil && f < *tag.gte {
-		err = fmt.Errorf(h.api.lang.Gte(name, *tag.gte))
+		err = fmt.Errorf("%v", h.api.lang.Gte(name, *tag.gte))
 		return
 	}
 	if tag.multiple != nil {
 		if *tag.multiple == 0 {
-			err = fmt.Errorf(h.api.lang.MultipleOf(name, *tag.multiple))
+			err = fmt.Errorf("%v", h.api.lang.MultipleOf(name, *tag.multiple))
 			return
 		}
 		rs, _ := decimal.NewFromFloat(f).Div(decimal.NewFromFloat(*tag.multiple)).Float64()
 		if rs != float64(int64(rs)) {
-			err = fmt.Errorf(h.api.lang.MultipleOf(name, *tag.multiple))
+			err = fmt.Errorf("%v", h.api.lang.MultipleOf(name, *tag.multiple))
 			return
 		}
 	}
@@ -608,7 +608,7 @@ func (h *handlerServer) validFloat64(f float64, name string, tag *fieldTagInfo) 
 		enum = append(enum, v.(float64))
 	}
 	if len(enum) > 0 && !inArray(f, enum) {
-		err = fmt.Errorf(h.api.lang.Enum(name, tag.enum))
+		err = fmt.Errorf("%v", h.api.lang.Enum(name, tag.enum))
 		return
 	}
 	return
@@ -619,7 +619,7 @@ func (h *handlerServer) validString(s string, name string, tag *fieldTagInfo) (e
 		return
 	}
 	if tag.regexp != "" && !regexp.MustCompile(tag.regexp).MatchString(s) {
-		err = fmt.Errorf(h.api.lang.Regexp(name, tag.regexp))
+		err = fmt.Errorf("%v", h.api.lang.Regexp(name, tag.regexp))
 		return
 	}
 	var enum []string
@@ -627,7 +627,7 @@ func (h *handlerServer) validString(s string, name string, tag *fieldTagInfo) (e
 		enum = append(enum, v.(string))
 	}
 	if len(enum) > 0 && !inArray(s, enum) {
-		err = fmt.Errorf(h.api.lang.Enum(name, tag.enum))
+		err = fmt.Errorf("%v", h.api.lang.Enum(name, tag.enum))
 		return
 	}
 	return
@@ -635,11 +635,11 @@ func (h *handlerServer) validString(s string, name string, tag *fieldTagInfo) (e
 
 func (h *handlerServer) validLen(l int, name string, tag *fieldTagInfo) (err error) {
 	if tag.min > 0 && uint64(l) < tag.min {
-		err = fmt.Errorf(h.api.lang.Min(name, tag.min))
+		err = fmt.Errorf("%v", h.api.lang.Min(name, tag.min))
 		return
 	}
 	if tag.max != nil && uint64(l) > *tag.max {
-		err = fmt.Errorf(h.api.lang.Max(name, *tag.max))
+		err = fmt.Errorf("%v", h.api.lang.Max(name, *tag.max))
 		return
 	}
 	return
@@ -722,7 +722,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vFloat := float64(v.Int())
 				if vFloat == 0 {
 					if myFName.required {
-						err = fmt.Errorf(h.api.lang.Required(name))
+						err = fmt.Errorf("%v", h.api.lang.Required(name))
 						return
 					}
 					continue
@@ -734,7 +734,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vFloat := float64(v.Uint())
 				if vFloat == 0 {
 					if myFName.required {
-						err = fmt.Errorf(h.api.lang.Required(name))
+						err = fmt.Errorf("%v", h.api.lang.Required(name))
 						return
 					}
 					continue
@@ -746,7 +746,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vFloat := v.Float()
 				if vFloat == 0 {
 					if myFName.required {
-						err = fmt.Errorf(h.api.lang.Required(name))
+						err = fmt.Errorf("%v", h.api.lang.Required(name))
 						return
 					}
 					continue
@@ -758,7 +758,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vStr := v.String()
 				if v.String() == "" {
 					if myFName.required {
-						err = fmt.Errorf(h.api.lang.Required(name))
+						err = fmt.Errorf("%v", h.api.lang.Required(name))
 						return
 					}
 					continue
@@ -770,7 +770,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vLen := v.Len()
 				if vLen == 0 {
 					if myFName.required {
-						err = fmt.Errorf(h.api.lang.Required(name))
+						err = fmt.Errorf("%v", h.api.lang.Required(name))
 						return
 					}
 					continue
@@ -785,7 +785,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 					}
 					for _, count := range valCount {
 						if count > 1 {
-							err = fmt.Errorf(h.api.lang.Unique(name))
+							err = fmt.Errorf("%v", h.api.lang.Unique(name))
 							return
 						}
 					}
@@ -797,7 +797,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 				vLen := len(v.MapKeys())
 				if vLen == 0 {
 					if myFName.required {
-						err = fmt.Errorf(h.api.lang.Required(name))
+						err = fmt.Errorf("%v", h.api.lang.Required(name))
 						return
 					}
 					continue

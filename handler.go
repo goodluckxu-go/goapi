@@ -384,7 +384,7 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					methods[k] = strings.ToUpper(v)
 				}
 				if !h.isMethod(methods) {
-					err = fmt.Errorf("the method in the parameter does not exist " + strings.Join(methods, ", "))
+					err = fmt.Errorf("the method in the parameter does not exist %v", strings.Join(methods, ", "))
 					return
 				}
 				summary := h.getMappingTag(field.Tag.Get(tagSummary))
