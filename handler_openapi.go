@@ -214,6 +214,7 @@ func (h *handlerOpenAPI) setOperation(operation *openapi.Operation, path *pathIn
 				Name:        inputField.inTypeVal,
 				In:          inputField.inType,
 				Description: inputField.tag.desc,
+				Deprecated:  inputField.tag.deprecated,
 				Schema:      childSchema,
 				Required:    inputField.required,
 				Example:     inputField.tag.example,
@@ -444,6 +445,7 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 			h.setChildSchema(childSchema, v1.deepTypes, mType, false)
 			childSchema.Enum = v1.tag.enum
 			childSchema.Default = v1.tag._default
+			childSchema.Deprecated = v1.tag.deprecated
 			if v1.tag.example != nil {
 				childSchema.Examples = []any{v1.tag.example}
 			}

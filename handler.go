@@ -825,6 +825,11 @@ func (h *handler) handleTag(tag reflect.StructTag, fKind reflect.Kind) (fTag *fi
 			return
 		}
 	}
+	if tagVal := tag.Get(tagDeprecated); tagVal != "" {
+		if err = h.parseTagValByKind(tagVal, &fTag.deprecated, fKind); err != nil {
+			return
+		}
+	}
 	if tagVal := tag.Get(tagLt); tagVal != "" {
 		if err = h.parseTagValByKind(tagVal, &fTag.lt, fKind); err != nil {
 			return

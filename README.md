@@ -200,6 +200,8 @@ goapi.SetLogLevel(goapi.LogInfo | goapi.LogWarning)
 - desc
     - 字段描述
     - 相当于OpenAPI的 **description**
+- deprecated
+    - 弃用该字段
 - lt
     - 小于字段值
     - 验证器限制 **整数** **数字** 类型

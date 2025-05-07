@@ -200,6 +200,8 @@ goapi.SetLogLevel(goapi.LogInfo | goapi.LogWarning)
 - desc
     - Field description
     - Equivalent to OpenAPI **description**
+- deprecated
+    - Discard this field
 - lt
     - Less than value
     - Validator limit **integer** **number** type

@@ -67,9 +67,10 @@ type fieldInfo struct {
 }
 
 type fieldTagInfo struct {
-	desc     string
-	_default any
-	example  any
+	desc       string
+	_default   any
+	example    any
+	deprecated bool
 	// valid
 	regexp   string
 	enum     []any
