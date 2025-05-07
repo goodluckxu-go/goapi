@@ -55,6 +55,7 @@ type API struct {
 	addr                  string
 	routers               []*appRouter
 	structTagVariableMap  map[string]any
+	autoTagsIndex         *int
 }
 
 // HTTPExceptionHandler It is an exception handling registration for HTTP
@@ -98,12 +99,13 @@ func (a *API) SetResponseMediaType(mediaTypes ...MediaType) {
 // example:
 //
 //	mapping:
-//		username: test
-//		password: 123456
+//		sign: test
+//		username: {{sign}}
+//		password: {{sign}}123456
 //	tag value:
 //		username is {{username}} and password is {{password}}
 //	result value:
-//		username is test and password is 123456
+//		username is test and password is test123456
 func (a *API) SetStructTagVariableMapping(m map[string]string) {
 	for k, v := range m {
 		n := len(k)
@@ -114,6 +116,13 @@ func (a *API) SetStructTagVariableMapping(m map[string]string) {
 		}
 		a.structTagVariableMap[k] = v
 	}
+}
+
+// SetAutoTags This is the method of automatically setting tags
+// 'index' Is the index of an array that divides routing by ‘/’
+// If tags are set in the route, it becomes invalid
+func (a *API) SetAutoTags(index uint) {
+	a.autoTagsIndex = toPtr(int(index))
 }
 
 // AddMiddleware It is a function for adding middleware

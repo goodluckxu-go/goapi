@@ -351,6 +351,14 @@ func (h *handler) handleIncludeRouter(router *includeRouter, prefix string) (lis
 		pInfo.summary = rInfo.summary
 		pInfo.desc = rInfo.desc
 		pInfo.tags = rInfo.tags
+		if h.api.autoTagsIndex != nil && len(pInfo.tags) == 0 {
+			pList := strings.Split(strings.TrimPrefix(pInfo.path, "/"), "/")
+			if len(pList) <= *h.api.autoTagsIndex {
+				err = fmt.Errorf("the 'index' in method 'SetAutoTags' exceeds the limit")
+				return
+			}
+			pInfo.tags = []string{pList[*h.api.autoTagsIndex]}
+		}
 		pInfo.res = resp
 		list = append(list, &pInfo)
 	}
@@ -860,11 +868,17 @@ func (h *handler) handleTag(tag reflect.StructTag, fKind reflect.Kind) (fTag *fi
 	return
 }
 
-func (h *handler) getMappingTag(tagVal string) string {
+func (h *handler) getMappingTag(tagVal string, replaces ...map[string]int) string {
 	n := len(tagVal)
 	left := 0 // 变量左边坐标
 	i := 0
 	var buf []byte
+	isMapping := false
+	replace := map[string]int{}
+	if len(replaces) > 0 {
+		replace = replaces[0]
+	}
+	replaceNum := map[string]int{}
 	for i < n {
 		if i+1 < n && tagVal[i:i+2] == "{{" {
 			if i+2 < n && tagVal[i+2] == '{' {
@@ -881,6 +895,8 @@ func (h *handler) getMappingTag(tagVal string) string {
 			val := h.api.structTagVariableMap[oldVal]
 			if val != nil {
 				buf = append(buf[0:len(buf)-len(oldVal)-2], val.(string)...)
+				isMapping = true
+				replaceNum[oldVal]++
 			} else {
 				buf = append(buf, "}}"...)
 			}
@@ -890,6 +906,15 @@ func (h *handler) getMappingTag(tagVal string) string {
 		}
 		buf = append(buf, tagVal[i])
 		i++
+	}
+	for k, _ := range replaceNum {
+		if replace[k] > 0 {
+			log.Fatal(fmt.Sprintf("mapping tag '%v' dead loop", k))
+		}
+		replace[k]++
+	}
+	if isMapping {
+		return h.getMappingTag(string(buf), replace)
 	}
 	return string(buf)
 }
