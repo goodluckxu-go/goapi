@@ -123,8 +123,7 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 		if len(rs) != 1 {
 			return
 		}
-		if rs[0].Type().Implements(typeResponse) {
-			resp := rs[0].Interface().(Response)
+		if resp, ok := rs[0].Interface().(Response); ok {
 			resp.SetContentType(string(typeToMediaTypeMap[mediaType]))
 			resp.Write(ctx.Writer)
 			return
