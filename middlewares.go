@@ -18,7 +18,7 @@ func notFind() func(ctx *Context) {
 			status = colorError(status)
 			statusText = colorError(statusText)
 		}
-		ctx.Logger().Info("[0.000ms] %v - \"%v %v\" %v %v", ctx.Request.RemoteAddr,
+		ctx.Logger().Info("[0.000ms] %v - \"%v %v\" %v %v", ctx.ClientIP(),
 			ctx.Request.Method, ctx.Request.URL.Path, status, statusText)
 	}
 }
@@ -47,7 +47,7 @@ func setLogger() func(ctx *Context) {
 					statusText = colorWarning(statusText)
 				}
 			}
-			ctx.Logger().Info("[%.3fms] %v - \"%v %v\" %v %v", float64(elapsed.Nanoseconds())/1e6, ctx.Request.RemoteAddr,
+			ctx.Logger().Info("[%.3fms] %v - \"%v %v\" %v %v", float64(elapsed.Nanoseconds())/1e6, ctx.ClientIP(),
 				ctx.Request.Method, ctx.Request.URL.Path, status, statusText)
 		}
 	}

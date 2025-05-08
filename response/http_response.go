@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	json "github.com/json-iterator/go"
 	"net/http"
+	"strings"
 )
 
 type HTTPResponse[T any] struct {
@@ -28,7 +29,16 @@ func (h *HTTPResponse[T]) SetContentType(contentType string) {
 	if h.Header == nil {
 		h.Header = map[string]string{}
 	}
-	h.Header["Content-Type"] = contentType
+	isSet := false
+	for k, _ := range h.Header {
+		if strings.ToLower(k) == "content-type" {
+			isSet = true
+			break
+		}
+	}
+	if !isSet {
+		h.Header["Content-Type"] = contentType
+	}
 }
 
 func (h *HTTPResponse[T]) Write(w http.ResponseWriter) {
