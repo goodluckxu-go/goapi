@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"net"
 	"reflect"
 	"strconv"
 	"strings"
@@ -128,6 +129,19 @@ func decryptJWT(j *JWT, jwtStr string, bearerJWT HTTPBearerJWT) error {
 		j.Extensions = ext
 	}
 	return nil
+}
+
+var localIP string
+
+func GetLocalIP() string {
+	if localIP == "" {
+		conn, err := net.Dial("udp", "114.114.114.114:53")
+		if err != nil {
+			return "127.0.0.1"
+		}
+		localIP = conn.LocalAddr().(*net.UDPAddr).IP.String()
+	}
+	return localIP
 }
 
 func ParseCommentXml(v any) (rs string) {

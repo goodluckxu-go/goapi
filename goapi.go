@@ -177,7 +177,7 @@ func (a *API) Run(addr ...string) (err error) {
 		a.addr = addr[0]
 	}
 	httpHandler := a.Handler()
-	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
+	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.printAddr(a.addr))
 	return http.ListenAndServe(a.addr, httpHandler)
 }
 
@@ -187,7 +187,7 @@ func (a *API) Run(addr ...string) (err error) {
 func (a *API) RunTLS(addr, certFile, keyFile string) (err error) {
 	a.addr = addr
 	httpHandler := a.Handler()
-	a.log.Info("GoAPI running on https://%v (Press CTRL+C to quit)", a.addr)
+	a.log.Info("GoAPI running on https://%v (Press CTRL+C to quit)", a.printAddr(a.addr))
 	return http.ListenAndServeTLS(a.addr, certFile, keyFile, httpHandler)
 }
 
@@ -302,4 +302,12 @@ func (a *API) init() {
 		}
 		a.httpExceptionResponse = a.exceptFunc(0, "")
 	}
+}
+
+func (a *API) printAddr(addr string) string {
+	addrList := strings.Split(addr, ":")
+	if len(addrList) != 2 || (addrList[0] != "" && addrList[0] != "0.0.0.0") {
+		return addr
+	}
+	return GetLocalIP() + ":" + addrList[1]
 }
