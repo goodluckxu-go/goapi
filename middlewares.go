@@ -6,23 +6,6 @@ import (
 	"time"
 )
 
-func notFind() func(ctx *Context) {
-	return func(ctx *Context) {
-		http.NotFound(ctx.Writer, ctx.Request)
-		if lg, ok := ctx.log.(*levelHandleLogger); ok && lg.log == nil {
-			return
-		}
-		status := "404"
-		statusText := http.StatusText(404)
-		if isDefaultLogger(ctx.log) {
-			status = colorError(status)
-			statusText = colorError(statusText)
-		}
-		ctx.Logger().Info("[0.000ms] %v - \"%v %v\" %v %v", ctx.ClientIP(),
-			ctx.Request.Method, ctx.Request.URL.Path, status, statusText)
-	}
-}
-
 func setLogger() func(ctx *Context) {
 	return func(ctx *Context) {
 		if lg, ok := ctx.log.(*levelHandleLogger); ok && lg.log == nil {

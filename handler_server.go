@@ -92,7 +92,9 @@ func (h *handlerServer) handlePaths(method string, path *pathInfo, middlewares [
 func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 	ctx.log = h.api.log
 	if path == nil {
-		ctx.middlewares = append(h.handle.publicMiddlewares, notFind())
+		ctx.middlewares = append(h.handle.publicMiddlewares, func(ctx *Context) {
+			http.NotFound(ctx.Writer, ctx.Request)
+		})
 		ctx.Next()
 		return
 	}
