@@ -9,8 +9,8 @@ import (
 
 type HTTPResponse[T any] struct {
 	HttpCode int
-	Header   map[string]string
-	Cookie   map[string]string
+	Header   http.Header
+	Cookie   []*http.Cookie
 	Body     T
 }
 
@@ -22,31 +22,27 @@ func (h *HTTPResponse[T]) GetContentType() string {
 	if h.Header == nil {
 		return ""
 	}
-	return h.Header["Content-Type"]
+	return h.Header.Get("Content-Type")
 }
 
 func (h *HTTPResponse[T]) SetContentType(contentType string) {
-	if h.Header == nil {
-		h.Header = map[string]string{}
+	if h.Header.Get("Content-Type") != "" {
+		return
 	}
-	isSet := false
-	for k, _ := range h.Header {
-		if strings.ToLower(k) == "content-type" {
-			isSet = true
-			break
-		}
-	}
-	if !isSet {
-		h.Header["Content-Type"] = contentType
-	}
+	h.Header.Set("Content-Type", contentType)
 }
 
 func (h *HTTPResponse[T]) Write(w http.ResponseWriter) {
 	for k, v := range h.Header {
-		w.Header().Set(k, v)
+		if strings.ToLower(k) == "set-cookie" {
+			continue
+		}
+		for _, vv := range v {
+			w.Header().Add(k, vv)
+		}
 	}
-	for k, v := range h.Cookie {
-		w.Header().Add("Set-Cookie", k+"="+v)
+	for _, v := range h.Cookie {
+		w.Header().Add("Set-Cookie", v.String())
 	}
 	if h.HttpCode == 0 {
 		h.HttpCode = 200
@@ -55,7 +51,7 @@ func (h *HTTPResponse[T]) Write(w http.ResponseWriter) {
 	// get body bytes
 	contentType := ""
 	if h.Header != nil {
-		contentType = h.Header["Content-Type"]
+		contentType = strings.Split(h.Header.Get("Content-Type"), ";")[0]
 	}
 	var buf []byte
 	var err error

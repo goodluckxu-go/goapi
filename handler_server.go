@@ -131,8 +131,8 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 		}
 		httpRes := &response.HTTPResponse[any]{
 			HttpCode: 200,
-			Header: map[string]string{
-				"Content-Type": string(typeToMediaTypeMap[mediaType]),
+			Header: map[string][]string{
+				"Content-Type": {string(typeToMediaTypeMap[mediaType])},
 			},
 			Body: rs[0].Interface(),
 		}
