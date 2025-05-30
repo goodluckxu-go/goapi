@@ -90,7 +90,13 @@ func (h *handlerServer) handlePaths(method string, path *pathInfo, middlewares [
 }
 
 func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
+	mediaType := ctx.Request.URL.Query().Get("media_type")
+	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
+		mediaType = mediaTypeToTypeMap[h.api.responseMediaTypes[0]]
+	}
 	ctx.log = h.api.log
+	ctx.mediaType = mediaType
+	ctx.handleServer = h
 	if path == nil {
 		ctx.middlewares = append(h.handle.publicMiddlewares, func(ctx *Context) {
 			http.NotFound(ctx.Writer, ctx.Request)
@@ -98,14 +104,7 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 		ctx.Next()
 		return
 	}
-	mediaType := ctx.Request.URL.Query().Get("media_type")
-	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
-		mediaType = mediaTypeToTypeMap[h.api.responseMediaTypes[0]]
-	}
-	ctx.mediaType = mediaType
-	ctx.handleServer = h
-	ctx.middlewares = path.middlewares
-	ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {
+	ctx.middlewares = append(path.middlewares, func(ctx *Context) {
 		var inputs []reflect.Value
 		lastInputIdx := 0
 		if len(path.inTypes) == 2 {
