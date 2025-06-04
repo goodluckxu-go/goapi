@@ -100,9 +100,15 @@ func (c *Context) Next() {
 		}
 	}()
 	c.index++
-	for ; c.index < len(c.middlewares); c.index++ {
-		c.middlewares[c.index](c)
+	if len(c.middlewares) <= c.index {
+		return
 	}
+	handle := c.middlewares[c.index]
+	if handle == nil {
+		c.Next()
+		return
+	}
+	handle(c)
 }
 
 // Logger It is a method of obtaining logs

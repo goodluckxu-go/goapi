@@ -68,9 +68,9 @@ func (n *node) addRouter(path string, router *appRouter) (err error) {
 			tree.isExact = true
 		} else {
 			count := len(tree.prefix)
-			prefix = ""      // 参数前缀
-			param := ""      // 参数
-			isParam := false // 是否是参数
+			prefix = ""      // parameter prefix
+			param := ""      // parameter
+			isParam := false // is it a parameter
 			for i := 0; i < count; i++ {
 				if tree.prefix[i] == '{' {
 					if isParam {
