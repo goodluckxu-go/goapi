@@ -26,6 +26,9 @@ func (h *HTTPResponse[T]) GetContentType() string {
 }
 
 func (h *HTTPResponse[T]) SetContentType(contentType string) {
+	if h.Header == nil {
+		h.Header = make(http.Header)
+	}
 	if h.Header.Get("Content-Type") != "" {
 		return
 	}
