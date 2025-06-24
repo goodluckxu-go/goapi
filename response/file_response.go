@@ -5,23 +5,28 @@ import (
 	"net/http"
 )
 
-type FileResponse struct {
-	Filename string
-	Body     []byte
+type FileInterface interface {
+	ContentType() string
 }
 
-func (h *FileResponse) GetBody() any {
+type FileResponse[T FileInterface] struct {
+	Filename string
+	Body     []byte
+	t        T
+}
+
+func (h *FileResponse[T]) GetBody() any {
 	return h.Body
 }
 
-func (h *FileResponse) GetContentType() string {
-	return "application/octet-stream"
+func (h *FileResponse[T]) GetContentType() string {
+	return h.t.ContentType()
 }
 
-func (h *FileResponse) SetContentType(contentType string) {
+func (h *FileResponse[T]) SetContentType(contentType string) {
 }
 
-func (h *FileResponse) Write(w http.ResponseWriter) {
+func (h *FileResponse[T]) Write(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", h.GetContentType())
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%v\"", h.Filename))
 	w.WriteHeader(200)
