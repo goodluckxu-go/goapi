@@ -109,3 +109,7 @@ func (z *ZhCn) JwtTranslate(msg string) string {
 	}
 	return msg
 }
+
+func (z *ZhCn) ContentTypeNotSupported(field string) string {
+	return fmt.Sprintf("Content-Type值为%v不被支持", field)
+}

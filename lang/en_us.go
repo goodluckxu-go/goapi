@@ -69,3 +69,7 @@ func (e *EnUs) JwtTranslate(msg string) string {
 	}
 	return msg
 }
+
+func (e *EnUs) ContentTypeNotSupported(field string) string {
+	return fmt.Sprintf("Content Type value of %v is not supported", field)
+}

@@ -1,6 +1,7 @@
 package goapi
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"github.com/goodluckxu-go/goapi/response"
@@ -228,6 +229,29 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 			}
 		case inTypeBody:
 			if field._type.Implements(interfaceIoReadCloser) {
+				if inArray("application/octet-stream", field.mediaTypes) {
+					childField := h.getChildFieldVal(inputValue, field.deepIdx)
+					childField.Set(reflect.ValueOf(ctx.Request.Body))
+					continue
+				}
+				body := new(bytes.Buffer)
+				buf := make([]byte, 512)
+				nr, er := ctx.Request.Body.Read(buf)
+				if nr > 0 {
+					body.Write(buf[:nr])
+					relContentType := strings.SplitN(http.DetectContentType(buf[:nr]), ";", 2)[0]
+					if !inArray(MediaType(relContentType), field.mediaTypes) {
+						err = fmt.Errorf(h.api.lang.ContentTypeNotSupported(relContentType))
+						return
+					}
+				}
+				readBody := func() io.ReadCloser {
+					if er == nil {
+						_, _ = io.Copy(body, ctx.Request.Body)
+					}
+					return io.NopCloser(body)
+				}
+				ctx.Request.Body = readBody()
 				childField := h.getChildFieldVal(inputValue, field.deepIdx)
 				childField.Set(reflect.ValueOf(ctx.Request.Body))
 				continue

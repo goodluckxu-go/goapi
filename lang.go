@@ -13,4 +13,5 @@ type Lang interface {
 	Regexp(field string, val string) string
 	Enum(field string, val []any) string
 	JwtTranslate(msg string) string
+	ContentTypeNotSupported(field string) string
 }

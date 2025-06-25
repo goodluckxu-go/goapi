@@ -90,3 +90,7 @@ func (j *JaJp) JwtTranslate(msg string) string {
 	}
 	return msg
 }
+
+func (j *JaJp) ContentTypeNotSupported(field string) string {
+	return fmt.Sprintf("Content-Type値%vはサポートされていません", field)
+}
