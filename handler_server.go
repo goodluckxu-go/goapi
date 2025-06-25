@@ -228,6 +228,13 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 				}
 			}
 		case inTypeBody:
+			name := field.tag.desc
+			if name == "" {
+				name = field.name
+			}
+			if err = h.validLen(int(ctx.Request.ContentLength), name, field.tag); err != nil {
+				return
+			}
 			if field._type.Implements(interfaceIoReadCloser) {
 				if inArray("application/octet-stream", field.mediaTypes) {
 					childField := h.getChildFieldVal(inputValue, field.deepIdx)
@@ -258,7 +265,7 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 			}
 			if bodyBytes, er := io.ReadAll(ctx.Request.Body); er == nil {
 				if len(bodyBytes) == 0 {
-					err = fmt.Errorf("%v", h.api.lang.Required("body"))
+					err = fmt.Errorf("%v", h.api.lang.Required(name))
 					return
 				}
 				childField := h.getChildFieldVal(inputValue, field.deepIdx)
@@ -266,7 +273,7 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 					return
 				}
 			} else {
-				err = fmt.Errorf("%v", h.api.lang.Required("body"))
+				err = fmt.Errorf("%v", h.api.lang.Required(name))
 				return
 			}
 		case inTypeSecurityHTTPBearer:
