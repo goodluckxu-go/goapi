@@ -46,23 +46,24 @@ func (h *handlerServer) Handle() {
 }
 
 func (h *handlerServer) HttpHandler() http.Handler {
-	mux := newGoAPIMux()
 	for _, router := range h.api.routers {
-		if err := mux.addRouters(router.path, router.method, router); err != nil {
+		if err := h.api.mux.AddRouter(router.method, router.path, router.handler); err != nil {
 			log.Fatal(err)
 		}
 	}
-	mux.notFindRouters(&appRouter{
-		handler: func(ctx *Context) {
-			h.handlePath(ctx, nil)
-		},
-	})
-	return mux
+	for _, static := range h.api.statics {
+		if err := h.api.mux.Static(static.path, static.handler); err != nil {
+			log.Fatal(err)
+		}
+	}
+	h.api.mux.NodFind(h.handleNodFind)
+	h.api.mux.MethodNotAllowed(h.handleMethodNotAllowed)
+	return h.api.mux
 }
 
 func (h *handlerServer) handleStatic(static *staticInfo) {
 	root, _ := filepath.Abs(static.root)
-	h.api.routers = append(h.api.routers, &appRouter{
+	h.api.statics = append(h.api.statics, &appRouter{
 		path:     static.path,
 		isPrefix: true,
 		method:   http.MethodGet,
@@ -90,6 +91,35 @@ func (h *handlerServer) handlePaths(method string, path *pathInfo, middlewares [
 	})
 }
 
+func (h *handlerServer) handleNodFind(ctx *Context) {
+	mediaType := ctx.Request.URL.Query().Get("media_type")
+	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
+		mediaType = mediaTypeToTypeMap[h.api.responseMediaTypes[0]]
+	}
+	ctx.log = h.api.log
+	ctx.mediaType = mediaType
+	ctx.handleServer = h
+	ctx.middlewares = append(h.handle.publicMiddlewares, func(ctx *Context) {
+		http.NotFound(ctx.Writer, ctx.Request)
+	})
+	ctx.Next()
+}
+
+func (h *handlerServer) handleMethodNotAllowed(ctx *Context) {
+	mediaType := ctx.Request.URL.Query().Get("media_type")
+	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
+		mediaType = mediaTypeToTypeMap[h.api.responseMediaTypes[0]]
+	}
+	ctx.log = h.api.log
+	ctx.mediaType = mediaType
+	ctx.handleServer = h
+	ctx.middlewares = append(h.handle.publicMiddlewares, func(ctx *Context) {
+		ctx.Writer.WriteHeader(http.StatusMethodNotAllowed)
+		_, _ = ctx.Writer.Write([]byte(http.StatusText(http.StatusMethodNotAllowed)))
+	})
+	ctx.Next()
+}
+
 func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 	mediaType := ctx.Request.URL.Query().Get("media_type")
 	if (mediaType != jsonType && mediaType != xmlType) || len(h.api.responseMediaTypes) == 1 {
@@ -98,13 +128,6 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 	ctx.log = h.api.log
 	ctx.mediaType = mediaType
 	ctx.handleServer = h
-	if path == nil {
-		ctx.middlewares = append(h.handle.publicMiddlewares, func(ctx *Context) {
-			http.NotFound(ctx.Writer, ctx.Request)
-		})
-		ctx.Next()
-		return
-	}
 	ctx.middlewares = append(path.middlewares, func(ctx *Context) {
 		var inputs []reflect.Value
 		lastInputIdx := 0

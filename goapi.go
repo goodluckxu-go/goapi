@@ -53,9 +53,10 @@ type API struct {
 	lang                  Lang
 	log                   Logger
 	addr                  string
-	routers               []*appRouter
+	routers, statics      []*appRouter
 	structTagVariableMap  map[string]any
 	autoTagsIndex         *int
+	mux                   Mux
 }
 
 // HTTPExceptionHandler It is an exception handling registration for HTTP
@@ -302,6 +303,7 @@ func (a *API) init() {
 		}
 		a.httpExceptionResponse = a.exceptFunc(0, "")
 	}
+	a.mux = newGoAPIMux()
 }
 
 func (a *API) printAddr(addr string) string {
