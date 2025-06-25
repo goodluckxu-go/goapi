@@ -220,6 +220,10 @@ func (a *API) Handler() http.Handler {
 		mergeName := v.path + v.pos
 		mergeMap[mergeName] = append(mergeMap[mergeName], v.method)
 	}
+	for _, v := range a.statics {
+		mergeName := v.path + v.pos
+		mergeMap[mergeName] = append(mergeMap[mergeName], v.method)
+	}
 	maxMethodLen := 0
 	maxPathLen := 0
 	maxPosLen := 0
@@ -259,6 +263,18 @@ func (a *API) Handler() http.Handler {
 		spanFill(headPath, len(headPath), maxPathLen), spanFill(headPos, len(headPos), maxPosLen))
 	a.log.Debug(line)
 	for _, v := range a.routers {
+		mergeName := v.path + v.pos
+		methods := mergeMap[mergeName]
+		if len(methods) == 0 {
+			continue
+		}
+		sort.Strings(methods)
+		delete(mergeMap, mergeName)
+		method := strings.Join(methods, ",")
+		a.log.Debug("| %v | %v | %v |", spanFill(method, len(method), maxMethodLen),
+			spanFill(v.path, len(v.path), maxPathLen), spanFill(v.pos, len(v.pos), maxPosLen))
+	}
+	for _, v := range a.statics {
 		mergeName := v.path + v.pos
 		methods := mergeMap[mergeName]
 		if len(methods) == 0 {
