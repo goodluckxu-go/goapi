@@ -1,7 +1,6 @@
 package goapi
 
 import (
-	"encoding/xml"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"net"
@@ -142,16 +141,4 @@ func GetLocalIP() string {
 		localIP = conn.LocalAddr().(*net.UDPAddr).IP.String()
 	}
 	return localIP
-}
-
-func ParseCommentXml(v any) (rs string) {
-	vType := reflect.TypeOf(v)
-	for vType.Kind() == reflect.Ptr {
-		vType = vType.Elem()
-	}
-
-	fmt.Println(vType)
-	b, e := xml.Marshal(v)
-	fmt.Println(string(b), e)
-	return ""
 }
