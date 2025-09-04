@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"github.com/goodluckxu-go/goapi/response"
-	json "github.com/json-iterator/go"
-	"github.com/shopspring/decimal"
 	"io"
 	"log"
 	"mime/multipart"
@@ -17,6 +14,10 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+
+	"github.com/goodluckxu-go/goapi/response"
+	json "github.com/json-iterator/go"
+	"github.com/shopspring/decimal"
 )
 
 func newHandlerServer(
@@ -293,6 +294,10 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 				}
 				childField := h.getChildFieldVal(inputValue, field.deepIdx)
 				if err = h.setBody(ctx.Request, childField, bodyBytes); err != nil {
+					return
+				}
+				if childField.IsZero() {
+					err = fmt.Errorf("%v", h.api.lang.Required(name))
 					return
 				}
 			} else {
