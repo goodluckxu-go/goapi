@@ -1,10 +1,10 @@
 module github.com/goodluckxu-go/goapi
 
-go 1.21.5
+go 1.18
 
 require (
 	github.com/fatih/color v1.18.0
-	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/golang-jwt/jwt/v5 v5.1.0
 	github.com/json-iterator/go v1.1.12
 	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.11.1
