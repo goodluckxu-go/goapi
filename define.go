@@ -1,6 +1,7 @@
 package goapi
 
 import (
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -116,5 +117,7 @@ var typeContext = reflect.TypeOf(&Context{})
 
 var typeBytes = reflect.TypeOf([]byte{})
 var interfaceIoReadCloser = reflect.TypeOf(new(io.ReadCloser)).Elem()
+
+var interfaceToStringer = reflect.TypeOf(new(fmt.Stringer)).Elem()
 
 var typeAny = reflect.TypeOf(new(any)).Elem()
