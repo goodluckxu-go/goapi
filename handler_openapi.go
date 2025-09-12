@@ -2,13 +2,14 @@ package goapi
 
 import (
 	"fmt"
-	"github.com/goodluckxu-go/goapi/openapi"
 	"log"
 	"math"
 	"net/http"
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/goodluckxu-go/goapi/openapi"
 )
 
 func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {
@@ -528,12 +529,13 @@ func (h *handlerOpenAPI) handleStructs() {
 			continue
 		}
 		v.openapiName = strings.Replace(k, "/", ".", -1)
-		_, name, baseName := h.parseOpenapiName(k)
-		if len(nameBaseMap[baseName]) == 1 {
-			v.openapiName = baseName
-		} else if len(nameMap[name]) == 1 {
-			v.openapiName = name
-		}
+		// todo 注销异常代码
+		//_, name, baseName := h.parseOpenapiName(k)
+		//if len(nameBaseMap[baseName]) == 1 {
+		//	v.openapiName = baseName
+		//} else if len(nameMap[name]) == 1 {
+		//	v.openapiName = name
+		//}
 		h.handle.structs[k] = v
 	}
 }
