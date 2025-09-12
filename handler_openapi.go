@@ -2,13 +2,14 @@ package goapi
 
 import (
 	"fmt"
-	"github.com/goodluckxu-go/goapi/openapi"
 	"log"
 	"math"
 	"net/http"
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/goodluckxu-go/goapi/openapi"
 )
 
 func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {
@@ -619,6 +620,10 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type, isBodyNotJsonXml bool) 
 		}
 		rs = h.convertType(fType.Elem(), isBodyNotJsonXml)
 	case reflect.Struct:
+		if fType.Implements(interfaceToStringer) {
+			rs.typeStr = "string"
+			return
+		}
 		rs.typeStr = "object"
 		rs.isStruct = true
 	default:
@@ -670,6 +675,10 @@ func (h *handlerOpenAPI) setChildSchema(schema *openapi.Schema, types []typeInfo
 		h.setChildSchema(childSchema, types, mediaType, isBodyNotJsonXml)
 		schema.Items = childSchema
 	case reflect.Struct:
+		if tyInfo._type.Implements(interfaceToStringer) {
+			schema.Type = "string"
+			return
+		}
 		key := fmt.Sprintf("%v.%v", tyInfo._type.PkgPath(), tyInfo._type.Name())
 		if key != "." {
 			stInfo := h.handle.structs[key]
