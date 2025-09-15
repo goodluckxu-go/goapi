@@ -2,13 +2,14 @@ package goapi
 
 import (
 	"fmt"
-	"github.com/goodluckxu-go/goapi/openapi"
 	"log"
 	"net/http"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/goodluckxu-go/goapi/openapi"
 )
 
 func newHandler(api *API) *handler {
@@ -207,7 +208,7 @@ func (h *handler) handleStructs() (err error) {
 				}
 				// tag
 				fTag := &fieldTagInfo{}
-				if fTag, err = h.handleTag(tag, field.Type.Kind()); err != nil {
+				if fTag, err = h.handleTag(tag, field.Type); err != nil {
 					return
 				}
 				fFile.tag = fTag
@@ -441,7 +442,7 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 					}
 					// tag
 					fTag := &fieldTagInfo{}
-					if fTag, err = h.handleTag(tag, field.Type.Kind()); err != nil {
+					if fTag, err = h.handleTag(tag, field.Type); err != nil {
 						return
 					}
 					requestType = inTypeStr
@@ -580,7 +581,7 @@ func (h *handler) handleInType(inType reflect.Type, pType string, deepIdx []int)
 				}
 				// tag
 				fTag := &fieldTagInfo{}
-				if fTag, err = h.handleTag(tag, field.Type.Kind()); err != nil {
+				if fTag, err = h.handleTag(tag, field.Type); err != nil {
 					return
 				}
 				if inTypeStr == inTypeCookie {
@@ -806,7 +807,11 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 	return nil
 }
 
-func (h *handler) handleTag(tag reflect.StructTag, fKind reflect.Kind) (fTag *fieldTagInfo, err error) {
+func (h *handler) handleTag(tag reflect.StructTag, fType reflect.Type) (fTag *fieldTagInfo, err error) {
+	fKind := fType.Kind()
+	if fType.Implements(interfaceToStringer) {
+		fKind = reflect.String
+	}
 	fTag = &fieldTagInfo{
 		regexp: tag.Get(tagRegexp),
 		desc:   h.getMappingTag(tag.Get(tagDesc)),
