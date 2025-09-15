@@ -123,6 +123,94 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 	return
 }
 
+func (h *handler) handleStructField(sType reflect.Type, stInfo *structInfo, newStructFields *[]fieldInfo) (err error) {
+	numField := sType.NumField()
+	idx := 0
+	for i := 0; i < numField; i++ {
+		field := sType.Field(i)
+		if field.Anonymous {
+			if err = h.handleStructField(field.Type, stInfo, newStructFields); err != nil {
+				return
+			}
+			continue
+		}
+		if field.Name[0] < 'A' || field.Name[0] > 'Z' {
+			continue
+		}
+		childTypes := h.parseType(field.Type)
+		lastChildType := childTypes[len(childTypes)-1]
+		fFile := fieldInfo{
+			name:      field.Name,
+			_type:     field.Type,
+			deepTypes: childTypes,
+			deepIdx:   []int{i},
+			fieldMap:  map[MediaType]*fieldNameInfo{},
+		}
+		tag := field.Tag
+		// fieldNameInfo
+		for _, v := range bodyMediaTypes {
+			fInfo := &fieldNameInfo{
+				name:     field.Name,
+				required: true,
+			}
+			tagVal := tag.Get(mediaTypeToTypeMap[v])
+			if tagVal != "" {
+				tagList := strings.Split(tagVal, ",")
+				if tagList[0] != "" {
+					nameList := strings.Split(tagList[0], ">")
+					if len(nameList) == 1 {
+						fInfo.name = tagList[0]
+					} else {
+						fInfo.name = nameList[0]
+						fInfo.xml = &xmlInfo{
+							childs: nameList[1:],
+						}
+					}
+				}
+				for _, tv := range tagList[1:] {
+					switch tv {
+					case omitempty:
+						fInfo.required = false
+					case "attr":
+						if v == XML {
+							fInfo.xml = &xmlInfo{
+								attr: true,
+							}
+						}
+					case "innerxml", "chardata":
+						if v == XML {
+							fInfo.xml = &xmlInfo{
+								innerxml: true,
+							}
+						}
+					}
+				}
+			}
+			fFile.fieldMap[v] = fInfo
+		}
+		// tag
+		fTag := &fieldTagInfo{}
+		if fTag, err = h.handleTag(tag, field.Type); err != nil {
+			return
+		}
+		fFile.tag = fTag
+		if lastChildType.isStruct {
+			csType := lastChildType._type
+			fFile._struct = &structInfo{
+				name:  csType.Name(),
+				pkg:   csType.PkgPath(),
+				_type: csType,
+			}
+			*newStructFields = append(*newStructFields, fieldInfo{
+				_type: csType,
+			})
+		}
+		stInfo.fields = append(stInfo.fields, fFile)
+		idx++
+	}
+	return
+}
+
 func (h *handler) handleStructs() (err error) {
 	h.structs = map[string]*structInfo{}
 	structFields := h.structFields
@@ -148,83 +236,8 @@ func (h *handler) handleStructs() (err error) {
 			if oldStruct != nil {
 				continue
 			}
-			numField := sType.NumField()
-			idx := 0
-			for i := 0; i < numField; i++ {
-				field := sType.Field(i)
-				if field.Name[0] < 'A' || field.Name[0] > 'Z' {
-					continue
-				}
-				childTypes := h.parseType(field.Type)
-				lastChildType := childTypes[len(childTypes)-1]
-				fFile := fieldInfo{
-					name:      field.Name,
-					_type:     field.Type,
-					deepTypes: childTypes,
-					deepIdx:   []int{i},
-					fieldMap:  map[MediaType]*fieldNameInfo{},
-				}
-				tag := field.Tag
-				// fieldNameInfo
-				for _, v := range bodyMediaTypes {
-					fInfo := &fieldNameInfo{
-						name:     field.Name,
-						required: true,
-					}
-					tagVal := tag.Get(mediaTypeToTypeMap[v])
-					if tagVal != "" {
-						tagList := strings.Split(tagVal, ",")
-						if tagList[0] != "" {
-							nameList := strings.Split(tagList[0], ">")
-							if len(nameList) == 1 {
-								fInfo.name = tagList[0]
-							} else {
-								fInfo.name = nameList[0]
-								fInfo.xml = &xmlInfo{
-									childs: nameList[1:],
-								}
-							}
-						}
-						for _, tv := range tagList[1:] {
-							switch tv {
-							case omitempty:
-								fInfo.required = false
-							case "attr":
-								if v == XML {
-									fInfo.xml = &xmlInfo{
-										attr: true,
-									}
-								}
-							case "innerxml", "chardata":
-								if v == XML {
-									fInfo.xml = &xmlInfo{
-										innerxml: true,
-									}
-								}
-							}
-						}
-					}
-					fFile.fieldMap[v] = fInfo
-				}
-				// tag
-				fTag := &fieldTagInfo{}
-				if fTag, err = h.handleTag(tag, field.Type); err != nil {
-					return
-				}
-				fFile.tag = fTag
-				if lastChildType.isStruct {
-					csType := lastChildType._type
-					fFile._struct = &structInfo{
-						name:  csType.Name(),
-						pkg:   csType.PkgPath(),
-						_type: csType,
-					}
-					newStructFields = append(newStructFields, fieldInfo{
-						_type: csType,
-					})
-				}
-				stInfo.fields = append(stInfo.fields, fFile)
-				idx++
+			if err = h.handleStructField(sType, stInfo, &newStructFields); err != nil {
+				return
 			}
 			h.structs[key] = stInfo
 		}
