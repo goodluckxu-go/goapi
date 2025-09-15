@@ -2,14 +2,13 @@ package goapi
 
 import (
 	"fmt"
+	"github.com/goodluckxu-go/goapi/openapi"
 	"log"
 	"net/http"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/goodluckxu-go/goapi/openapi"
 )
 
 func newHandler(api *API) *handler {
