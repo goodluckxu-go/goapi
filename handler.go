@@ -123,16 +123,17 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 	return
 }
 
-func (h *handler) handleStructField(sType reflect.Type, stInfo *structInfo, newStructFields *[]fieldInfo) (err error) {
+func (h *handler) handleStructField(sType reflect.Type, stInfo *structInfo, newStructFields *[]fieldInfo, anonymous bool) (err error) {
 	numField := sType.NumField()
 	idx := 0
 	for i := 0; i < numField; i++ {
 		field := sType.Field(i)
+		isHide := false
 		if field.Anonymous {
-			if err = h.handleStructField(field.Type, stInfo, newStructFields); err != nil {
+			if err = h.handleStructField(field.Type, stInfo, newStructFields, field.Anonymous); err != nil {
 				return
 			}
-			continue
+			isHide = true
 		}
 		if field.Name[0] < 'A' || field.Name[0] > 'Z' {
 			continue
@@ -145,6 +146,8 @@ func (h *handler) handleStructField(sType reflect.Type, stInfo *structInfo, newS
 			deepTypes: childTypes,
 			deepIdx:   []int{i},
 			fieldMap:  map[MediaType]*fieldNameInfo{},
+			isHide:    isHide,
+			notValid:  anonymous,
 		}
 		tag := field.Tag
 		// fieldNameInfo
@@ -236,7 +239,7 @@ func (h *handler) handleStructs() (err error) {
 			if oldStruct != nil {
 				continue
 			}
-			if err = h.handleStructField(sType, stInfo, &newStructFields); err != nil {
+			if err = h.handleStructField(sType, stInfo, &newStructFields, false); err != nil {
 				return
 			}
 			h.structs[key] = stInfo

@@ -64,6 +64,8 @@ type fieldInfo struct {
 	mediaTypes     []MediaType
 	required       bool
 	fieldMap       map[MediaType]*fieldNameInfo
+	isHide         bool // Is the openAPI field hidden
+	notValid       bool // Is the field validated
 }
 
 type fieldTagInfo struct {
