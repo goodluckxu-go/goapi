@@ -765,6 +765,9 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 		key := fmt.Sprintf("%v.%v", val.Type().PkgPath(), val.Type().Name())
 		sInfo := h.handle.structs[key]
 		for _, field := range sInfo.fields {
+			if field.notValid {
+				continue
+			}
 			name := field.tag.desc
 			if name == "" {
 				name = field.name

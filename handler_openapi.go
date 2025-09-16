@@ -438,6 +438,9 @@ func (h *handlerOpenAPI) setStructSchema(fields []fieldInfo) (properties map[Med
 	properties = map[MediaType]map[string]*openapi.Schema{}
 	requiredMap = map[MediaType][]string{}
 	for _, v1 := range fields {
+		if v1.isHide {
+			continue
+		}
 		for mType, fInfo := range v1.fieldMap {
 			if fInfo.name == "-" {
 				continue
