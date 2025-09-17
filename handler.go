@@ -827,6 +827,11 @@ func (h *handler) handleTag(tag reflect.StructTag, fType reflect.Type) (fTag *fi
 	fKind := fType.Kind()
 	if fType.Implements(interfaceToStringer) {
 		fKind = reflect.String
+	} else {
+		for fType.Kind() == reflect.Ptr {
+			fType = fType.Elem()
+		}
+		fKind = fType.Kind()
 	}
 	fTag = &fieldTagInfo{
 		regexp: tag.Get(tagRegexp),

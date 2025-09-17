@@ -732,7 +732,7 @@ func (h *handlerServer) setBody(req *http.Request, fVal reflect.Value, body []by
 		}
 		return
 	}
-	if err = h.validBody(newVal, mediaType); err != nil {
+	if err = h.validBody(newVal, mediaType, nil, false); err != nil {
 		return
 	}
 	if fVal.Kind() != reflect.Ptr {
@@ -742,22 +742,112 @@ func (h *handlerServer) setBody(req *http.Request, fVal reflect.Value, body []by
 	return
 }
 
-func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err error) {
-	for val.Kind() == reflect.Ptr {
-		val = val.Elem()
+func (h *handlerServer) validBody(val reflect.Value, mediaType string, fInfo *fieldInfo, notValidRequired bool) (err error) {
+	required := false
+	name := ""
+	tagInfo := &fieldTagInfo{}
+	if fInfo != nil {
+		name = fInfo.tag.desc
+		if name == "" {
+			name = fInfo.name
+		}
+		myFName := fInfo.fieldMap[typeToMediaTypeMap[mediaType]]
+		required = myFName.required
+		tagInfo = fInfo.tag
+	}
+	if notValidRequired {
+		required = false
 	}
 	switch val.Kind() {
+	case reflect.Ptr:
+		if val.IsNil() && required {
+			err = fmt.Errorf("%v", h.api.lang.Required(name))
+			return
+		}
+		for val.Kind() == reflect.Ptr {
+			val = val.Elem()
+		}
+		if err = h.validBody(val, mediaType, fInfo, true); err != nil {
+			return
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		vFloat := float64(val.Int())
+		if vFloat == 0 && required {
+			err = fmt.Errorf("%v", h.api.lang.Required(name))
+			return
+		}
+		if err = h.validFloat64(vFloat, name, tagInfo); err != nil {
+			return
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		vFloat := float64(val.Uint())
+		if vFloat == 0 && required {
+			err = fmt.Errorf("%v", h.api.lang.Required(name))
+			return
+		}
+		if err = h.validFloat64(vFloat, name, tagInfo); err != nil {
+			return
+		}
+	case reflect.Float32, reflect.Float64:
+		vFloat := val.Float()
+		if vFloat == 0 && required {
+			err = fmt.Errorf("%v", h.api.lang.Required(name))
+			return
+		}
+		if err = h.validFloat64(vFloat, name, tagInfo); err != nil {
+			return
+		}
+	case reflect.String:
+		vStr := val.String()
+		if vStr == "" && required {
+			err = fmt.Errorf("%v", h.api.lang.Required(name))
+			return
+		}
+		if err = h.validString(vStr, name, tagInfo); err != nil {
+			return
+		}
 	case reflect.Map:
 		keys := val.MapKeys()
+		vLen := len(keys)
+		if fInfo != nil {
+			if len(keys) == 0 && required {
+				err = fmt.Errorf("%v", h.api.lang.Required(name))
+				return
+			}
+			if err = h.validLen(vLen, name, tagInfo); err != nil {
+				return
+			}
+		}
 		for _, key := range keys {
-			if err = h.validBody(val.MapIndex(key), mediaType); err != nil {
+			if err = h.validBody(val.MapIndex(key), mediaType, fInfo, false); err != nil {
 				return
 			}
 		}
 	case reflect.Slice:
 		vLen := val.Len()
+		if fInfo != nil {
+			if vLen == 0 && required {
+				err = fmt.Errorf("%v", h.api.lang.Required(name))
+				return
+			}
+			if err = h.validLen(vLen, name, tagInfo); err != nil {
+				return
+			}
+			if tagInfo.unique {
+				valCount := map[reflect.Value]int{}
+				for i := 0; i < vLen; i++ {
+					valCount[val.Index(i)]++
+				}
+				for _, count := range valCount {
+					if count > 1 {
+						err = fmt.Errorf("%v", h.api.lang.Unique(name))
+						return
+					}
+				}
+			}
+		}
 		for i := 0; i < vLen; i++ {
-			if err = h.validBody(val.Index(i), mediaType); err != nil {
+			if err = h.validBody(val.Index(i), mediaType, fInfo, false); err != nil {
 				return
 			}
 		}
@@ -768,113 +858,8 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string) (err erro
 			if field.notValid {
 				continue
 			}
-			name := field.tag.desc
-			if name == "" {
-				name = field.name
-			}
-			myFName := field.fieldMap[typeToMediaTypeMap[mediaType]]
-			v := val.Field(field.deepIdx[0])
-			fType := field._type
-			for fType.Kind() == reflect.Ptr {
-				fType = fType.Elem()
-				v = v.Elem()
-			}
-			switch field._type.Kind() {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				vFloat := float64(v.Int())
-				if vFloat == 0 {
-					if myFName.required {
-						err = fmt.Errorf("%v", h.api.lang.Required(name))
-						return
-					}
-					continue
-				}
-				if err = h.validFloat64(vFloat, name, field.tag); err != nil {
-					return
-				}
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				vFloat := float64(v.Uint())
-				if vFloat == 0 {
-					if myFName.required {
-						err = fmt.Errorf("%v", h.api.lang.Required(name))
-						return
-					}
-					continue
-				}
-				if err = h.validFloat64(vFloat, name, field.tag); err != nil {
-					return
-				}
-			case reflect.Float32, reflect.Float64:
-				vFloat := v.Float()
-				if vFloat == 0 {
-					if myFName.required {
-						err = fmt.Errorf("%v", h.api.lang.Required(name))
-						return
-					}
-					continue
-				}
-				if err = h.validFloat64(vFloat, name, field.tag); err != nil {
-					return
-				}
-			case reflect.String:
-				vStr := v.String()
-				if v.String() == "" {
-					if myFName.required {
-						err = fmt.Errorf("%v", h.api.lang.Required(name))
-						return
-					}
-					continue
-				}
-				if err = h.validString(vStr, name, field.tag); err != nil {
-					return
-				}
-			case reflect.Slice:
-				vLen := v.Len()
-				if vLen == 0 {
-					if myFName.required {
-						err = fmt.Errorf("%v", h.api.lang.Required(name))
-						return
-					}
-					continue
-				}
-				if err = h.validLen(vLen, name, field.tag); err != nil {
-					return
-				}
-				if field.tag.unique {
-					valCount := map[reflect.Value]int{}
-					for i := 0; i < vLen; i++ {
-						valCount[v.Index(i)]++
-					}
-					for _, count := range valCount {
-						if count > 1 {
-							err = fmt.Errorf("%v", h.api.lang.Unique(name))
-							return
-						}
-					}
-				}
-				if err = h.validBody(v, mediaType); err != nil {
-					return
-				}
-			case reflect.Map:
-				vLen := len(v.MapKeys())
-				if vLen == 0 {
-					if myFName.required {
-						err = fmt.Errorf("%v", h.api.lang.Required(name))
-						return
-					}
-					continue
-				}
-				if err = h.validLen(vLen, name, field.tag); err != nil {
-					return
-				}
-				if err = h.validBody(v, mediaType); err != nil {
-					return
-				}
-			case reflect.Struct:
-				if err = h.validBody(v, mediaType); err != nil {
-					return
-				}
-			default:
+			if err = h.validBody(val.Field(field.deepIdx[0]), mediaType, &field, false); err != nil {
+				return
 			}
 		}
 	default:
