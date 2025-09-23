@@ -823,6 +823,42 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 	return nil
 }
 
+func (h *handler) handleTagInterface(fType reflect.Type) (fTag *fieldTagInfo) {
+	fTag = &fieldTagInfo{}
+	fVal := reflect.New(fType).Interface()
+	if fType.Implements(interfaceToTagRegexp) {
+		fTag.regexp = fVal.(TagRegexp).Regexp()
+	}
+	if fType.Implements(interfaceToTagEnum) {
+		fTag.enum = fVal.(TagEnum).Enum()
+	}
+	if fType.Implements(interfaceToTagLt) {
+		fTag.lt = toPtr(fVal.(TagLt).Lt())
+	}
+	if fType.Implements(interfaceToTagLte) {
+		fTag.lte = toPtr(fVal.(TagLte).Lte())
+	}
+	if fType.Implements(interfaceToTagGt) {
+		fTag.gt = toPtr(fVal.(TagGt).Gt())
+	}
+	if fType.Implements(interfaceToTagGte) {
+		fTag.gte = toPtr(fVal.(TagGte).Gte())
+	}
+	if fType.Implements(interfaceToTagMultiple) {
+		fTag.multiple = toPtr(fVal.(TagMultiple).Multiple())
+	}
+	if fType.Implements(interfaceToTagMax) {
+		fTag.max = toPtr(fVal.(TagMax).Max())
+	}
+	if fType.Implements(interfaceToTagMin) {
+		fTag.min = fVal.(TagMin).Min()
+	}
+	if fType.Implements(interfaceToTagUnique) {
+		fTag.unique = fVal.(TagUnique).Unique()
+	}
+	return
+}
+
 func (h *handler) handleTag(tag reflect.StructTag, fType reflect.Type) (fTag *fieldTagInfo, err error) {
 	fKind := fType.Kind()
 	if fType.Implements(interfaceToStringer) {
@@ -833,9 +869,12 @@ func (h *handler) handleTag(tag reflect.StructTag, fType reflect.Type) (fTag *fi
 		}
 		fKind = fType.Kind()
 	}
-	fTag = &fieldTagInfo{
-		regexp: tag.Get(tagRegexp),
-		desc:   h.getMappingTag(tag.Get(tagDesc)),
+	fTag = h.handleTagInterface(fType)
+	if tagVal := tag.Get(tagRegexp); tagVal != "" {
+		fTag.regexp = tagVal
+	}
+	if tagVal := tag.Get(tagDesc); tagVal != "" {
+		fTag.regexp = h.getMappingTag(tagVal)
 	}
 	if tagVal := tag.Get(tagEnum); tagVal != "" {
 		if err = h.parseTagValByKind(tagVal, &fTag.enum, fKind); err != nil {
