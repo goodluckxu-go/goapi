@@ -874,7 +874,7 @@ func (h *handler) handleTag(tag reflect.StructTag, fType reflect.Type) (fTag *fi
 		fTag.regexp = tagVal
 	}
 	if tagVal := tag.Get(tagDesc); tagVal != "" {
-		fTag.regexp = h.getMappingTag(tagVal)
+		fTag.desc = h.getMappingTag(tagVal)
 	}
 	if tagVal := tag.Get(tagEnum); tagVal != "" {
 		if err = h.parseTagValByKind(tagVal, &fTag.enum, fKind); err != nil {
