@@ -823,43 +823,65 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 	return nil
 }
 
-func (h *handler) handleTagInterface(fType reflect.Type) (fTag *fieldTagInfo) {
-	fTag = &fieldTagInfo{}
-	fVal := reflect.New(fType).Interface()
-	if fType.Implements(interfaceToTagRegexp) {
-		fTag.regexp = fVal.(TagRegexp).Regexp()
+func (h *handler) handleTagInterfaceByVal(val any, fType reflect.Type, fTag *fieldTagInfo) {
+	if iTag, ok := val.(TagRegexp); ok {
+		fTag.regexp = iTag.Regexp()
 	}
-	if fType.Implements(interfaceToTagEnum) {
-		fTag.enum = fVal.(TagEnum).Enum()
+	if iTag, ok := val.(TagEnum); ok {
+		fTag.enum = iTag.Enum()
+		switch fType.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8,
+			reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
+			for k, v := range fTag.enum {
+				fTag.enum[k] = toFloat64(v)
+			}
+		default:
+		}
 	}
-	if fType.Implements(interfaceToTagLt) {
-		fTag.lt = toPtr(fVal.(TagLt).Lt())
+	if iTag, ok := val.(TagLt); ok {
+		fTag.lt = toPtr(iTag.Lt())
 	}
-	if fType.Implements(interfaceToTagLte) {
-		fTag.lte = toPtr(fVal.(TagLte).Lte())
+	if iTag, ok := val.(TagLte); ok {
+		fTag.lte = toPtr(iTag.Lte())
 	}
-	if fType.Implements(interfaceToTagGt) {
-		fTag.gt = toPtr(fVal.(TagGt).Gt())
+	if iTag, ok := val.(TagGt); ok {
+		fTag.gt = toPtr(iTag.Gt())
 	}
-	if fType.Implements(interfaceToTagGte) {
-		fTag.gte = toPtr(fVal.(TagGte).Gte())
+	if iTag, ok := val.(TagGte); ok {
+		fTag.gte = toPtr(iTag.Gte())
 	}
-	if fType.Implements(interfaceToTagMultiple) {
-		fTag.multiple = toPtr(fVal.(TagMultiple).Multiple())
+	if iTag, ok := val.(TagMultiple); ok {
+		fTag.multiple = toPtr(iTag.Multiple())
 	}
-	if fType.Implements(interfaceToTagMax) {
-		fTag.max = toPtr(fVal.(TagMax).Max())
+	if iTag, ok := val.(TagMax); ok {
+		fTag.max = toPtr(iTag.Max())
 	}
-	if fType.Implements(interfaceToTagMin) {
-		fTag.min = fVal.(TagMin).Min()
+	if iTag, ok := val.(TagMin); ok {
+		fTag.min = iTag.Min()
 	}
-	if fType.Implements(interfaceToTagUnique) {
-		fTag.unique = fVal.(TagUnique).Unique()
+	if iTag, ok := val.(TagUnique); ok {
+		fTag.unique = iTag.Unique()
 	}
 	return
 }
 
+func (h *handler) handleTagInterface(fType reflect.Type) (fTag *fieldTagInfo) {
+	fTag = &fieldTagInfo{}
+	var val any
+	if fType.Kind() == reflect.Ptr {
+		for fType.Kind() == reflect.Ptr {
+			fType = fType.Elem()
+		}
+		val = reflect.New(fType).Interface()
+	} else {
+		val = reflect.New(fType).Elem().Interface()
+	}
+	h.handleTagInterfaceByVal(val, fType, fTag)
+	return
+}
+
 func (h *handler) handleTag(tag reflect.StructTag, fType reflect.Type) (fTag *fieldTagInfo, err error) {
+	fTag = h.handleTagInterface(fType)
 	fKind := fType.Kind()
 	if fType.Implements(interfaceToStringer) {
 		fKind = reflect.String
@@ -869,7 +891,6 @@ func (h *handler) handleTag(tag reflect.StructTag, fType reflect.Type) (fTag *fi
 		}
 		fKind = fType.Kind()
 	}
-	fTag = h.handleTagInterface(fType)
 	if tagVal := tag.Get(tagRegexp); tagVal != "" {
 		fTag.regexp = tagVal
 	}
