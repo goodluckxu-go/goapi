@@ -819,7 +819,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string, fInfo *fi
 			}
 		}
 		for _, key := range keys {
-			if err = h.validBody(val.MapIndex(key), mediaType, fInfo, false); err != nil {
+			if err = h.validBody(val.MapIndex(key), mediaType, nil, false); err != nil {
 				return
 			}
 		}
@@ -847,7 +847,7 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string, fInfo *fi
 			}
 		}
 		for i := 0; i < vLen; i++ {
-			if err = h.validBody(val.Index(i), mediaType, fInfo, false); err != nil {
+			if err = h.validBody(val.Index(i), mediaType, nil, false); err != nil {
 				return
 			}
 		}

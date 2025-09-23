@@ -2,12 +2,13 @@ package goapi
 
 import (
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"net"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func toPtr[T any](v T) *T {
@@ -141,4 +142,58 @@ func GetLocalIP() string {
 		localIP = conn.LocalAddr().(*net.UDPAddr).IP.String()
 	}
 	return localIP
+}
+
+func toFloat64(v any) float64 {
+	switch val := v.(type) {
+	case uint:
+		return float64(val)
+	case uint8:
+		return float64(val)
+	case uint16:
+		return float64(val)
+	case uint32:
+		return float64(val)
+	case uint64:
+		return float64(val)
+	case int:
+		return float64(val)
+	case int8:
+		return float64(val)
+	case int16:
+		return float64(val)
+	case int32:
+		return float64(val)
+	case int64:
+		return float64(val)
+	case float32:
+		return float64(val)
+	case float64:
+		return val
+	case *uint:
+		return float64(*val)
+	case *uint8:
+		return float64(*val)
+	case *uint16:
+		return float64(*val)
+	case *uint32:
+		return float64(*val)
+	case *uint64:
+		return float64(*val)
+	case *int:
+		return float64(*val)
+	case *int8:
+		return float64(*val)
+	case *int16:
+		return float64(*val)
+	case *int32:
+		return float64(*val)
+	case *int64:
+		return float64(*val)
+	case *float32:
+		return float64(*val)
+	case *float64:
+		return *val
+	}
+	return 0
 }

@@ -121,17 +121,3 @@ var interfaceIoReadCloser = reflect.TypeOf(new(io.ReadCloser)).Elem()
 var interfaceToStringer = reflect.TypeOf(new(fmt.Stringer)).Elem()
 
 var typeAny = reflect.TypeOf(new(any)).Elem()
-
-// tag interface
-var (
-	interfaceToTagRegexp   = reflect.TypeOf(new(TagRegexp)).Elem()
-	interfaceToTagEnum     = reflect.TypeOf(new(TagEnum)).Elem()
-	interfaceToTagLt       = reflect.TypeOf(new(TagLt)).Elem()
-	interfaceToTagLte      = reflect.TypeOf(new(TagLte)).Elem()
-	interfaceToTagGt       = reflect.TypeOf(new(TagGt)).Elem()
-	interfaceToTagGte      = reflect.TypeOf(new(TagGte)).Elem()
-	interfaceToTagMultiple = reflect.TypeOf(new(TagMultiple)).Elem()
-	interfaceToTagMax      = reflect.TypeOf(new(TagMax)).Elem()
-	interfaceToTagMin      = reflect.TypeOf(new(TagMin)).Elem()
-	interfaceToTagUnique   = reflect.TypeOf(new(TagUnique)).Elem()
-)
