@@ -823,20 +823,35 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 	return nil
 }
 
+func (h *handler) handleTagEnumToFloat64(enum []any, fType reflect.Type) {
+	switch fType.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8,
+		reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
+	default:
+		return
+	}
+	for k, v := range enum {
+		val := reflect.ValueOf(v)
+		switch val.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			v = float64(val.Int())
+		case reflect.Uint, reflect.Uint8,
+			reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			v = float64(val.Uint())
+		case reflect.Float32, reflect.Float64:
+			v = val.Float()
+		}
+		enum[k] = v
+	}
+}
+
 func (h *handler) handleTagInterfaceByVal(val any, fType reflect.Type, fTag *fieldTagInfo) {
 	if iTag, ok := val.(TagRegexp); ok {
 		fTag.regexp = iTag.Regexp()
 	}
 	if iTag, ok := val.(TagEnum); ok {
 		fTag.enum = iTag.Enum()
-		switch fType.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8,
-			reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
-			for k, v := range fTag.enum {
-				fTag.enum[k] = toFloat64(v)
-			}
-		default:
-		}
+		h.handleTagEnumToFloat64(fTag.enum, fType)
 	}
 	if iTag, ok := val.(TagLt); ok {
 		fTag.lt = toPtr(iTag.Lt())
