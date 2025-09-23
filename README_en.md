@@ -141,6 +141,65 @@ func (h *AdminAuth) ApiKey() {
 	h.Admin = "admin"
 }
 ~~~
+A new type implementation verification interface can be used for verification
+~~~go
+type TagRegexp interface {
+	Regexp() string
+}
+
+type TagEnum interface {
+	Enum() []any
+}
+
+type TagLt interface {
+	Lt() float64
+}
+
+type TagLte interface {
+	Lte() float64
+}
+
+type TagGt interface {
+	Gt() float64
+}
+
+type TagGte interface {
+	Gte() float64
+}
+
+type TagMultiple interface {
+	Multiple() float64
+}
+
+type TagMax interface {
+	Max() uint64
+}
+
+type TagMin interface {
+	Min() uint64
+}
+
+type TagUnique interface {
+	Unique() bool
+}
+~~~
+test.go
+~~~go
+// The Status type must be greater than 5 and less than or equal to 10
+type Status uint8
+
+func (s Status) Gt () float64 {
+	return 5
+}
+
+func (s Status) Lte () float64 {
+    return 10
+}
+
+type Test struct {
+    Status Status	
+}
+~~~
 ## Verify multilingual Settings
 You can implement the 'goapi.Lang' interface yourself
 ~~~go
