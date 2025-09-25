@@ -100,7 +100,7 @@ func (h *handlerServer) handleNodFind(ctx *Context) {
 	ctx.log = h.api.log
 	ctx.mediaType = mediaType
 	ctx.handleServer = h
-	ctx.middlewares = append(h.handle.publicMiddlewares, func(ctx *Context) {
+	ctx.middlewares = append(h.getMiddlewares(ctx.Request.URL.Path), func(ctx *Context) {
 		http.NotFound(ctx.Writer, ctx.Request)
 	})
 	ctx.Next()
@@ -114,7 +114,7 @@ func (h *handlerServer) handleMethodNotAllowed(ctx *Context) {
 	ctx.log = h.api.log
 	ctx.mediaType = mediaType
 	ctx.handleServer = h
-	ctx.middlewares = append(h.handle.publicMiddlewares, func(ctx *Context) {
+	ctx.middlewares = append(h.getMiddlewares(ctx.Request.URL.Path), func(ctx *Context) {
 		ctx.Writer.WriteHeader(http.StatusMethodNotAllowed)
 		_, _ = ctx.Writer.Write([]byte(http.StatusText(http.StatusMethodNotAllowed)))
 	})
@@ -900,4 +900,18 @@ func (h *handlerServer) initPtr(fVal reflect.Value) {
 	}
 	newVal := reflect.New(fVal.Type().Elem())
 	fVal.Set(newVal)
+}
+
+func (h *handlerServer) getMiddlewares(path string) (rs []Middleware) {
+	pathList := strings.Split(path, "/")
+	match := ""
+	for _, val := range pathList {
+		match += "/" + val
+		groupMiddles := h.handle.publicGroupMiddlewares[match[1:]]
+		if groupMiddles == nil {
+			continue
+		}
+		rs = append(rs, groupMiddles...)
+	}
+	return
 }

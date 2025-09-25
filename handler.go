@@ -14,26 +14,27 @@ import (
 
 func newHandler(api *API) *handler {
 	return &handler{
-		api:            api,
-		allMediaTypes:  map[MediaType]struct{}{},
-		openapiSetMap:  map[string]*openapi.OpenAPI{},
-		childPrefixMap: map[string]struct{}{},
-		sameRoute:      map[string]struct{}{},
+		api:                    api,
+		allMediaTypes:          map[MediaType]struct{}{},
+		openapiSetMap:          map[string]*openapi.OpenAPI{},
+		childPrefixMap:         map[string]struct{}{},
+		sameRoute:              map[string]struct{}{},
+		publicGroupMiddlewares: map[string][]Middleware{},
 	}
 }
 
 type handler struct {
-	api                *API
-	paths              []*pathInfo
-	statics            []*staticInfo
-	structFields       []fieldInfo
-	structs            map[string]*structInfo
-	defaultMiddlewares []Middleware
-	publicMiddlewares  []Middleware
-	allMediaTypes      map[MediaType]struct{}
-	openapiSetMap      map[string]*openapi.OpenAPI
-	childPrefixMap     map[string]struct{}
-	sameRoute          map[string]struct{}
+	api                    *API
+	paths                  []*pathInfo
+	statics                []*staticInfo
+	structFields           []fieldInfo
+	structs                map[string]*structInfo
+	defaultMiddlewares     []Middleware
+	publicGroupMiddlewares map[string][]Middleware // group prefix
+	allMediaTypes          map[MediaType]struct{}
+	openapiSetMap          map[string]*openapi.OpenAPI
+	childPrefixMap         map[string]struct{}
+	sameRoute              map[string]struct{}
 }
 
 func (h *handler) Handle() {
@@ -41,8 +42,11 @@ func (h *handler) Handle() {
 		h.allMediaTypes[v] = struct{}{}
 	}
 	h.defaultMiddlewares = append(h.defaultMiddlewares, setLogger())
-	h.publicMiddlewares = h.handleHandlers(h.api.handlers, h.defaultMiddlewares, "", true, h.api.docsPath)
-	h.publicMiddlewares = append(h.defaultMiddlewares, h.publicMiddlewares...)
+	h.publicGroupMiddlewares = h.handleHandlers(h.api.handlers, h.defaultMiddlewares, "", true, h.api.docsPath, "")
+	h.publicGroupMiddlewares[""] = append(h.defaultMiddlewares, h.publicGroupMiddlewares[""]...)
+	for k, v := range h.publicGroupMiddlewares {
+		fmt.Println(k, v)
+	}
 	if h.api.httpExceptionResponse != nil {
 		resp := fieldInfo{
 			deepTypes: h.parseType(reflect.TypeOf(h.api.httpExceptionResponse.GetBody())),
@@ -66,7 +70,10 @@ func (h *handler) Handle() {
 	}
 }
 
-func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefix string, isDocs bool, docsPath string) (public []Middleware) {
+func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefix string, isDocs bool, docsPath string, groupPrefix string) (publicGroup map[string][]Middleware) {
+	if publicGroup == nil {
+		publicGroup = map[string][]Middleware{}
+	}
 	for _, hd := range handlers {
 		switch val := hd.(type) {
 		case *includeRouter:
@@ -79,6 +86,7 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 				v.middlewares = pathMiddlewares
 				v.isDocs = isDocs && v.isDocs
 				v.docsPath = docsPath
+				v.groupPrefix = groupPrefix
 				list[k] = v
 				for _, v1 := range v.methods {
 					tmpRoute := fmt.Sprintf("%v_%v", v1, v.path)
@@ -92,7 +100,10 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 		case *staticInfo:
 			h.statics = append(h.statics, val)
 		case *APIGroup:
-			h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs, docsPath)
+			childGroup := h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs, docsPath, groupPrefix+val.prefix)
+			for k, v := range childGroup {
+				publicGroup[k] = append(publicGroup[k], v...)
+			}
 		case *ChildAPI:
 			if val.docsPath == "" {
 				log.Fatal("childAPI must have docsPath")
@@ -114,10 +125,13 @@ func (h *handler) handleHandlers(handlers []any, middlewares []Middleware, prefi
 					Tags:    val.OpenAPITags,
 				}
 			}
-			h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs, docsPath+val.docsPath)
+			childGroup := h.handleHandlers(val.handlers, middlewares, prefix+val.prefix, isDocs && val.isDocs, docsPath+val.docsPath, groupPrefix+val.prefix)
+			for k, v := range childGroup {
+				publicGroup[k] = append(publicGroup[k], v...)
+			}
 		case Middleware:
 			middlewares = append(middlewares, val)
-			public = append(public, val)
+			publicGroup[groupPrefix] = append(publicGroup[groupPrefix], val)
 		}
 	}
 	return
