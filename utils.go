@@ -143,3 +143,8 @@ func GetLocalIP() string {
 	}
 	return localIP
 }
+
+func handleContentType(contentType string) string {
+	contentTypeList := strings.Split(contentType, ";")
+	return strings.TrimSpace(contentTypeList[0])
+}

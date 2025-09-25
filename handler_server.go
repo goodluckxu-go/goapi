@@ -710,7 +710,7 @@ func (h *handlerServer) setBody(req *http.Request, fVal reflect.Value, body []by
 	if newVal.Kind() != reflect.Ptr {
 		newVal = reflect.New(newVal.Type())
 	}
-	mediaType := mediaTypeToTypeMap[MediaType(req.Header.Get("Content-Type"))]
+	mediaType := mediaTypeToTypeMap[MediaType(handleContentType(req.Header.Get("Content-Type")))]
 	switch mediaType {
 	case jsonType:
 		if err = json.Unmarshal(body, newVal.Interface()); err != nil {
