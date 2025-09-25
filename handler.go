@@ -44,9 +44,6 @@ func (h *handler) Handle() {
 	h.defaultMiddlewares = append(h.defaultMiddlewares, setLogger())
 	h.publicGroupMiddlewares = h.handleHandlers(h.api.handlers, h.defaultMiddlewares, "", true, h.api.docsPath, "")
 	h.publicGroupMiddlewares[""] = append(h.defaultMiddlewares, h.publicGroupMiddlewares[""]...)
-	for k, v := range h.publicGroupMiddlewares {
-		fmt.Println(k, v)
-	}
 	if h.api.httpExceptionResponse != nil {
 		resp := fieldInfo{
 			deepTypes: h.parseType(reflect.TypeOf(h.api.httpExceptionResponse.GetBody())),
