@@ -34,13 +34,14 @@ type pathInfo struct {
 	funcValue      reflect.Value // The value of routing function
 	docsPath       string
 	// openapi
-	summary   string
-	desc      string
-	tags      []string
-	res       *fieldInfo // response
-	exceptRes *fieldInfo // exception response
-	isDocs    bool
-	pos       string // position
+	summary     string
+	desc        string
+	tags        []string
+	res         *fieldInfo // response
+	exceptRes   *fieldInfo // exception response
+	isDocs      bool
+	pos         string // position
+	groupPrefix string
 }
 
 type structInfo struct {
