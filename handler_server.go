@@ -296,10 +296,6 @@ func (h *handlerServer) handleInputFields(ctx *Context, inputTypes reflect.Type,
 				if err = h.setBody(ctx.Request, childField, bodyBytes); err != nil {
 					return
 				}
-				if childField.IsZero() {
-					err = fmt.Errorf("%v", h.api.lang.Required(name))
-					return
-				}
 			} else {
 				err = fmt.Errorf("%v", h.api.lang.Required(name))
 				return
