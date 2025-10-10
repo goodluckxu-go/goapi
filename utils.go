@@ -125,8 +125,12 @@ func decryptJWT(j *JWT, jwtStr string, bearerJWT HTTPBearerJWT) error {
 	if jti, _ := mapClaims["jti"].(string); jti != "" {
 		j.ID = jti
 	}
-	if ext, _ := mapClaims["ext"].(map[string]any); len(ext) > 0 {
-		j.Extensions = ext
+	j.Extensions = map[string]any{}
+	for k, v := range mapClaims {
+		if inArray(k, []string{"iss", "sub", "aud", "exp", "nbf", "iat", "jti"}) {
+			continue
+		}
+		j.Extensions[k] = v
 	}
 	return nil
 }

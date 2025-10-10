@@ -1,9 +1,11 @@
 package goapi
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/golang-jwt/jwt/v5"
 	json "github.com/json-iterator/go"
-	"time"
 )
 
 type (
@@ -68,7 +70,7 @@ type JWT struct {
 	// the `jti` (JWT ID) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.7
 	ID string `json:"jti"`
 
-	Extensions map[string]any `json:"ext"`
+	Extensions map[string]any `json:"-"`
 }
 
 func (j *JWT) GetExpirationTime() (*jwt.NumericDate, error) {
@@ -128,8 +130,11 @@ func (j *JWT) MarshalJSON() ([]byte, error) {
 	if j.ID != "" {
 		m["jti"] = j.ID
 	}
-	if len(j.Extensions) > 0 {
-		m["ext"] = j.Extensions
+	for k, v := range j.Extensions {
+		if _, ok := m[k]; ok {
+			return nil, fmt.Errorf("duplicate extension %q", k)
+		}
+		m[k] = v
 	}
 	return json.Marshal(m)
 }
