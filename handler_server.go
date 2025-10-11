@@ -482,8 +482,8 @@ func (h *handlerServer) setValue(fVal reflect.Value, values []string, name strin
 		if err = h.validString(values[0], name, tag); err != nil {
 			return
 		}
-		fVal.Set(reflect.ValueOf(values[0]))
-	case reflect.Int:
+		fVal.Set(reflect.ValueOf(values[0]).Convert(fVal.Type()))
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var v int64
 		if v, err = strconv.ParseInt(values[0], 10, 64); err != nil {
 			return
@@ -491,44 +491,8 @@ func (h *handlerServer) setValue(fVal reflect.Value, values []string, name strin
 		if err = h.validFloat64(float64(v), name, tag); err != nil {
 			return
 		}
-		fVal.Set(reflect.ValueOf(int(v)))
-	case reflect.Int8:
-		var v int64
-		if v, err = strconv.ParseInt(values[0], 10, 64); err != nil {
-			return
-		}
-		if err = h.validFloat64(float64(v), name, tag); err != nil {
-			return
-		}
-		fVal.Set(reflect.ValueOf(int8(v)))
-	case reflect.Int16:
-		var v int64
-		if v, err = strconv.ParseInt(values[0], 10, 64); err != nil {
-			return
-		}
-		if err = h.validFloat64(float64(v), name, tag); err != nil {
-			return
-		}
-		fVal.Set(reflect.ValueOf(int16(v)))
-	case reflect.Int32:
-		var v int64
-		if v, err = strconv.ParseInt(values[0], 10, 64); err != nil {
-			return
-		}
-		if err = h.validFloat64(float64(v), name, tag); err != nil {
-			return
-		}
-		fVal.Set(reflect.ValueOf(int32(v)))
-	case reflect.Int64:
-		var v int64
-		if v, err = strconv.ParseInt(values[0], 10, 64); err != nil {
-			return
-		}
-		if err = h.validFloat64(float64(v), name, tag); err != nil {
-			return
-		}
-		fVal.Set(reflect.ValueOf(v))
-	case reflect.Uint:
+		fVal.Set(reflect.ValueOf(v).Convert(fVal.Type()))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		var v uint64
 		if v, err = strconv.ParseUint(values[0], 10, 64); err != nil {
 			return
@@ -536,44 +500,8 @@ func (h *handlerServer) setValue(fVal reflect.Value, values []string, name strin
 		if err = h.validFloat64(float64(v), name, tag); err != nil {
 			return
 		}
-		fVal.Set(reflect.ValueOf(uint(v)))
-	case reflect.Uint8:
-		var v uint64
-		if v, err = strconv.ParseUint(values[0], 10, 64); err != nil {
-			return
-		}
-		if err = h.validFloat64(float64(v), name, tag); err != nil {
-			return
-		}
-		fVal.Set(reflect.ValueOf(uint8(v)))
-	case reflect.Uint16:
-		var v uint64
-		if v, err = strconv.ParseUint(values[0], 10, 64); err != nil {
-			return
-		}
-		if err = h.validFloat64(float64(v), name, tag); err != nil {
-			return
-		}
-		fVal.Set(reflect.ValueOf(uint16(v)))
-	case reflect.Uint32:
-		var v uint64
-		if v, err = strconv.ParseUint(values[0], 10, 64); err != nil {
-			return
-		}
-		if err = h.validFloat64(float64(v), name, tag); err != nil {
-			return
-		}
-		fVal.Set(reflect.ValueOf(uint32(v)))
-	case reflect.Uint64:
-		var v uint64
-		if v, err = strconv.ParseUint(values[0], 10, 64); err != nil {
-			return
-		}
-		if err = h.validFloat64(float64(v), name, tag); err != nil {
-			return
-		}
-		fVal.Set(reflect.ValueOf(v))
-	case reflect.Float32:
+		fVal.Set(reflect.ValueOf(v).Convert(fVal.Type()))
+	case reflect.Float32, reflect.Float64:
 		var v float64
 		if v, err = strconv.ParseFloat(values[0], 64); err != nil {
 			return
@@ -581,22 +509,13 @@ func (h *handlerServer) setValue(fVal reflect.Value, values []string, name strin
 		if err = h.validFloat64(v, name, tag); err != nil {
 			return
 		}
-		fVal.Set(reflect.ValueOf(float32(v)))
-	case reflect.Float64:
-		var v float64
-		if v, err = strconv.ParseFloat(values[0], 64); err != nil {
-			return
-		}
-		if err = h.validFloat64(v, name, tag); err != nil {
-			return
-		}
-		fVal.Set(reflect.ValueOf(v))
+		fVal.Set(reflect.ValueOf(v).Convert(fVal.Type()))
 	case reflect.Bool:
 		var v bool
 		if v, err = strconv.ParseBool(values[0]); err != nil {
 			return
 		}
-		fVal.Set(reflect.ValueOf(v))
+		fVal.Set(reflect.ValueOf(v).Convert(fVal.Type()))
 	case reflect.Ptr:
 		h.initPtr(fVal)
 		if err = h.setValue(fVal.Elem(), values, name, tag); err != nil {
