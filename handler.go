@@ -289,7 +289,8 @@ func (h *handler) handleIncludeRouter(router *includeRouter, prefix string) (lis
 	for i := 0; i < numMethod; i++ {
 		method := routerType.Method(i)
 		pInfo := pathInfo{
-			funcValue: method,
+			funcValue: routerType,
+			funcIndex: i,
 			isDocs:    router.isDocs,
 			pos:       fmt.Sprintf("%v.%v", pos, routerType.Type().Method(i).Name),
 		}
