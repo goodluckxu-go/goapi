@@ -32,6 +32,7 @@ type pathInfo struct {
 	middlewares    []Middleware
 	respMediaTypes []MediaType
 	funcValue      reflect.Value // The value of routing function
+	funcIndex      int
 	docsPath       string
 	// openapi
 	summary     string

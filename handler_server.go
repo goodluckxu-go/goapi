@@ -145,7 +145,7 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 		if err != nil {
 			response.HTTPException(validErrorCode, err.Error())
 		}
-		rs := path.funcValue.Call(inputs)
+		rs := path.funcValue.Method(path.funcIndex).Call(inputs)
 		if len(rs) != 1 {
 			return
 		}
