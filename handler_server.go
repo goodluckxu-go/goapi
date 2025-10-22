@@ -129,10 +129,12 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 	ctx.log = h.api.log
 	ctx.mediaType = mediaType
 	ctx.handleServer = h
+	ctx.path = path
 	ctx.middlewares = append(path.middlewares, func(ctx *Context) {
+		pInfo := ctx.path
 		var inputs []reflect.Value
 		lastInputIdx := 0
-		if len(path.inTypes) == 2 {
+		if len(pInfo.inTypes) == 2 {
 			inputs = make([]reflect.Value, 2)
 			inputs[0] = reflect.ValueOf(ctx)
 			lastInputIdx = 1
@@ -140,12 +142,12 @@ func (h *handlerServer) handlePath(ctx *Context, path *pathInfo) {
 			inputs = make([]reflect.Value, 1)
 			lastInputIdx = 0
 		}
-		inputFields, err := h.handleInputFields(ctx, path.inTypes[len(path.inTypes)-1], path.inputFields)
+		inputFields, err := h.handleInputFields(ctx, pInfo.inTypes[len(pInfo.inTypes)-1], pInfo.inputFields)
 		inputs[lastInputIdx] = inputFields
 		if err != nil {
 			response.HTTPException(validErrorCode, err.Error())
 		}
-		rs := path.funcValue.Method(path.funcIndex).Call(inputs)
+		rs := pInfo.funcValue.Call(inputs)
 		if len(rs) != 1 {
 			return
 		}

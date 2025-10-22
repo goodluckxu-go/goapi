@@ -23,6 +23,7 @@ type Context struct {
 	fullPath     string
 	mediaType    string
 	handleServer *handlerServer
+	path         *pathInfo
 }
 
 func (c *Context) reset() {
