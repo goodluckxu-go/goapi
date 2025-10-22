@@ -81,7 +81,10 @@ const tagMethod = "method"
 const tagSummary = "summary"
 const tagTags = "tags"
 
-const validErrorCode = 422
+const (
+	validErrorCode = 422
+	authErrorCode  = 401
+)
 
 type LogLevel uint
 
