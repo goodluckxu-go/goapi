@@ -684,6 +684,9 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string, fInfo *fi
 			err = fmt.Errorf("%v", h.api.lang.Required(name))
 			return
 		}
+		if val.IsNil() {
+			return
+		}
 		for val.Kind() == reflect.Ptr {
 			val = val.Elem()
 		}
@@ -697,6 +700,9 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string, fInfo *fi
 				err = fmt.Errorf("%v", h.api.lang.Required(name))
 				return
 			}
+			if vFloat == 0 {
+				return
+			}
 			if err = h.validFloat64(vFloat, name, tagInfo); err != nil {
 				return
 			}
@@ -706,6 +712,9 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string, fInfo *fi
 			vFloat := float64(val.Uint())
 			if vFloat == 0 && required {
 				err = fmt.Errorf("%v", h.api.lang.Required(name))
+				return
+			}
+			if vFloat == 0 {
 				return
 			}
 			if err = h.validFloat64(vFloat, name, tagInfo); err != nil {
@@ -719,6 +728,9 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string, fInfo *fi
 				err = fmt.Errorf("%v", h.api.lang.Required(name))
 				return
 			}
+			if vFloat == 0 {
+				return
+			}
 			if err = h.validFloat64(vFloat, name, tagInfo); err != nil {
 				return
 			}
@@ -728,6 +740,9 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string, fInfo *fi
 			vStr := val.String()
 			if vStr == "" && required {
 				err = fmt.Errorf("%v", h.api.lang.Required(name))
+				return
+			}
+			if vStr == "" {
 				return
 			}
 			if err = h.validString(vStr, name, tagInfo); err != nil {
@@ -740,6 +755,9 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string, fInfo *fi
 		if fInfo != nil && isValid {
 			if len(keys) == 0 && required {
 				err = fmt.Errorf("%v", h.api.lang.Required(name))
+				return
+			}
+			if len(keys) == 0 {
 				return
 			}
 			if err = h.validLen(vLen, name, tagInfo); err != nil {
@@ -756,6 +774,9 @@ func (h *handlerServer) validBody(val reflect.Value, mediaType string, fInfo *fi
 		if fInfo != nil && isValid {
 			if vLen == 0 && required {
 				err = fmt.Errorf("%v", h.api.lang.Required(name))
+				return
+			}
+			if vLen == 0 {
 				return
 			}
 			if err = h.validLen(vLen, name, tagInfo); err != nil {
