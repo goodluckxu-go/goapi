@@ -257,9 +257,13 @@ func (h *handlerOpenAPI) handleUseSchema(docsPath string, scheme *openapi.Schema
 		}
 		return
 	}
-	refName := strings.TrimPrefix(scheme.Ref, "#/components/schemas/")
+	refName, mediaType := h.getMediaTypeByRef(scheme.Ref)
+	h.handleDependsStruct(docsPath, h.sortRefMap[refName], mediaType)
+}
+
+func (h *handlerOpenAPI) getMediaTypeByRef(ref string) (refName string, mediaType MediaType) {
+	refName = strings.TrimPrefix(ref, "#/components/schemas/")
 	lastIdx := strings.LastIndex(refName, ".")
-	var mediaType MediaType
 	for mType := range h.handle.mediaTypes {
 		mediaType = mType
 		break
@@ -272,7 +276,7 @@ func (h *handlerOpenAPI) handleUseSchema(docsPath string, scheme *openapi.Schema
 			}
 		}
 	}
-	h.handleDependsStruct(docsPath, h.sortRefMap[refName], mediaType)
+	return
 }
 
 func (h *handlerOpenAPI) handlePath(path *pathInfo) {
@@ -441,6 +445,11 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			for _, value := range in.values {
 				schema := &openapi.Schema{}
 				h.handleParamField(schema, in.field, value.mediaType)
+				if value.mediaType == XML {
+					schema.XML = &openapi.XML{
+						Name: path.outParam.structField.Type.Name(),
+					}
+				}
 				bodyContentMap[string(value.mediaType)] = &openapi.MediaType{
 					Schema: schema,
 				}
@@ -482,6 +491,11 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			for _, mediaType := range h.api.responseMediaTypes {
 				schema := &openapi.Schema{}
 				h.handleParamField(schema, path.outParam.field, mediaType)
+				if mediaType == XML {
+					schema.XML = &openapi.XML{
+						Name: path.outParam.structField.Type.Name(),
+					}
+				}
 				resContentMap[string(mediaType)] = &openapi.MediaType{
 					Schema: schema,
 				}
@@ -490,6 +504,11 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			mediaType := MediaType(contentType)
 			schema := &openapi.Schema{}
 			h.handleParamField(schema, path.outParam.field, mediaType)
+			if mediaType == XML {
+				schema.XML = &openapi.XML{
+					Name: path.outParam.structField.Type.Name(),
+				}
+			}
 			resContentMap[string(mediaType)] = &openapi.MediaType{
 				Schema: schema,
 			}
@@ -500,12 +519,8 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				Description: strings.Join(head, ", "),
 			}
 		}
-		statusOk := toString(path.outParam.status)
-		if statusMap[path.outParam.status] > 1 {
-			statusOk += "[0]_ok"
-		}
-		resMap[statusOk] = &openapi.Response{
-			Description: path.outParam.statusText,
+		resMap["200"] = &openapi.Response{
+			Description: "Successful Response",
 			Content:     resContentMap,
 			Headers:     header,
 		}
@@ -535,12 +550,8 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				Description: strings.Join(head, ", "),
 			}
 		}
-		statusOk := toString(h.handle.except.status)
-		if statusMap[h.handle.except.status] > 1 {
-			statusOk += "[1]_fail"
-		}
-		resMap[statusOk] = &openapi.Response{
-			Description: h.handle.except.statusText,
+		resMap["422"] = &openapi.Response{
+			Description: "Validation Error",
 			Content:     resContentMap,
 			Headers:     header,
 		}
