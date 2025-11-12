@@ -89,7 +89,7 @@ func BenchmarkPostFileRouter(b *testing.B) {
 	}
 }
 
-func testGetApiHandler(middlewares ...Middleware) http.Handler {
+func testGetApiHandler(middlewares ...HandleFunc) http.Handler {
 	api := GoAPI(false)
 	api.SetLogger(nil)
 	api.AddMiddleware(middlewares...)

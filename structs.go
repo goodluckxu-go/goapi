@@ -98,7 +98,7 @@ type pathInfo struct {
 	inTypes     []reflect.Type  // func in types
 	inParams    []*inParam
 	outParam    *outParam
-	middlewares []Middleware
+	middlewares []HandleFunc
 	// openapi
 	summary     string
 	desc        string
@@ -110,7 +110,7 @@ type pathInfo struct {
 
 type pathInterfaceResult struct {
 	paths             []*pathInfo
-	publicMiddlewares map[string][]Middleware
+	publicMiddlewares map[string][]HandleFunc
 	mediaTypes        map[MediaType]struct{}
 	openapiMap        map[string]*openapi.OpenAPI
 	tags              []*openapi.Tag
@@ -120,7 +120,7 @@ type pathInterface interface {
 	// input is parent params
 	// docsPath is ChildAPI input
 	// groupPrefix is ChildAPI or APIGroup input
-	returnObj(prefix, docsPath, groupPrefix string, middlewares []Middleware, isDocs bool) (obj pathInterfaceResult, err error)
+	returnObj(prefix, docsPath, groupPrefix string, middlewares []HandleFunc, isDocs bool) (obj pathInterfaceResult, err error)
 }
 
 type exceptInfo struct {

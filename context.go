@@ -10,25 +10,25 @@ import (
 )
 
 type Context struct {
-	Request     *http.Request
-	Writer      http.ResponseWriter
-	writermem   ResponseWriter
-	Values      map[string]any
-	log         Logger
-	mux         sync.RWMutex
-	middlewares []Middleware
-	Params      Params
-	paths       map[string]string
-	index       int
-	fullPath    string
-	mediaType   string
-	path        *pathInfo
+	Request   *http.Request
+	Writer    http.ResponseWriter
+	writermem ResponseWriter
+	Values    map[string]any
+	log       Logger
+	mux       sync.RWMutex
+	handlers  []HandleFunc
+	Params    Params
+	paths     map[string]string
+	index     int
+	fullPath  string
+	mediaType string
+	path      *pathInfo
 }
 
 func (c *Context) reset() {
 	c.Writer = &c.writermem
 	c.Values = nil
-	c.middlewares = c.middlewares[:]
+	c.handlers = c.handlers[0:0]
 	c.paths = nil
 	c.index = -1
 	c.fullPath = ""
@@ -94,10 +94,10 @@ func (c *Context) FullPath() string {
 // Next It is used in middleware, before Next is before interface request, and after Next is after interface request
 func (c *Context) Next() {
 	c.index++
-	if len(c.middlewares) <= c.index {
+	if len(c.handlers) <= c.index {
 		return
 	}
-	handle := c.middlewares[c.index]
+	handle := c.handlers[c.index]
 	if handle == nil {
 		c.Next()
 		return

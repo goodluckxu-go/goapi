@@ -11,8 +11,6 @@ import (
 	"reflect"
 )
 
-type Middleware func(ctx *Context)
-
 type InType string
 
 func (InType) List() []InType {

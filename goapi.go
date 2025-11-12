@@ -128,14 +128,14 @@ func (a *API) SetAutoTags(index uint) {
 }
 
 // AddMiddleware It is a function for adding middleware
-func (a *API) AddMiddleware(middlewares ...Middleware) {
+func (a *API) AddMiddleware(middlewares ...HandleFunc) {
 	for _, middleware := range middlewares {
 		a.handlers = append(a.handlers, middleware)
 	}
 }
 
 // IncludeRouter It is a function that introduces routing structures
-func (a *API) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...Middleware) {
+func (a *API) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...HandleFunc) {
 	a.handlers = append(a.handlers, &includeRouter{
 		router:      router,
 		prefix:      prefix,

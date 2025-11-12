@@ -118,7 +118,7 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 	pathS := h.handleStaticPath(path.paths[0])
 	fileServer := http.StripPrefix(pathS, http.FileServer(path.inFs))
 	return func(ctx *Context) {
-		ctx.middlewares = append(path.middlewares, func(ctx *Context) {
+		ctx.handlers = append(path.middlewares, func(ctx *Context) {
 			if path.isFile {
 				http.ServeFile(ctx.Writer, ctx.Request, fmt.Sprintf("%v", path.inFs))
 				return
@@ -132,9 +132,9 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 	return func(ctx *Context) {
 		ctx.path = path
-		ctx.middlewares = make([]Middleware, len(path.middlewares)+1)
-		n := copy(ctx.middlewares, path.middlewares)
-		ctx.middlewares[n] = func(ctx *Context) {
+		ctx.handlers = make([]HandleFunc, len(path.middlewares)+1)
+		n := copy(ctx.handlers, path.middlewares)
+		ctx.handlers[n] = func(ctx *Context) {
 			h.execRouter(ctx)
 		}
 		ctx.Next()
@@ -744,7 +744,7 @@ func (h *handlerServer) initPtr(fVal reflect.Value) {
 	fVal.Set(newVal)
 }
 
-func (h *handlerServer) getMiddlewares(path string) (rs []Middleware) {
+func (h *handlerServer) getMiddlewares(path string) (rs []HandleFunc) {
 	pathList := strings.Split(path, "/")
 	match := ""
 	for _, val := range pathList {
@@ -759,9 +759,9 @@ func (h *handlerServer) getMiddlewares(path string) (rs []Middleware) {
 }
 
 func (h *handlerServer) notFind(ctx *Context) {
-	ctx.middlewares = h.getMiddlewares(ctx.Request.URL.Path)
+	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
 	ctx.log = h.log
-	ctx.middlewares = append(ctx.middlewares, func(ctx *Context) {
+	ctx.handlers = append(ctx.handlers, func(ctx *Context) {
 		http.NotFound(ctx.Writer, ctx.Request)
 	})
 	ctx.Next()

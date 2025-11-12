@@ -28,14 +28,14 @@ func NewChildAPI(prefix string, isDocs bool, docsPath string) *ChildAPI {
 }
 
 // AddMiddleware It is a function for adding middleware
-func (c *ChildAPI) AddMiddleware(middlewares ...Middleware) {
+func (c *ChildAPI) AddMiddleware(middlewares ...HandleFunc) {
 	for _, middleware := range middlewares {
 		c.handlers = append(c.handlers, middleware)
 	}
 }
 
 // IncludeRouter It is a function that introduces routing structures
-func (c *ChildAPI) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...Middleware) {
+func (c *ChildAPI) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...HandleFunc) {
 	c.handlers = append(c.handlers, &includeRouter{
 		router:      router,
 		prefix:      prefix,
@@ -49,8 +49,8 @@ func (c *ChildAPI) IncludeGroup(group *APIGroup) {
 	c.handlers = append(c.handlers, group)
 }
 
-func (c *ChildAPI) returnObj(prefix, docsPath, groupPrefix string, middlewares []Middleware, isDocs bool) (obj pathInterfaceResult, err error) {
-	obj.publicMiddlewares = map[string][]Middleware{}
+func (c *ChildAPI) returnObj(prefix, docsPath, groupPrefix string, middlewares []HandleFunc, isDocs bool) (obj pathInterfaceResult, err error) {
+	obj.publicMiddlewares = map[string][]HandleFunc{}
 	obj.mediaTypes = map[MediaType]struct{}{}
 	groupPrefix = pathJoin(groupPrefix, c.prefix)
 	c.docsPath = pathJoin(docsPath, c.docsPath)
@@ -64,7 +64,7 @@ func (c *ChildAPI) returnObj(prefix, docsPath, groupPrefix string, middlewares [
 		},
 	}
 	var childObj pathInterfaceResult
-	var publicMiddlewares []Middleware
+	var publicMiddlewares []HandleFunc
 	for _, hd := range c.handlers {
 		if handle, ok := hd.(pathInterface); ok {
 			childObj, err = handle.returnObj(c.prefix, c.docsPath, groupPrefix, append(middlewares, publicMiddlewares...), c.isDocs)
@@ -79,7 +79,7 @@ func (c *ChildAPI) returnObj(prefix, docsPath, groupPrefix string, middlewares [
 			}
 			obj.tags = mergeOpenAPITags(obj.tags, childObj.tags)
 		}
-		if publicMiddleware, ok := hd.(Middleware); ok {
+		if publicMiddleware, ok := hd.(HandleFunc); ok {
 			publicMiddlewares = append(publicMiddlewares, publicMiddleware)
 		}
 		obj.paths = append(obj.paths, childObj.paths...)

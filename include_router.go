@@ -13,10 +13,10 @@ type includeRouter struct {
 	router      any
 	prefix      string
 	isDocs      bool
-	middlewares []Middleware
+	middlewares []HandleFunc
 }
 
-func (i *includeRouter) returnObj(prefix, docsPath, groupPrefix string, middlewares []Middleware, isDocs bool) (obj pathInterfaceResult, err error) {
+func (i *includeRouter) returnObj(prefix, docsPath, groupPrefix string, middlewares []HandleFunc, isDocs bool) (obj pathInterfaceResult, err error) {
 	obj.mediaTypes = map[MediaType]struct{}{}
 	i.prefix = pathJoin(prefix, i.prefix)
 	i.isDocs = isDocs && i.isDocs

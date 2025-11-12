@@ -20,7 +20,7 @@ func newHandler(api *API) *handler {
 		structs:                make(map[string]*structInfo),
 		structTypes:            make(map[string]reflect.Type),
 		mediaTypes:             map[MediaType]struct{}{},
-		publicGroupMiddlewares: make(map[string][]Middleware),
+		publicGroupMiddlewares: make(map[string][]HandleFunc),
 		openapiMap: map[string]*openapi.OpenAPI{
 			api.docsPath: {
 				Info:    api.OpenAPIInfo,
@@ -38,8 +38,8 @@ type handler struct {
 	structs                map[string]*structInfo
 	structTypes            map[string]reflect.Type
 	mediaTypes             map[MediaType]struct{}
-	defaultMiddlewares     []Middleware
-	publicGroupMiddlewares map[string][]Middleware // group prefix
+	defaultMiddlewares     []HandleFunc
+	publicGroupMiddlewares map[string][]HandleFunc // group prefix
 	openapiMap             map[string]*openapi.OpenAPI
 	except                 *outParam
 }
@@ -72,7 +72,7 @@ func (h *handler) Handle() {
 			}
 			continue
 		}
-		if middleware, ok := hd.(Middleware); ok {
+		if middleware, ok := hd.(HandleFunc); ok {
 			h.publicGroupMiddlewares[""] = append(h.publicGroupMiddlewares[""], middleware)
 		}
 	}

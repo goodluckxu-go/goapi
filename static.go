@@ -12,7 +12,7 @@ type staticInfo struct {
 	isFile bool
 }
 
-func (h *staticInfo) returnObj(prefix, docsPath, groupPrefix string, middlewares []Middleware, isDocs bool) (obj pathInterfaceResult, err error) {
+func (h *staticInfo) returnObj(prefix, docsPath, groupPrefix string, middlewares []HandleFunc, isDocs bool) (obj pathInterfaceResult, err error) {
 	h.path = pathJoin(prefix, h.path)
 	if !h.isFile {
 		if h.path[len(h.path)-1] != '/' {

@@ -15,14 +15,14 @@ func NewGroup(prefix string, isDocs bool) *APIGroup {
 }
 
 // AddMiddleware It is a function for adding middleware
-func (g *APIGroup) AddMiddleware(middlewares ...Middleware) {
+func (g *APIGroup) AddMiddleware(middlewares ...HandleFunc) {
 	for _, middleware := range middlewares {
 		g.handlers = append(g.handlers, middleware)
 	}
 }
 
 // IncludeRouter It is a function that introduces routing structures
-func (g *APIGroup) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...Middleware) {
+func (g *APIGroup) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...HandleFunc) {
 	g.handlers = append(g.handlers, &includeRouter{
 		router:      router,
 		prefix:      prefix,
@@ -36,14 +36,14 @@ func (g *APIGroup) IncludeGroup(group *APIGroup) {
 	g.handlers = append(g.handlers, group)
 }
 
-func (g *APIGroup) returnObj(prefix, docsPath, groupPrefix string, middlewares []Middleware, isDocs bool) (obj pathInterfaceResult, err error) {
-	obj.publicMiddlewares = map[string][]Middleware{}
+func (g *APIGroup) returnObj(prefix, docsPath, groupPrefix string, middlewares []HandleFunc, isDocs bool) (obj pathInterfaceResult, err error) {
+	obj.publicMiddlewares = map[string][]HandleFunc{}
 	obj.mediaTypes = map[MediaType]struct{}{}
 	groupPrefix = pathJoin(groupPrefix, g.prefix)
 	g.prefix = pathJoin(prefix, g.prefix)
 	g.isDocs = isDocs && g.isDocs
 	var childObj pathInterfaceResult
-	var publicMiddlewares []Middleware
+	var publicMiddlewares []HandleFunc
 	for _, hd := range g.handlers {
 		if handle, ok := hd.(pathInterface); ok {
 			childObj, err = handle.returnObj(g.prefix, docsPath, groupPrefix, append(middlewares, publicMiddlewares...), g.isDocs)
@@ -58,7 +58,7 @@ func (g *APIGroup) returnObj(prefix, docsPath, groupPrefix string, middlewares [
 			}
 			obj.tags = mergeOpenAPITags(obj.tags, childObj.tags)
 		}
-		if publicMiddleware, ok := hd.(Middleware); ok {
+		if publicMiddleware, ok := hd.(HandleFunc); ok {
 			publicMiddlewares = append(publicMiddlewares, publicMiddleware)
 		}
 		obj.paths = append(obj.paths, childObj.paths...)
