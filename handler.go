@@ -116,6 +116,7 @@ func (h *handler) Handle() {
 					if err != nil {
 						log.Fatal(err)
 					}
+					field.isRoot = true
 					in.field = field
 				} else {
 					in.field = &paramField{
@@ -273,9 +274,15 @@ func (h *handler) handleParam(inType InType, field reflect.StructField, index in
 }
 
 func (h *handler) handleField(field reflect.StructField, index int, beforeStructPkgName ...string) (rs *paramField, err error) {
+	names := h.getNames(field)
+	if len(names) == 0 {
+		return
+	}
 	rs = &paramField{
-		index: index,
-		tag:   &paramTag{},
+		index:     index,
+		tag:       &paramTag{},
+		names:     names,
+		anonymous: field.Anonymous,
 	}
 	fType := field.Type
 	fType = removeMorePtr(fType)
@@ -312,21 +319,21 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 	return
 }
 
-func (h *handler) getNames(fType reflect.StructField) (rs paramFieldNames) {
+func (h *handler) getNames(field reflect.StructField) (rs paramFieldNames) {
 	for mediaType := range h.mediaTypes {
-		name := fType.Tag.Get(mediaType.Tag())
+		name := field.Tag.Get(mediaType.Tag())
 		if name == "-" {
 			continue
 		}
 		nameSplit := strings.Split(name, ",")
 		name = nameSplit[0]
 		if name == "" {
-			name = fType.Name
+			name = field.Name
 		}
 		paramName := paramFieldName{
 			name:      name,
 			mediaType: mediaType,
-			required:  true,
+			required:  !field.Anonymous,
 		}
 		for _, v := range nameSplit[1:] {
 			if v == omitempty {
@@ -352,16 +359,13 @@ func (h *handler) handleStruct() (err error) {
 				if field.Name[0] < 'A' || field.Name[0] > 'Z' {
 					continue
 				}
-				names := h.getNames(field)
-				if len(names) == 0 {
-					continue
-				}
 				pField, err = h.handleField(field, i, pkgName)
 				if err != nil {
 					return
 				}
-				pField.anonymous = field.Anonymous
-				pField.names = names
+				if pField == nil {
+					continue
+				}
 				stInfo.fields = append(stInfo.fields, pField)
 			}
 			h.structs[pkgName] = stInfo

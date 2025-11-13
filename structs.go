@@ -33,6 +33,7 @@ type paramField struct {
 	index     int
 	tag       *paramTag
 	fields    []*paramField
+	isRoot    bool
 }
 
 type paramFieldName struct {

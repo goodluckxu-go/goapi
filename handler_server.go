@@ -304,9 +304,11 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			}
 		case inTypeBody:
 			mediaType := h.getRequestMediaType(ctx)
-			err = h.setBody(inValue, ctx.Request.Body, mediaType)
-			if err != nil {
-				return
+			if ctx.Request.ContentLength > 0 {
+				err = h.setBody(inValue, ctx.Request.Body, mediaType)
+				if err != nil {
+					return
+				}
 			}
 			if mediaType.IsStream() {
 				return
@@ -355,7 +357,7 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 		desc = field.tag.desc
 	}
 	if value.Kind() != reflect.Ptr {
-		if value.IsZero() {
+		if value.IsZero() && !field.isRoot {
 			if name.required {
 				return errors.New(h.handle.api.lang.Required(desc))
 			}
@@ -363,7 +365,7 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 		}
 	} else {
 		for value.Kind() == reflect.Ptr {
-			if value.IsNil() {
+			if value.IsNil() && !field.isRoot {
 				if name.required {
 					return errors.New(h.handle.api.lang.Required(desc))
 				}

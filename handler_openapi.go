@@ -68,14 +68,11 @@ func (h *handlerOpenAPI) handleParamFields(fields []*paramField, mediaType Media
 	for _, field := range fields {
 		if field.anonymous {
 			childStInfo := h.handle.structs[field.pkgName]
-			for _, childField := range childStInfo.fields {
-				childSchema := &openapi.Schema{}
-				name := h.handleParamField(childSchema, childField, mediaType)
-				properties[name.name] = childSchema
-				if name.required {
-					required = append(required, name.name)
-				}
+			childProperties, childRequired := h.handleParamFields(childStInfo.fields, mediaType)
+			for k, v := range childProperties {
+				properties[k] = v
 			}
+			required = append(required, childRequired...)
 			continue
 		}
 		childSchema := &openapi.Schema{}
