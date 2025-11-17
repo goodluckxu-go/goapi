@@ -84,9 +84,8 @@ type inParam struct {
 type outParam struct {
 	structField reflect.StructField
 	field       *paramField
-	status      int
-	statusText  string
-	header      http.Header
+	httpStatus  int
+	httpHeader  http.Header
 }
 
 type pathInfo struct {

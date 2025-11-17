@@ -33,7 +33,7 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 		exceptFunc: func(httpCode int, detail string) Response {
 			return &response.HTTPResponse[string]{
 				HttpCode: httpCode,
-				HttpBody: detail,
+				Body:     detail,
 			}
 		},
 		log:                  &levelHandleLogger{log: &defaultLogger{}},

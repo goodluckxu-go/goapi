@@ -177,8 +177,7 @@ func (h *handler) Handle() {
 			path.inParams[key] = in
 		}
 		if path.outParam != nil {
-			path.outParam.status = http.StatusOK
-			path.outParam.statusText = "Successful Response"
+			path.outParam.httpStatus = http.StatusOK
 			h.handleOutParam(path.outParam)
 			field, err := h.handleField(path.outParam.structField, -1)
 			if err != nil {
@@ -189,15 +188,11 @@ func (h *handler) Handle() {
 	}
 	if h.api.exceptFunc != nil {
 		exceptResponse := h.api.exceptFunc(validErrorCode, "")
-		fType := reflect.TypeOf(exceptResponse.Body())
+		fType := reflect.TypeOf(exceptResponse.HttpBody())
 		h.except = &outParam{
 			structField: reflect.StructField{Type: fType},
-			status:      exceptResponse.Status(),
-			statusText:  "Validation Error",
-			header:      exceptResponse.Header(),
-		}
-		if fn, ok := exceptResponse.(ResponseStatusText); ok && fn.StatusText() != "" {
-			h.except.statusText = fn.StatusText()
+			httpStatus:  exceptResponse.HttpStatus(),
+			httpHeader:  exceptResponse.HttpHeader(),
 		}
 		field, err := h.handleField(h.except.structField, -1)
 		if err != nil {
@@ -222,16 +217,13 @@ func (h *handler) handleOutParam(outParam *outParam) {
 	}
 	valAny := value.Interface()
 	if fn, ok := valAny.(ResponseHeader); ok {
-		outParam.header = fn.Header()
+		outParam.httpHeader = fn.HttpHeader()
 	}
 	if fn, ok := valAny.(ResponseStatus); ok {
-		outParam.status = fn.Status()
-	}
-	if fn, ok := valAny.(ResponseStatusText); ok && fn.StatusText() != "" {
-		outParam.statusText = fn.StatusText()
+		outParam.httpStatus = fn.HttpStatus()
 	}
 	if fn, ok := valAny.(ResponseBody); ok {
-		outParam.structField.Type = reflect.TypeOf(fn.Body())
+		outParam.structField.Type = reflect.TypeOf(fn.HttpBody())
 	}
 }
 

@@ -11,17 +11,13 @@ type Response interface {
 }
 
 type ResponseStatus interface {
-	Status() int
-}
-
-type ResponseStatusText interface {
-	StatusText() string
+	HttpStatus() int
 }
 
 type ResponseHeader interface {
-	Header() http.Header
+	HttpHeader() http.Header
 }
 
 type ResponseBody interface {
-	Body() any
+	HttpBody() any
 }

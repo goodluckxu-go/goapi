@@ -474,16 +474,9 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 		}
 	}
 	resMap := map[string]*openapi.Response{}
-	statusMap := map[int]int{}
-	if path.outParam != nil {
-		statusMap[path.outParam.status]++
-	}
-	if h.handle.except != nil {
-		statusMap[h.handle.except.status]++
-	}
 	if path.outParam != nil {
 		resContentMap := map[string]*openapi.MediaType{}
-		contentType := path.outParam.header.Get("Content-Type")
+		contentType := path.outParam.httpHeader.Get("Content-Type")
 		if contentType == "" {
 			for _, mediaType := range h.api.responseMediaTypes {
 				schema := &openapi.Schema{}
@@ -511,7 +504,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			}
 		}
 		header := map[string]*openapi.Header{}
-		for key, head := range path.outParam.header {
+		for key, head := range path.outParam.httpHeader {
 			header[key] = &openapi.Header{
 				Description: strings.Join(head, ", "),
 			}
@@ -524,7 +517,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 	}
 	if h.handle.except != nil {
 		resContentMap := map[string]*openapi.MediaType{}
-		contentType := h.handle.except.header.Get("Content-Type")
+		contentType := h.handle.except.httpHeader.Get("Content-Type")
 		if contentType == "" {
 			for _, mediaType := range h.api.responseMediaTypes {
 				schema := &openapi.Schema{}
@@ -542,7 +535,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			}
 		}
 		header := map[string]*openapi.Header{}
-		for key, head := range h.handle.except.header {
+		for key, head := range h.handle.except.httpHeader {
 			header[key] = &openapi.Header{
 				Description: strings.Join(head, ", "),
 			}

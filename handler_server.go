@@ -190,7 +190,7 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	mediaType := h.getResponseMediaType(ctx)
 	var header http.Header
 	if fn, ok := resp.(ResponseHeader); ok {
-		header = fn.Header()
+		header = fn.HttpHeader()
 	}
 	if header == nil {
 		header = make(http.Header)
@@ -207,10 +207,10 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 		}
 	}
 	if fn, ok := resp.(ResponseStatus); ok {
-		ctx.Writer.WriteHeader(fn.Status())
+		ctx.Writer.WriteHeader(fn.HttpStatus())
 	}
 	if fn, ok := resp.(ResponseBody); ok {
-		resp = fn.Body()
+		resp = fn.HttpBody()
 	}
 	var body []byte
 	var err error

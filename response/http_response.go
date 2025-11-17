@@ -6,24 +6,24 @@ import (
 )
 
 type HTTPResponse[T any] struct {
-	HttpCode   int
-	HttpHeader http.Header
-	HttpBody   T
+	HttpCode int
+	Header   http.Header
+	Body     T
 }
 
-func (h *HTTPResponse[T]) Status() int {
+func (h *HTTPResponse[T]) HttpStatus() int {
 	if h.HttpCode == 0 {
 		h.HttpCode = http.StatusOK
 	}
 	return h.HttpCode
 }
 
-func (h *HTTPResponse[T]) Header() http.Header {
-	return h.HttpHeader
+func (h *HTTPResponse[T]) HttpHeader() http.Header {
+	return h.Header
 }
 
-func (h *HTTPResponse[T]) Body() any {
-	return h.HttpBody
+func (h *HTTPResponse[T]) HttpBody() any {
+	return h.Body
 }
 
 type exceptInfo struct {
