@@ -26,14 +26,16 @@ type paramTag struct {
 }
 
 type paramField struct {
-	_type     reflect.Type
-	names     paramFieldNames
-	anonymous bool
-	pkgName   string
-	index     int
-	tag       *paramTag
-	fields    []*paramField
-	isRoot    bool
+	_type      reflect.Type
+	kind       reflect.Kind
+	isTextType bool // Whether to inherit TextInterface
+	names      paramFieldNames
+	anonymous  bool
+	pkgName    string
+	index      int
+	tag        *paramTag
+	fields     []*paramField
+	isRoot     bool
 }
 
 type paramFieldName struct {

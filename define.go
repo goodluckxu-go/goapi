@@ -109,7 +109,7 @@ func (m MediaType) Unmarshaler(body io.ReadCloser, value reflect.Value) error {
 			value.Set(reflect.ValueOf(buf).Convert(value.Type()))
 			return nil
 		}
-		if value.Type().Implements(interfaceIoReadCloser) {
+		if _, ok := getTypeByCovertInterface[io.ReadCloser](value); ok {
 			value.Set(reflect.ValueOf(body).Convert(value.Type()))
 			return nil
 		}
@@ -174,12 +174,6 @@ var typeBytes = reflect.TypeOf([]byte{})
 
 // inTypeCookie
 var typeCookie = reflect.TypeOf(&http.Cookie{})
-
-var interfaceIoReadCloser = reflect.TypeOf(new(io.ReadCloser)).Elem()
-
-var interfaceToStringer = reflect.TypeOf(new(fmt.Stringer)).Elem()
-
-var typeAny = reflect.TypeOf(new(any)).Elem()
 
 const (
 	validErrorCode = 422

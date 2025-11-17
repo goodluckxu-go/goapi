@@ -371,10 +371,13 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 				}
 				return
 			}
+			if _, ok := getTypeByCovertInterface[TextInterface](value); ok {
+				break
+			}
 			value = value.Elem()
 		}
 	}
-	switch value.Kind() {
+	switch field.kind {
 	case reflect.Struct:
 		sInfo := h.handle.structs[field.pkgName]
 		for _, childField := range sInfo.fields {
@@ -416,16 +419,27 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 			}
 		}
 	case reflect.String:
-		if field.tag.max != nil && uint64(value.Len()) > *field.tag.max {
+		valStr := ""
+		if field.isTextType {
+			if fn, ok := getFnByCovertInterface[TextInterface](value, true); ok {
+				var txt []byte
+				if txt, err = fn.MarshalText(); err == nil {
+					valStr = string(txt)
+				}
+			}
+		} else {
+			valStr = value.String()
+		}
+		if field.tag.max != nil && uint64(len(valStr)) > *field.tag.max {
 			return errors.New(h.handle.api.lang.Max(desc, *field.tag.max))
 		}
-		if uint64(value.Len()) < field.tag.min {
+		if uint64(len(valStr)) < field.tag.min {
 			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
 		}
-		if field.tag.regexp != "" && !regexp.MustCompile(field.tag.regexp).MatchString(value.String()) {
+		if field.tag.regexp != "" && !regexp.MustCompile(field.tag.regexp).MatchString(valStr) {
 			return errors.New(h.handle.api.lang.Regexp(desc, field.tag.regexp))
 		}
-		if field.tag.enum != nil && !inArrayAny(any(value.String()), field.tag.enum) {
+		if field.tag.enum != nil && !inArrayAny(any(valStr), field.tag.enum) {
 			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -539,9 +553,12 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 			break
 		}
 		h.initPtr(value)
+		if _, ok := getTypeByCovertInterface[TextInterface](value); ok {
+			break
+		}
 		value = value.Elem()
 	}
-	switch value.Kind() {
+	switch field.kind {
 	case reflect.Slice, reflect.Array:
 		if field.tag.max != nil && uint64(len(values)) > *field.tag.max {
 			return errors.New(h.handle.api.lang.Max(desc, *field.tag.max))
@@ -583,7 +600,15 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 		if field.tag.enum != nil && !inArrayAny(any(valStr), field.tag.enum) {
 			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
 		}
-		value.Set(reflect.ValueOf(valStr).Convert(value.Type()))
+		if field.isTextType {
+			if err = coverInterfaceByValue[TextInterface](value, func(fn TextInterface) error {
+				return fn.UnmarshalText([]byte(values[0]))
+			}, true); err != nil {
+				return
+			}
+		} else {
+			value.Set(reflect.ValueOf(valStr).Convert(value.Type()))
+		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var valInt int64
 		if len(values) > 0 {

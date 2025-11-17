@@ -87,7 +87,7 @@ func (h *handlerOpenAPI) handleParamFields(fields []*paramField, mediaType Media
 
 func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramField, mediaType MediaType) (name paramFieldName) {
 	name = field.names.getFieldName(mediaType)
-	kind := field._type.Kind()
+	kind := field.kind
 	schema.Description = field.tag.desc
 	schema.Default = field.tag._default
 	schema.Deprecated = field.tag.deprecated

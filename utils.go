@@ -153,6 +153,85 @@ func removeAllPtr(fType reflect.Type) reflect.Type {
 	return fType
 }
 
+func getValueByType(fType reflect.Type, forcePtr ...bool) reflect.Value {
+	var val reflect.Value
+	if fType.Kind() == reflect.Ptr {
+		val = reflect.New(fType.Elem())
+	} else {
+		if len(forcePtr) > 0 && forcePtr[0] {
+			val = reflect.New(fType)
+		} else {
+			val = reflect.New(fType).Elem()
+		}
+	}
+	return val
+}
+
+func getTypeByCovertInterface[Fn any](val any, forcePtr ...bool) (rType reflect.Type, ok bool) {
+	switch v := val.(type) {
+	case reflect.Value:
+		if len(forcePtr) > 0 && forcePtr[0] && v.Kind() != reflect.Ptr {
+			v = reflect.New(v.Type())
+		} else {
+			initPtr(v)
+		}
+		rType = v.Type()
+		_, ok = v.Interface().(Fn)
+	case reflect.Type:
+		fVal := getValueByType(v, forcePtr...)
+		rType = fVal.Type()
+		_, ok = fVal.Interface().(Fn)
+	default:
+		rType = reflect.TypeOf(val)
+		_, ok = val.(Fn)
+	}
+	return
+}
+
+func getFnByCovertInterface[Fn any](val any, forcePtr ...bool) (fn Fn, ok bool) {
+	switch v := val.(type) {
+	case reflect.Value:
+		if len(forcePtr) > 0 && forcePtr[0] && v.Kind() != reflect.Ptr {
+			v = reflect.New(v.Type())
+		}
+		fn, ok = v.Interface().(Fn)
+	case reflect.Type:
+		fVal := getValueByType(v, forcePtr...)
+		fn, ok = fVal.Interface().(Fn)
+	default:
+		fn, ok = val.(Fn)
+	}
+	return
+}
+
+func coverInterfaceByValue[T any](fVal reflect.Value, fn func(fn T) error, forcePtr ...bool) (err error) {
+	if len(forcePtr) > 0 && forcePtr[0] && fVal.Kind() != reflect.Ptr {
+		newVal := reflect.New(fVal.Type())
+		if t, ok := newVal.Interface().(T); ok {
+			if err = fn(t); err != nil {
+				return
+			}
+			fVal.Set(newVal.Elem())
+		}
+		return
+	}
+	initPtr(fVal)
+	if t, ok := fVal.Interface().(T); ok {
+		if err = fn(t); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func initPtr(fVal reflect.Value) {
+	if fVal.Kind() != reflect.Ptr || !fVal.IsNil() {
+		return
+	}
+	newVal := reflect.New(fVal.Type().Elem())
+	fVal.Set(newVal)
+}
+
 func isArrayType(fType reflect.Type, fn func(sType reflect.Type) bool, deeps ...int) bool {
 	deep := -1
 	if len(deeps) > 0 {
