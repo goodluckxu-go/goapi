@@ -67,12 +67,12 @@ func (h *handlerServer) HandleSwagger(
 }
 
 func (h *handlerServer) handleSwagger(router swagger.Router) {
-	pos := "github.com/goodluckxu-go/goapi/swagger.GetSwagger"
+	pos := "github.com/goodluckxu-go/goapi/swagger.GetSwagger (docs)"
 	if len(h.handle.defaultMiddlewares) > 0 {
-		pos += fmt.Sprintf(" (docs) (%v Middleware)", len(h.handle.defaultMiddlewares))
+		pos += fmt.Sprintf(" (%v Middleware)", len(h.handle.defaultMiddlewares))
 	}
 	h.handle.paths = append(h.handle.paths, &pathInfo{
-		paths:       []string{router.Path},
+		paths:       router.Paths,
 		methods:     []string{http.MethodGet},
 		middlewares: h.handle.defaultMiddlewares,
 		handle: func(ctx *Context) {
@@ -190,7 +190,7 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	mediaType := h.getResponseMediaType(ctx)
 	var header http.Header
 	if fn, ok := resp.(ResponseHeader); ok {
-		header = fn.HttpHeader()
+		header = fn.GetHeader()
 	}
 	if header == nil {
 		header = make(http.Header)
@@ -206,11 +206,11 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 			ctx.Writer.Header().Add(key, val)
 		}
 	}
-	if fn, ok := resp.(ResponseStatus); ok {
-		ctx.Writer.WriteHeader(fn.HttpStatus())
+	if fn, ok := resp.(ResponseStatusCode); ok {
+		ctx.Writer.WriteHeader(fn.GetStatusCode())
 	}
 	if fn, ok := resp.(ResponseBody); ok {
-		resp = fn.HttpBody()
+		resp = fn.GetBody()
 	}
 	var body []byte
 	var err error
@@ -356,25 +356,27 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 	if field.tag.desc != "" {
 		desc = field.tag.desc
 	}
-	if value.Kind() != reflect.Ptr {
-		if value.IsZero() && !field.isRoot {
-			if name.required {
-				return errors.New(h.handle.api.lang.Required(desc))
-			}
-			return
-		}
-	} else {
-		for value.Kind() == reflect.Ptr {
-			if value.IsNil() && !field.isRoot {
+	if !field.anonymous {
+		if value.Kind() != reflect.Ptr {
+			if value.IsZero() {
 				if name.required {
 					return errors.New(h.handle.api.lang.Required(desc))
 				}
 				return
 			}
-			if _, ok := getTypeByCovertInterface[TextInterface](value); ok {
-				break
+		} else {
+			for value.Kind() == reflect.Ptr {
+				if value.IsNil() {
+					if name.required {
+						return errors.New(h.handle.api.lang.Required(desc))
+					}
+					return
+				}
+				if _, ok := getTypeByCovertInterface[TextInterface](value); ok {
+					break
+				}
+				value = value.Elem()
 			}
-			value = value.Elem()
 		}
 	}
 	switch field.kind {

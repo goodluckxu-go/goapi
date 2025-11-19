@@ -1,7 +1,6 @@
 package goapi
 
 import (
-	"bufio"
 	"net"
 	"net/http"
 	"strings"
@@ -11,14 +10,13 @@ import (
 
 type Context struct {
 	Request   *http.Request
-	Writer    http.ResponseWriter
-	writermem ResponseWriter
+	Writer    ResponseWriter
+	writermem responseWriter
 	Values    map[string]any
 	log       Logger
 	mux       sync.RWMutex
 	handlers  []HandleFunc
 	Params    Params
-	paths     map[string]string
 	index     int
 	fullPath  string
 	mediaType string
@@ -27,9 +25,9 @@ type Context struct {
 
 func (c *Context) reset() {
 	c.Writer = &c.writermem
+	c.Params = c.Params[:0]
 	c.Values = nil
 	c.handlers = c.handlers[0:0]
-	c.paths = nil
 	c.index = -1
 	c.fullPath = ""
 }
@@ -140,41 +138,4 @@ func (c *Context) ClientIP() string {
 		}
 	}
 	return remoteIP.String()
-}
-
-type ResponseWriter struct {
-	http.ResponseWriter
-	status int
-}
-
-func (r *ResponseWriter) reset(w http.ResponseWriter) {
-	r.ResponseWriter = w
-	r.status = 200
-}
-
-// Hijack implements the http.Hijacker interface.
-func (r *ResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return r.ResponseWriter.(http.Hijacker).Hijack()
-}
-
-// Flush implements the http.Flusher interface.
-func (r *ResponseWriter) Flush() {
-	r.ResponseWriter.(http.Flusher).Flush()
-}
-
-func (r *ResponseWriter) Header() http.Header {
-	return r.ResponseWriter.Header()
-}
-
-func (r *ResponseWriter) Write(b []byte) (int, error) {
-	return r.ResponseWriter.Write(b)
-}
-
-func (r *ResponseWriter) WriteHeader(statusCode int) {
-	r.ResponseWriter.WriteHeader(statusCode)
-	r.status = statusCode
-}
-
-func (r *ResponseWriter) Status() int {
-	return r.status
 }

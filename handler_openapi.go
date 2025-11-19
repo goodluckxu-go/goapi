@@ -444,7 +444,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				h.handleParamField(schema, in.field, value.mediaType)
 				if value.mediaType == XML {
 					schema.XML = &openapi.XML{
-						Name: path.outParam.structField.Type.Name(),
+						Name: in.field._type.Name(),
 					}
 				}
 				bodyContentMap[string(value.mediaType)] = &openapi.MediaType{
@@ -483,7 +483,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				h.handleParamField(schema, path.outParam.field, mediaType)
 				if mediaType == XML {
 					schema.XML = &openapi.XML{
-						Name: path.outParam.structField.Type.Name(),
+						Name: path.outParam.field._type.Name(),
 					}
 				}
 				resContentMap[string(mediaType)] = &openapi.MediaType{
@@ -496,7 +496,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			h.handleParamField(schema, path.outParam.field, mediaType)
 			if mediaType == XML {
 				schema.XML = &openapi.XML{
-					Name: path.outParam.structField.Type.Name(),
+					Name: path.outParam.field._type.Name(),
 				}
 			}
 			resContentMap[string(mediaType)] = &openapi.MediaType{
@@ -522,6 +522,11 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			for _, mediaType := range h.api.responseMediaTypes {
 				schema := &openapi.Schema{}
 				h.handleParamField(schema, h.handle.except.field, mediaType)
+				if mediaType == XML {
+					schema.XML = &openapi.XML{
+						Name: h.handle.except.field._type.Name(),
+					}
+				}
 				resContentMap[string(mediaType)] = &openapi.MediaType{
 					Schema: schema,
 				}
@@ -530,6 +535,11 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			mediaType := MediaType(contentType)
 			schema := &openapi.Schema{}
 			h.handleParamField(schema, h.handle.except.field, mediaType)
+			if mediaType == XML {
+				schema.XML = &openapi.XML{
+					Name: h.handle.except.field._type.Name(),
+				}
+			}
 			resContentMap[string(mediaType)] = &openapi.MediaType{
 				Schema: schema,
 			}

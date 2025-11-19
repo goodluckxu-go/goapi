@@ -14,17 +14,17 @@ type FileResponse[T FileInterface] struct {
 	t        T
 }
 
-func (f *FileResponse[T]) HttpStatus() int {
+func (f *FileResponse[T]) GetStatusCode() int {
 	return http.StatusOK
 }
 
-func (f *FileResponse[T]) HttpHeader() http.Header {
+func (f *FileResponse[T]) GetHeader() http.Header {
 	return map[string][]string{
 		"Content-Type":        {f.t.ContentType()},
 		"Content-Disposition": {"attachment; filename=\"" + f.Filename + "\""},
 	}
 }
 
-func (f *FileResponse[T]) HttpBody() any {
+func (f *FileResponse[T]) GetBody() any {
 	return f.Body
 }

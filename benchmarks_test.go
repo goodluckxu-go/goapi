@@ -17,7 +17,7 @@ func BenchmarkOneRouter(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	writer := &ResponseWriter{ResponseWriter: httptest.NewRecorder()}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
@@ -29,7 +29,7 @@ func BenchmarkOneReturnRouter(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	writer := &ResponseWriter{ResponseWriter: httptest.NewRecorder()}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
@@ -41,7 +41,7 @@ func BenchmarkMiddlewareRouter(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
-	writer := &ResponseWriter{ResponseWriter: httptest.NewRecorder()}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler(func(ctx *Context) {
 		ctx.Request.Header.Set("Token", "111")
 		ctx.Next()
@@ -66,7 +66,7 @@ func BenchmarkPostDataRouter(b *testing.B) {
 		"Id":   15,
 		"Name": "zs",
 	})
-	writer := &ResponseWriter{ResponseWriter: httptest.NewRecorder()}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
 		req.Body = io.NopCloser(bytes.NewBuffer(buf))
@@ -81,7 +81,7 @@ func BenchmarkPostFileRouter(b *testing.B) {
 	}
 	ctype, buf := createFile("./README.md")
 	req.Header.Set("Content-Type", ctype)
-	writer := &ResponseWriter{ResponseWriter: httptest.NewRecorder()}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
 		req.Body = io.NopCloser(bytes.NewBuffer(buf.Bytes()))

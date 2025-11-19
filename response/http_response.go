@@ -11,18 +11,18 @@ type HTTPResponse[T any] struct {
 	Body     T
 }
 
-func (h *HTTPResponse[T]) HttpStatus() int {
+func (h *HTTPResponse[T]) GetStatusCode() int {
 	if h.HttpCode == 0 {
 		h.HttpCode = http.StatusOK
 	}
 	return h.HttpCode
 }
 
-func (h *HTTPResponse[T]) HttpHeader() http.Header {
+func (h *HTTPResponse[T]) GetHeader() http.Header {
 	return h.Header
 }
 
-func (h *HTTPResponse[T]) HttpBody() any {
+func (h *HTTPResponse[T]) GetBody() any {
 	return h.Body
 }
 

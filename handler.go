@@ -119,7 +119,7 @@ func (h *handler) Handle() {
 					if err != nil {
 						log.Fatal(err)
 					}
-					field.isRoot = true
+					field.anonymous = true
 					in.field = field
 				} else {
 					in.field = &paramField{
@@ -188,11 +188,11 @@ func (h *handler) Handle() {
 	}
 	if h.api.exceptFunc != nil {
 		exceptResponse := h.api.exceptFunc(validErrorCode, "")
-		fType := reflect.TypeOf(exceptResponse.HttpBody())
+		fType := reflect.TypeOf(exceptResponse.GetBody())
 		h.except = &outParam{
 			structField: reflect.StructField{Type: fType},
-			httpStatus:  exceptResponse.HttpStatus(),
-			httpHeader:  exceptResponse.HttpHeader(),
+			httpStatus:  exceptResponse.GetStatusCode(),
+			httpHeader:  exceptResponse.GetHeader(),
 		}
 		field, err := h.handleField(h.except.structField, -1)
 		if err != nil {
@@ -217,13 +217,13 @@ func (h *handler) handleOutParam(outParam *outParam) {
 	}
 	valAny := value.Interface()
 	if fn, ok := valAny.(ResponseHeader); ok {
-		outParam.httpHeader = fn.HttpHeader()
+		outParam.httpHeader = fn.GetHeader()
 	}
-	if fn, ok := valAny.(ResponseStatus); ok {
-		outParam.httpStatus = fn.HttpStatus()
+	if fn, ok := valAny.(ResponseStatusCode); ok {
+		outParam.httpStatus = fn.GetStatusCode()
 	}
 	if fn, ok := valAny.(ResponseBody); ok {
-		outParam.structField.Type = reflect.TypeOf(fn.HttpBody())
+		outParam.structField.Type = reflect.TypeOf(fn.GetBody())
 	}
 }
 
@@ -352,7 +352,7 @@ func (h *handler) getNames(field reflect.StructField) (rs paramFieldNames) {
 		paramName := paramFieldName{
 			name:      name,
 			mediaType: mediaType,
-			required:  !field.Anonymous,
+			required:  true,
 		}
 		for _, v := range nameSplit[1:] {
 			if v == omitempty {

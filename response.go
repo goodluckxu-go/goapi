@@ -5,19 +5,23 @@ import (
 )
 
 type Response interface {
-	ResponseStatus
+	ResponseStatusCode
 	ResponseHeader
 	ResponseBody
 }
 
-type ResponseStatus interface {
-	HttpStatus() int
+type ResponseStatusCode interface {
+	GetStatusCode() int
 }
 
 type ResponseHeader interface {
-	HttpHeader() http.Header
+	GetHeader() http.Header
 }
 
 type ResponseBody interface {
-	HttpBody() any
+	GetBody() any
+}
+
+type ResponseStreamWriter interface {
+	StreamWrite(w http.ResponseWriter)
 }
