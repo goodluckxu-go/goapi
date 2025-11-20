@@ -71,7 +71,3 @@ func (e *EnUs) JwtTranslate(msg string) string {
 	}
 	return msg
 }
-
-func (e *EnUs) ContentTypeNotSupported(field string) string {
-	return utils.JoinString("Content Type value of ", field, " is not supported")
-}

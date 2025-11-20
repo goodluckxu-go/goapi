@@ -82,6 +82,8 @@ func (h *handler) Handle() {
 		if path.inFs != nil {
 			continue
 		}
+		path.desc = h.getMappingTag(path.desc)
+		path.summary = h.getMappingTag(path.summary)
 		for key, in := range path.inParams {
 			if in.inType == inTypeFile {
 				if !isArrayType(in.structField.Type, func(sType reflect.Type) bool {
@@ -444,7 +446,7 @@ func (h *handler) handleTagByInterface(fType reflect.Type, tag *paramTag, valPtr
 		tag.unique = iTag.Unique()
 	}
 	if iTag, ok := val.(TagDesc); ok {
-		tag.desc = iTag.Desc()
+		tag.desc = h.getMappingTag(iTag.Desc())
 	}
 	if iTag, ok := val.(TagDefault); ok {
 		valAny := iTag.Default()
@@ -486,7 +488,7 @@ func (h *handler) handleTagByField(field reflect.StructField, tag *paramTag, val
 		fType = fType.Elem()
 	}
 	kind := fType.Kind()
-	if _, ok := getTypeByCovertInterface[TextInterface](fType, true); ok {
+	if _, ok := getTypeByCovertInterface[TextInterface](valPtr, true); ok {
 		kind = reflect.String
 	}
 	if tagVal := field.Tag.Get(tagRegexp); tagVal != "" && kind == reflect.String {
@@ -782,54 +784,74 @@ func (h *handler) getShortPkgName(pkgName string) (long, short string) {
 	return
 }
 
-func (h *handler) getMappingTag(tagVal string, replaces ...map[string]int) string {
-	return tagVal
-	//n := len(tagVal)
-	//left := 0 // 变量左边坐标
-	//i := 0
-	//var buf []byte
-	//isMapping := false
-	//replace := map[string]int{}
-	//if len(replaces) > 0 {
-	//	replace = replaces[0]
-	//}
-	//replaceNum := map[string]int{}
-	//for i < n {
-	//	if i+1 < n && tagVal[i:i+2] == "{{" {
-	//		if i+2 < n && tagVal[i+2] == '{' {
-	//			buf = append(buf, tagVal[i])
-	//			i++
-	//			continue
-	//		}
-	//		buf = append(buf, "{{"...)
-	//		left = i + 2
-	//		i += 2
-	//		continue
-	//	} else if left > 0 && i+1 < n && tagVal[i:i+2] == "}}" {
-	//		oldVal := tagVal[left:i]
-	//		val := h.api.structTagVariableMap[oldVal]
-	//		if val != nil {
-	//			buf = append(buf[0:len(buf)-len(oldVal)-2], val.(string)...)
-	//			isMapping = true
-	//			replaceNum[oldVal]++
-	//		} else {
-	//			buf = append(buf, "}}"...)
-	//		}
-	//		left = 0
-	//		i += 2
-	//		continue
-	//	}
-	//	buf = append(buf, tagVal[i])
-	//	i++
-	//}
-	//for k, _ := range replaceNum {
-	//	if replace[k] > 0 {
-	//		log.Fatal(fmt.Sprintf("mapping tag '%v' dead loop", k))
-	//	}
-	//	replace[k]++
-	//}
-	//if isMapping {
-	//	return h.getMappingTag(string(buf), replace)
-	//}
-	//return string(buf)
+func (h *handler) getMappingTag(tagVal string, replaces ...map[string]struct{}) string {
+	if tagVal == "" {
+		return tagVal
+	}
+	replace := map[string]struct{}{}
+	if len(replaces) > 0 {
+		replace = replaces[0]
+	}
+	tagList := h.handleMappingTag(tagVal)
+	newTagVal := ""
+	for _, tag := range tagList {
+		c := tag[0]
+		tag = tag[1:]
+		if c == '1' {
+			oldVal := tag[2 : len(tag)-2]
+			val := h.api.structTagVariableMap[oldVal]
+			if val != nil {
+				if _, ok := replace[oldVal]; ok {
+					log.Fatal(fmt.Sprintf("mapping tag '%v' dead loop", oldVal))
+				}
+				newTagVal += h.getMappingTag(val.(string), h.cloneMappingAppend(replace, oldVal))
+				continue
+			}
+		}
+		newTagVal += tag
+	}
+	return newTagVal
+}
+
+func (h *handler) cloneMappingAppend(m map[string]struct{}, key string) map[string]struct{} {
+	rs := map[string]struct{}{}
+	for k, v := range m {
+		rs[k] = v
+	}
+	rs[key] = struct{}{}
+	return rs
+}
+
+func (h *handler) handleMappingTag(tagVal string) []string {
+	n := len(tagVal)
+	if n < 5 {
+		return []string{"0" + tagVal}
+	}
+	var list []string
+	left, right := -1, 0
+	for i := 0; i < n; i++ {
+		if left == -1 {
+			if i+2 < n && tagVal[i] == '{' && tagVal[i+1] == '{' && tagVal[i+2] != '{' {
+				left = i
+			}
+			continue
+		}
+		if i-2 >= 0 && tagVal[i-2] != '}' && tagVal[i-1] == '}' && tagVal[i] == '}' {
+			if right < left {
+				if right == -1 {
+					list = append(list, "0"+tagVal[:left])
+				} else {
+					list = append(list, "0"+tagVal[right:left])
+				}
+			}
+			right = i + 1
+			list = append(list, "1"+tagVal[left:right])
+			left = -1
+			continue
+		}
+	}
+	if right < n {
+		list = append(list, "0"+tagVal[right:])
+	}
+	return list
 }
