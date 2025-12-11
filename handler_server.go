@@ -343,6 +343,9 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			username, password, _ := ctx.Request.BasicAuth()
 			security := inValue.Interface().(HTTPBasic)
 			security.HTTPBasic(username, password)
+		case inTypeSecurityApiKey:
+			security := inValue.Interface().(ApiKey)
+			security.ApiKey()
 		case inTypeOther:
 			h.handleParamByOther(ctx, inValue)
 		}
