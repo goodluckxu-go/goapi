@@ -758,29 +758,38 @@ func (h *handler) handleOpenapiName() {
 }
 
 func (h *handler) splitPkgName(pkgName string) (rs []string) {
-	start := 0
-	end := -1
-	for i := 0; i < len(pkgName); i++ {
-		c := pkgName[i]
-		if c == '[' {
-			rs = append(rs, pkgName[start:i])
-			start = i + 1
-		} else if c == ']' && end == -1 {
-			end = i
+	for pkgName[len(pkgName)-1] == ']' {
+		leftNum := 0
+		symbolIndex := 0
+		for i := len(pkgName) - 2; i >= 0; i-- {
+			if pkgName[i] == ']' {
+				leftNum++
+			} else if pkgName[i] == '[' {
+				if leftNum == 0 {
+					symbolIndex = i
+					break
+				}
+				leftNum--
+			}
 		}
+		rs = append(rs, pkgName[:symbolIndex])
+		pkgName = pkgName[symbolIndex+1 : len(pkgName)-1]
 	}
-	if end == -1 {
-		end = len(pkgName)
-	}
-	rs = append(rs, pkgName[start:end])
+	rs = append(rs, pkgName)
 	return
 }
 
 func (h *handler) getShortPkgName(pkgName string) (long, short string) {
+	prefix := ""
+	if pkgName[0] == '[' {
+		symbolIndex := strings.IndexByte(pkgName, ']')
+		prefix = pkgName[:symbolIndex+1]
+		pkgName = pkgName[symbolIndex+1:]
+	}
 	pkgNameList := strings.Split(pkgName, "/")
-	long = pkgNameList[len(pkgNameList)-1]
+	long = prefix + pkgNameList[len(pkgNameList)-1]
 	pkgNameList = strings.Split(long, ".")
-	short = pkgNameList[len(pkgNameList)-1]
+	short = prefix + pkgNameList[len(pkgNameList)-1]
 	return
 }
 
