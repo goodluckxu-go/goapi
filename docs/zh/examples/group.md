@@ -3,24 +3,28 @@
 - 文档访问路径 /docs/
 - 路由前缀路径  /admin
 ~~~go
-api := goapi.GoAPI(true)
-admin:=api.Group("/admin", true)
-{
-	admin.AddMiddleware(nil)
+func main () {
+	api := goapi.GoAPI(true)
+	admin:=api.Group("/admin", true)
+	{
+		admin.AddMiddleware(nil)
+	}
 }
 ~~~
 ### 子程序定义组
 - 文档访问路径 /docs/admin/
 - 路由前缀路径  /v1/user
 ~~~go
-api := goapi.GoAPI(true)
-admin:=api.Child("/admin", true, "/v1")
-{
-	admin.OpenAPIInfo.Title = "后台管理接口"
-	admin.AddMiddleware(nil)
-	group:=admin.Group("/user", true)
+func main () {
+	api := goapi.GoAPI(true)
+	admin:=api.Child("/admin", true, "/v1")
 	{
-		group.AddMiddleware(nil)
+		admin.OpenAPIInfo.Title = "后台管理接口"
+		admin.AddMiddleware(nil)
+		group:=admin.Group("/user", true)
+		{
+			group.AddMiddleware(nil)
+		}
 	}
 }
 ~~~
@@ -28,13 +32,15 @@ admin:=api.Child("/admin", true, "/v1")
 - 文档访问路径 /docs/
 - 路由前缀路径  /admin/user
 ~~~go
-api := goapi.GoAPI(true)
-admin:=api.Group("/admin", true)
-{
-	admin.AddMiddleware(nil)
-	user:=admin.Group("/user", true)
+func main () {
+	api := goapi.GoAPI(true)
+	admin:=api.Group("/admin", true)
 	{
-		user.AddMiddleware(nil)
+		admin.AddMiddleware(nil)
+		user:=admin.Group("/user", true)
+		{
+			user.AddMiddleware(nil)
+		}
 	}
 }
 ~~~
