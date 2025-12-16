@@ -7,13 +7,15 @@ import (
 )
 
 type staticInfo struct {
-	path   string
-	fs     http.FileSystem
-	isFile bool
+	path        string
+	fs          http.FileSystem
+	isFile      bool
+	groupPrefix string
+	middlewares []HandleFunc
 }
 
-func (h *staticInfo) returnObj(prefix, docsPath, groupPrefix string, middlewares []HandleFunc, isDocs bool) (obj pathInterfaceResult, err error) {
-	h.path = pathJoin(prefix, h.path)
+func (h *staticInfo) returnObj() (obj returnObjResult, err error) {
+	h.path = pathJoin(h.groupPrefix, h.path)
 	if !h.isFile {
 		if h.path[len(h.path)-1] != '/' {
 			h.path += "/"
@@ -25,8 +27,8 @@ func (h *staticInfo) returnObj(prefix, docsPath, groupPrefix string, middlewares
 		fsType = fsType.Elem()
 		pos = fmt.Sprintf("%v.(*%v) (fs)", fsType.PkgPath(), fsType.Name())
 	}
-	if len(middlewares) > 0 {
-		pos += fmt.Sprintf(" (%v Middleware)", len(middlewares))
+	if len(h.middlewares) > 0 {
+		pos += fmt.Sprintf(" (%v Middleware)", len(h.middlewares))
 	}
 	paths := []string{h.path}
 	if !h.isFile {
@@ -39,10 +41,9 @@ func (h *staticInfo) returnObj(prefix, docsPath, groupPrefix string, middlewares
 		pos:         pos,
 		isFile:      h.isFile,
 		inFs:        h.fs,
-		groupPrefix: groupPrefix,
-		docsPath:    docsPath,
+		groupPrefix: h.groupPrefix,
 		isDocs:      false,
-		middlewares: middlewares,
+		middlewares: h.middlewares,
 	})
 	return
 }

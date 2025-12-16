@@ -68,13 +68,13 @@ func (h *handlerServer) HandleSwagger(
 
 func (h *handlerServer) handleSwagger(router swagger.Router) {
 	pos := "github.com/goodluckxu-go/goapi/swagger.GetSwagger (docs)"
-	if len(h.handle.defaultMiddlewares) > 0 {
-		pos += fmt.Sprintf(" (%v Middleware)", len(h.handle.defaultMiddlewares))
+	if len(h.handle.api.defaultMiddlewares) > 0 {
+		pos += fmt.Sprintf(" (%v Middleware)", len(h.handle.api.defaultMiddlewares))
 	}
 	h.handle.paths = append(h.handle.paths, &pathInfo{
 		paths:       router.Paths,
 		methods:     []string{http.MethodGet},
-		middlewares: h.handle.defaultMiddlewares,
+		middlewares: h.handle.api.defaultMiddlewares,
 		handle: func(ctx *Context) {
 			router.Handler(ctx.Writer, ctx.Request)
 		},

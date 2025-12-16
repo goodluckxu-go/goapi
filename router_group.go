@@ -1,0 +1,144 @@
+package goapi
+
+import (
+	"net/http"
+
+	"github.com/goodluckxu-go/goapi/openapi"
+)
+
+type RouterGroupInterface interface {
+	AddMiddleware(middlewares ...HandleFunc)
+	IncludeRouter(router any, prefix string, isDocs bool, middlewares ...HandleFunc)
+	Group(prefix string, isDocs bool) *RouterGroup
+}
+
+type RouterChild struct {
+	RouterGroup
+	OpenAPIInfo    *openapi.Info
+	OpenAPIServers []*openapi.Server
+	OpenAPITags    []*openapi.Tag
+}
+
+func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
+	obj, err = r.RouterGroup.returnObj()
+	if err != nil {
+		return
+	}
+	docs := obj.docsMap[r.docsPath]
+	docs.info = r.OpenAPIInfo
+	docs.servers = r.OpenAPIServers
+	docs.tags = mergeOpenAPITags(docs.tags, r.OpenAPITags)
+	obj.docsMap[r.docsPath] = docs
+	return
+}
+
+type RouterGroup struct {
+	prefix      string
+	groupPrefix string
+	isDocs      bool
+	docsPath    string
+	middlewares []HandleFunc
+	handlers    []any
+}
+
+// AddMiddleware It is a function for adding middleware
+func (r *RouterGroup) AddMiddleware(middlewares ...HandleFunc) {
+	for _, middleware := range middlewares {
+		r.handlers = append(r.handlers, middleware)
+	}
+}
+
+// IncludeRouter It is a function that introduces routing structures
+func (r *RouterGroup) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...HandleFunc) {
+	r.handlers = append(r.handlers, &includeRouter{
+		router:      router,
+		prefix:      pathJoin(r.prefix, prefix),
+		groupPrefix: r.groupPrefix,
+		isDocs:      r.isDocs && isDocs,
+		docsPath:    r.docsPath,
+		middlewares: append(r.middlewares, append(r.getMiddlewares(), middlewares...)...),
+	})
+}
+
+// StaticFile registers a single route in order to serve a single file of the local filesystem.
+// router.StaticFile("favicon.ico", "./resources/favicon.ico")
+func (r *RouterGroup) StaticFile(path, root string) {
+	r.handlers = append(r.handlers, &staticInfo{
+		path:        path,
+		fs:          http.Dir(root),
+		isFile:      true,
+		groupPrefix: r.groupPrefix,
+		middlewares: append(r.middlewares, r.getMiddlewares()...),
+	})
+}
+
+// Static serves files from the given file system root.
+func (r *RouterGroup) Static(path, root string) {
+	r.StaticFS(path, Dir(root, false))
+}
+
+// StaticFS works just like `Static()` but a custom `http.FileSystem` can be used instead.
+// goapi by default uses: goapi.Dir()
+func (r *RouterGroup) StaticFS(path string, fs http.FileSystem) {
+	r.handlers = append(r.handlers, &staticInfo{
+		path:        path,
+		fs:          fs,
+		groupPrefix: r.groupPrefix,
+		middlewares: append(r.middlewares, r.getMiddlewares()...),
+	})
+}
+
+// Group It is an introduction routing group
+func (r *RouterGroup) Group(prefix string, isDocs bool) *RouterGroup {
+	group := &RouterGroup{
+		prefix:      pathJoin(r.prefix, prefix),
+		groupPrefix: pathJoin(r.groupPrefix, prefix),
+		isDocs:      r.isDocs && isDocs,
+		docsPath:    r.docsPath,
+		middlewares: append(r.middlewares, r.getMiddlewares()...),
+	}
+	r.handlers = append(r.handlers, group)
+	return group
+}
+
+func (r *RouterGroup) getMiddlewares() (middlewares []HandleFunc) {
+	for _, hd := range r.handlers {
+		if middleware, ok := hd.(HandleFunc); ok {
+			middlewares = append(middlewares, middleware)
+		}
+	}
+	return middlewares
+}
+
+func (r *RouterGroup) returnObj() (obj returnObjResult, err error) {
+	obj.groupMap = map[string]returnObjGroup{
+		r.prefix: {
+			middlewares: r.getMiddlewares(),
+		},
+	}
+	obj.docsMap = map[string]returnObjDocs{}
+	obj.mediaTypes = map[MediaType]struct{}{}
+	var childObj returnObjResult
+	for _, hd := range r.handlers {
+		if fn, ok := hd.(returnObject); ok {
+			childObj, err = fn.returnObj()
+			if err != nil {
+				return
+			}
+			for k, v := range childObj.groupMap {
+				if k == r.groupPrefix {
+					v.middlewares = append(obj.groupMap[k].middlewares, v.middlewares...)
+				}
+				obj.groupMap[k] = v
+			}
+			for k, v := range childObj.docsMap {
+				obj.docsMap[k] = v
+			}
+			for k, v := range childObj.mediaTypes {
+				obj.mediaTypes[k] = v
+			}
+			obj.paths = append(obj.paths, childObj.paths...)
+		}
+	}
+	return
+}

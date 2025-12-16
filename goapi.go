@@ -19,13 +19,7 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 	if len(docsPath) > 0 {
 		dPath = docsPath[0]
 	}
-	return &API{
-		responseMediaTypes: []MediaType{JSON},
-		isDocs:             isDocs,
-		OpenAPIInfo: &openapi.Info{
-			Title:   "GoAPI",
-			Version: "1.0.0",
-		},
+	api := &API{
 		Swagger: swagger.Config{
 			DocExpansion: "list",
 			DeepLinking:  true,
@@ -37,22 +31,26 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 			}
 		},
 		log:                  &levelHandleLogger{log: &defaultLogger{}},
-		docsPath:             dPath,
 		addr:                 ":8080",
 		lang:                 &lang.EnUs{},
 		structTagVariableMap: map[string]any{},
+		defaultMiddlewares:   []HandleFunc{setLogger()},
 	}
+	api.OpenAPIInfo = &openapi.Info{
+		Title:   "GoAPI",
+		Version: "1.0.0",
+	}
+	api.isDocs = isDocs
+	api.docsPath = dPath
+	api.AddMiddleware(api.defaultMiddlewares...)
+	return api
 }
 
 type API struct {
-	handlers             []any
+	IRouters
+	defaultMiddlewares   []HandleFunc
 	responseMediaTypes   []MediaType
-	OpenAPIInfo          *openapi.Info
-	isDocs               bool
-	OpenAPIServers       []*openapi.Server
-	OpenAPITags          []*openapi.Tag
 	Swagger              swagger.Config
-	docsPath             string
 	exceptFunc           func(httpCode int, detail string) Response
 	lang                 Lang
 	log                  Logger
@@ -127,64 +125,9 @@ func (a *API) SetAutoTags(index uint) {
 	a.autoTagsIndex = toPtr(int(index))
 }
 
-// AddMiddleware It is a function for adding middleware
-func (a *API) AddMiddleware(middlewares ...HandleFunc) {
-	for _, middleware := range middlewares {
-		a.handlers = append(a.handlers, middleware)
-	}
-}
-
-// IncludeRouter It is a function that introduces routing structures
-func (a *API) IncludeRouter(router any, prefix string, isDocs bool, middlewares ...HandleFunc) {
-	a.handlers = append(a.handlers, &includeRouter{
-		router:      router,
-		prefix:      prefix,
-		isDocs:      isDocs,
-		middlewares: middlewares,
-	})
-}
-
-// IncludeGroup It is an introduction routing group
-func (a *API) IncludeGroup(group *APIGroup) {
-	a.handlers = append(a.handlers, group)
-}
-
-// IncludeChildAPI It is an introduction routing children
-func (a *API) IncludeChildAPI(child *ChildAPI) {
-	a.handlers = append(a.handlers, child)
-}
-
 // DebugPprof Open the system's built-in pprof
 func (a *API) DebugPprof() {
-	a.handlers = append(a.handlers, &includeRouter{
-		router: &pprofInfo{},
-		prefix: "/debug",
-		isDocs: false,
-	})
-}
-
-// StaticFile registers a single route in order to serve a single file of the local filesystem.
-// router.StaticFile("favicon.ico", "./resources/favicon.ico")
-func (a *API) StaticFile(path, root string) {
-	a.handlers = append(a.handlers, &staticInfo{
-		path:   path,
-		fs:     http.Dir(root),
-		isFile: true,
-	})
-}
-
-// Static serves files from the given file system root.
-func (a *API) Static(path, root string) {
-	a.StaticFS(path, Dir(root, false))
-}
-
-// StaticFS works just like `Static()` but a custom `http.FileSystem` can be used instead.
-// goapi by default uses: goapi.Dir()
-func (a *API) StaticFS(path string, fs http.FileSystem) {
-	a.handlers = append(a.handlers, &staticInfo{
-		path: path,
-		fs:   fs,
-	})
+	a.IncludeRouter(&pprofInfo{}, "/debug", false)
 }
 
 // Run attaches the router to a http.Server and starts listening and serving HTTP requests.

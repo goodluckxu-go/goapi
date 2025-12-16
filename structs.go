@@ -124,6 +124,23 @@ type pathInterface interface {
 	returnObj(prefix, docsPath, groupPrefix string, middlewares []HandleFunc, isDocs bool) (obj pathInterfaceResult, err error)
 }
 
+type returnObjGroup struct {
+	middlewares []HandleFunc
+}
+
+type returnObjDocs struct {
+	info    *openapi.Info
+	tags    []*openapi.Tag
+	servers []*openapi.Server
+}
+
+type returnObjResult struct {
+	paths      []*pathInfo
+	groupMap   map[string]returnObjGroup
+	docsMap    map[string]returnObjDocs
+	mediaTypes map[MediaType]struct{}
+}
+
 type exceptInfo struct {
 	HttpCode int               `json:"http_code"`
 	Header   map[string]string `json:"header"`

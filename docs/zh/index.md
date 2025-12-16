@@ -1,12 +1,9 @@
-# goapi
-使用OpenAPI3.1文档的HTTP框架
+## [<<](../../README.md) GoAPI使用文档
 
-使用说明:
-- [中文文档](docs/zh/index.md)
-## 用法
-~~~bash
-go get github.com/goodluckxu-go/goapi
-~~~
+### [快速入门](quick_start.md)
+### [基准测试](benchmarks.md)
+### [示例](examples/examples.md)
+
 ## 功能
 - 实现了http服务，路由使用gin路由模式的前缀树方式实现
 - 集成swagger+openapi3.1.0文档的访问
@@ -16,5 +13,3 @@ go get github.com/goodluckxu-go/goapi
 - 实现了路由组模式
 - 实现了多个程序模块组的模式
 - ......
-## 关于
-使用类似于Python中的FastAPI的API生成文档

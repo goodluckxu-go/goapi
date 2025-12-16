@@ -22,13 +22,7 @@ func newHandler(api *API) *handler {
 		structTypes:            make(map[string]reflect.Type),
 		mediaTypes:             map[MediaType]struct{}{},
 		publicGroupMiddlewares: make(map[string][]HandleFunc),
-		openapiMap: map[string]*openapi.OpenAPI{
-			api.docsPath: {
-				Info:    api.OpenAPIInfo,
-				Servers: api.OpenAPIServers,
-				Tags:    api.OpenAPITags,
-			},
-		},
+		openapiMap:             map[string]*openapi.OpenAPI{},
 	}
 }
 
@@ -39,45 +33,39 @@ type handler struct {
 	structs                map[string]*structInfo
 	structTypes            map[string]reflect.Type
 	mediaTypes             map[MediaType]struct{}
-	defaultMiddlewares     []HandleFunc
 	publicGroupMiddlewares map[string][]HandleFunc // group prefix
 	openapiMap             map[string]*openapi.OpenAPI
 	except                 *outParam
 }
 
 func (h *handler) Handle() {
-	h.defaultMiddlewares = append(h.defaultMiddlewares, setLogger())
-	h.publicGroupMiddlewares[""] = h.defaultMiddlewares
-	for _, mediaTypes := range h.api.responseMediaTypes {
-		h.mediaTypes[mediaTypes] = struct{}{}
+	if len(h.api.responseMediaTypes) == 0 {
+		h.api.responseMediaTypes = []MediaType{JSON}
 	}
-	var publicTags []*openapi.Tag
-	for _, hd := range h.api.handlers {
-		if handle, ok := hd.(pathInterface); ok {
-			obj, err := handle.returnObj("/", h.api.docsPath, "/", h.publicGroupMiddlewares[""], h.api.isDocs)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for k, v := range obj.publicMiddlewares {
-				h.publicGroupMiddlewares[k] = append(h.publicGroupMiddlewares[k], v...)
-			}
-			for mediaType := range obj.mediaTypes {
-				h.mediaTypes[mediaType] = struct{}{}
-			}
-			for k, v := range obj.openapiMap {
-				h.openapiMap[k] = v
-			}
-			h.paths = append(h.paths, obj.paths...)
-			if len(obj.publicMiddlewares) == 0 {
-				publicTags = mergeOpenAPITags(publicTags, obj.tags)
-			}
-			continue
-		}
-		if middleware, ok := hd.(HandleFunc); ok {
-			h.publicGroupMiddlewares[""] = append(h.publicGroupMiddlewares[""], middleware)
+	obj, err := h.api.returnObj()
+	if err != nil {
+		log.Fatal(err)
+	}
+	for k, v := range obj.groupMap {
+		if len(v.middlewares) > 0 {
+			h.publicGroupMiddlewares[k] = append(h.publicGroupMiddlewares[k], v.middlewares...)
 		}
 	}
-	h.openapiMap[h.api.docsPath].Tags = mergeOpenAPITags(publicTags, h.openapiMap[h.api.docsPath].Tags)
+	for k, v := range obj.docsMap {
+		h.openapiMap[k] = &openapi.OpenAPI{
+			Info:    v.info,
+			Servers: v.servers,
+			Tags:    v.tags,
+		}
+	}
+	for _, v := range h.api.responseMediaTypes {
+		h.mediaTypes[v] = struct{}{}
+	}
+	for k, v := range obj.mediaTypes {
+		h.mediaTypes[k] = v
+	}
+	h.paths = obj.paths
+	var field *paramField
 	for _, path := range h.paths {
 		if path.inFs != nil {
 			continue
@@ -117,7 +105,7 @@ func (h *handler) Handle() {
 					}
 				}
 				if isBody {
-					field, err := h.handleField(in.structField, -1)
+					field, err = h.handleField(in.structField, -1)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -133,7 +121,7 @@ func (h *handler) Handle() {
 						in.field.kind = fType.Elem().Kind()
 					}
 					fVal := getValueByType(fType, true)
-					if err := h.handleTagByInterface(fType, in.field.tag, fVal); err != nil {
+					if err = h.handleTagByInterface(fType, in.field.tag, fVal); err != nil {
 						log.Fatal(err)
 					}
 					if _, ok := getTypeByCovertInterface[io.ReadCloser](fType); ok {
@@ -145,7 +133,7 @@ func (h *handler) Handle() {
 					if in.field._type == nil {
 						in.field._type = fType
 					}
-					if err := h.handleTagByField(in.structField, in.field.tag, fVal); err != nil {
+					if err = h.handleTagByField(in.structField, in.field.tag, fVal); err != nil {
 						log.Fatal(err)
 					}
 					if _, ok := getTypeByCovertInterface[TextInterface](fVal); ok {
@@ -171,7 +159,7 @@ func (h *handler) Handle() {
 						in.inType.Tag(), in.structField.Type.String()))
 				}
 			}
-			field, err := h.handleParam(in.inType, in.structField, -1, in.values)
+			field, err = h.handleParam(in.inType, in.structField, -1, in.values)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -181,7 +169,7 @@ func (h *handler) Handle() {
 		if path.outParam != nil {
 			path.outParam.httpStatus = http.StatusOK
 			h.handleOutParam(path.outParam)
-			field, err := h.handleField(path.outParam.structField, -1)
+			field, err = h.handleField(path.outParam.structField, -1)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -196,13 +184,13 @@ func (h *handler) Handle() {
 			httpStatus:  exceptResponse.GetStatusCode(),
 			httpHeader:  exceptResponse.GetHeader(),
 		}
-		field, err := h.handleField(h.except.structField, -1)
+		field, err = h.handleField(h.except.structField, -1)
 		if err != nil {
 			log.Fatal(err)
 		}
 		h.except.field = field
 	}
-	err := h.handleStruct()
+	err = h.handleStruct()
 	if err != nil {
 		log.Fatal(err)
 	}

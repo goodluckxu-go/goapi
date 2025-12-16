@@ -12,14 +12,17 @@ import (
 type includeRouter struct {
 	router      any
 	prefix      string
+	groupPrefix string
 	isDocs      bool
+	docsPath    string
 	middlewares []HandleFunc
 }
 
-func (i *includeRouter) returnObj(prefix, docsPath, groupPrefix string, middlewares []HandleFunc, isDocs bool) (obj pathInterfaceResult, err error) {
+func (i *includeRouter) returnObj() (obj returnObjResult, err error) {
+	obj.docsMap = map[string]returnObjDocs{
+		i.docsPath: {},
+	}
 	obj.mediaTypes = map[MediaType]struct{}{}
-	i.prefix = pathJoin(prefix, i.prefix)
-	i.isDocs = isDocs && i.isDocs
 	var tags []*openapi.Tag
 	var tagStrs []string
 	if tVal, ok := i.router.(RouterTags); ok {
@@ -28,7 +31,13 @@ func (i *includeRouter) returnObj(prefix, docsPath, groupPrefix string, middlewa
 			tagStrs = append(tagStrs, tag.Name)
 		}
 	}
-	obj.tags = tags
+	if i.isDocs && len(tags) > 0 {
+		obj.docsMap = map[string]returnObjDocs{
+			i.docsPath: {
+				tags: tags,
+			},
+		}
+	}
 	value := reflect.ValueOf(i.router)
 	if !((value.Kind() == reflect.Ptr && value.Elem().Kind() == reflect.Struct) || value.Kind() == reflect.Struct) {
 		err = fmt.Errorf("router must be a struct or struct pointer")
@@ -77,10 +86,10 @@ func (i *includeRouter) returnObj(prefix, docsPath, groupPrefix string, middlewa
 			pos:         fmt.Sprintf("%v.%v", pos, value.Type().Method(j).Name),
 			value:       routerMethod,
 			inTypes:     inTypes,
-			middlewares: append(middlewares, i.middlewares...),
+			middlewares: i.middlewares,
 			isDocs:      i.isDocs,
-			docsPath:    docsPath,
-			groupPrefix: groupPrefix,
+			docsPath:    i.docsPath,
+			groupPrefix: i.groupPrefix,
 		}
 		if len(pInfo.middlewares) > 0 {
 			pInfo.pos += fmt.Sprintf(" (%v Middleware)", len(pInfo.middlewares))
