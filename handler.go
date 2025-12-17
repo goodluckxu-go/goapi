@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"net/textproto"
 	"reflect"
 	"strconv"
 	"strings"
@@ -184,7 +185,7 @@ func (h *handler) Handle() {
 		h.except = &outParam{
 			structField: reflect.StructField{Type: fType},
 			httpStatus:  exceptResponse.GetStatusCode(),
-			httpHeader:  exceptResponse.GetHeader(),
+			httpHeader:  h.handleHeader(exceptResponse.GetHeader()),
 		}
 		field, err = h.handleField(h.except.structField, -1)
 		if err != nil {
@@ -209,7 +210,7 @@ func (h *handler) handleOutParam(outParam *outParam) {
 	}
 	valAny := value.Interface()
 	if fn, ok := valAny.(ResponseHeader); ok {
-		outParam.httpHeader = fn.GetHeader()
+		outParam.httpHeader = h.handleHeader(fn.GetHeader())
 	}
 	if fn, ok := valAny.(ResponseStatusCode); ok {
 		outParam.httpStatus = fn.GetStatusCode()
@@ -217,6 +218,15 @@ func (h *handler) handleOutParam(outParam *outParam) {
 	if fn, ok := valAny.(ResponseBody); ok {
 		outParam.structField.Type = reflect.TypeOf(fn.GetBody())
 	}
+}
+
+func (h *handler) handleHeader(header http.Header) http.Header {
+	rs := http.Header{}
+	for key, val := range header {
+		key = textproto.CanonicalMIMEHeaderKey(key)
+		rs[key] = val
+	}
+	return rs
 }
 
 func (h *handler) handleParam(inType InType, field reflect.StructField, index int, names paramFieldNames) (rs *paramField, err error) {
