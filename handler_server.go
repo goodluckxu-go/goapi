@@ -212,12 +212,30 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	if fn, ok := resp.(ResponseBody); ok {
 		resp = fn.GetBody()
 	}
+	if r, ok := getFnByCovertInterface[io.Reader](resp); ok {
+		_ = h.copyReader(ctx.Writer, r)
+		return
+	}
 	var body []byte
 	var err error
 	if body, err = mediaType.Marshaler(resp); err != nil {
 		return
 	}
 	_, _ = ctx.Writer.Write(body)
+}
+
+func (h *handlerServer) copyReader(w ResponseWriter, r io.Reader) error {
+	buf := make([]byte, 32*1024)
+	for {
+		n, err := r.Read(buf)
+		if n > 0 {
+			_, _ = w.Write(buf[:n])
+			w.Flush()
+		}
+		if err != nil {
+			return err
+		}
+	}
 }
 
 func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, ins []*inParam) (value reflect.Value, err error) {

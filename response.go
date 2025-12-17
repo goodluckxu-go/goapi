@@ -21,7 +21,3 @@ type ResponseHeader interface {
 type ResponseBody interface {
 	GetBody() any
 }
-
-type ResponseStreamWriter interface {
-	StreamWrite(w http.ResponseWriter)
-}

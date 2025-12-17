@@ -169,9 +169,11 @@ func (h *handler) Handle() {
 		if path.outParam != nil {
 			path.outParam.httpStatus = http.StatusOK
 			h.handleOutParam(path.outParam)
-			field, err = h.handleField(path.outParam.structField, -1)
-			if err != nil {
-				log.Fatal(err)
+			if _, ok := getTypeByCovertInterface[io.Reader](path.outParam.structField.Type); !ok {
+				field, err = h.handleField(path.outParam.structField, -1)
+				if err != nil {
+					log.Fatal(err)
+				}
 			}
 			path.outParam.field = field
 		}

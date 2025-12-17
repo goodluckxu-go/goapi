@@ -70,3 +70,27 @@ func (b BodyResp)GetBody() any  {
 	}
 }
 ~~~
+### 需要使用流式返回数据
+- 返回值需要实现 **io.Reader** 接口
+- **GetBody() any** 返回一个实现 **io.Reader** 接口的返回值
+
+基本返回值实现接口
+~~~go
+type StreamResp struct {
+	R io.Reader
+}
+
+func (s StreamResp) Read(buf []byte) (int, error) {
+	return s.R.Read(buf)
+}
+~~~
+重新定义实现 **GetBody() any** 方法实现接口
+~~~go
+type StreamResp struct {
+	R io.Reader
+}
+
+func (s StreamResp) GetBody() any {
+	return s.R
+}
+~~~
