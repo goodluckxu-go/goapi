@@ -56,7 +56,6 @@ type API struct {
 	log                  Logger
 	addr                 string
 	structTagVariableMap map[string]any
-	autoTagsIndex        *int
 }
 
 // HTTPExceptionHandler It is an exception handling registration for HTTP
@@ -116,13 +115,6 @@ func (a *API) SetStructTagVariableMapping(m map[string]string) {
 		}
 		a.structTagVariableMap[k] = v
 	}
-}
-
-// SetAutoTags This is the method of automatically setting tags
-// 'index' Is the index of an array that divides routing by ‘/’
-// If tags are set in the route, it becomes invalid
-func (a *API) SetAutoTags(index uint) {
-	a.autoTagsIndex = toPtr(int(index))
 }
 
 // DebugPprof Open the system's built-in pprof
