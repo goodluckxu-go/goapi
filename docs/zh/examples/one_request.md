@@ -13,7 +13,7 @@ type Index struct {}
 // 定义一个类型为 goapi.Router 的字段
 // 定义必要标签 path 和 method
 func (*Index) Index(input struct{
-router goapi.Router `path:"/index,/page" method:"GET,POST" summary:"测试" desc:"测试" tags:"user,admin"`
+	router goapi.Router `path:"/index,/page" method:"GET,POST" summary:"测试" desc:"测试" tags:"user,admin"`
 }) {
 
 }
