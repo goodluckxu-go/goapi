@@ -3,9 +3,12 @@ package goapi
 import (
 	"net"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gofrs/uuid"
 )
 
 type Context struct {
@@ -30,6 +33,55 @@ func (c *Context) reset() {
 	c.handlers = c.handlers[0:0]
 	c.index = -1
 	c.fullPath = ""
+	levelLog, _ := c.log.(*levelHandleLogger)
+	if _, ok := getFnByCovertInterface[LoggerRequestID](levelLog.log); ok {
+		newLog := c.copyLogger(levelLog.log)
+		if fn, fnOk := newLog.(LoggerRequestID); fnOk {
+			pk, _ := uuid.NewV4()
+			fn.SetRequestID(pk.String())
+		}
+		c.log = &levelHandleLogger{log: newLog}
+	}
+}
+
+func (c *Context) copyLogger(log Logger) Logger {
+	val := reflect.ValueOf(log)
+	var newVal reflect.Value
+	if val.Kind() == reflect.Ptr {
+		newVal = reflect.New(val.Type().Elem())
+	} else {
+		newVal = reflect.New(val.Type()).Elem()
+	}
+	c.copyStruct(newVal, val)
+	return newVal.Interface().(Logger)
+}
+
+func (c *Context) copyStruct(dst, src reflect.Value) {
+	if dst.Type() != src.Type() || src.IsZero() {
+		return
+	}
+	switch src.Kind() {
+	case reflect.Ptr:
+		c.copyStruct(dst.Elem(), src.Elem())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64, reflect.String, reflect.Bool:
+		dst.Set(src)
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < src.Len(); i++ {
+			c.copyStruct(dst.Index(i), src.Index(i))
+		}
+	case reflect.Map:
+		keys := src.MapKeys()
+		for _, key := range keys {
+			dst.SetMapIndex(key, src.MapIndex(key))
+		}
+	case reflect.Struct:
+		for i := 0; i < src.NumField(); i++ {
+			c.copyStruct(dst.Field(i), src.Field(i))
+		}
+	default:
+	}
 }
 
 func (c *Context) Deadline() (deadline time.Time, ok bool) {

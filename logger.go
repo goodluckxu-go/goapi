@@ -16,6 +16,10 @@ type Logger interface {
 	Fatal(format string, a ...any)
 }
 
+type LoggerRequestID interface {
+	SetRequestID(id string)
+}
+
 type defaultLogger struct {
 }
 

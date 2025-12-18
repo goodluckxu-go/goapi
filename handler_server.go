@@ -819,6 +819,7 @@ func (h *handlerServer) notFind(ctx *Context) {
 
 func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := h.pool.Get().(*Context)
+	ctx.log = h.log
 	ctx.writermem.reset(w)
 	ctx.reset()
 	ctx.Request = r
@@ -848,7 +849,6 @@ func (h *handlerServer) handleHTTPRequest(ctx *Context) {
 	}
 	ctx.Params = value.params
 	ctx.fullPath = value.fullPath
-	ctx.log = h.log
 	value.handler(ctx)
 }
 
