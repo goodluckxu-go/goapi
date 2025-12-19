@@ -379,6 +379,19 @@ type skippedNode struct {
 }
 
 func (n *node) getValue(path string) (value nodeValue) {
+	// Verify the situation where the path is empty
+	if path == "" {
+		if n.path == "" {
+			if n.handler != nil {
+				n.returnValue(nil, &value)
+			}
+		} else if n.path == "/" {
+			if n.handler != nil {
+				value.tsr = true
+			}
+		}
+		return
+	}
 	var skippedNodes []skippedNode
 	var params []string
 walk:
@@ -419,7 +432,7 @@ walk:
 					// If there are remaining ‘/’, it is recommended to redirect to a path without ‘/’
 					value.tsr = n.handler != nil
 				}
-			} else {
+			} else if path != "" {
 				// There will only be static addresses that cannot be matched. Check if the tsr address matches
 				tsrPath := path
 				if tsrPath[len(tsrPath)-1] == '/' {
