@@ -119,7 +119,7 @@ func pathJoin(val string, args ...string) string {
 	slash := ""
 	if len(args) > 0 {
 		lastArg := args[len(args)-1]
-		if len(lastArg) > 0 && lastArg[len(lastArg)-1] == '/' {
+		if val != "/" && len(lastArg) > 0 && lastArg[len(lastArg)-1] == '/' {
 			slash = "/"
 		}
 	}
@@ -141,13 +141,6 @@ func GetLocalIP() string {
 
 func removeMorePtr(fType reflect.Type) reflect.Type {
 	for fType.Kind() == reflect.Ptr && fType.Elem().Kind() == reflect.Ptr {
-		fType = fType.Elem()
-	}
-	return fType
-}
-
-func removeAllPtr(fType reflect.Type) reflect.Type {
-	for fType.Kind() == reflect.Ptr {
 		fType = fType.Elem()
 	}
 	return fType
@@ -262,9 +255,11 @@ func isArrayType(fType reflect.Type, fn func(sType reflect.Type) bool, deeps ...
 }
 
 func isNormalType(fType reflect.Type) bool {
+	if isNumberType(fType) {
+		return true
+	}
 	switch fType.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8,
-		reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64, reflect.Bool, reflect.String:
+	case reflect.Bool, reflect.String:
 		return true
 	default:
 	}
@@ -313,39 +308,6 @@ func toString(v any) string {
 		return val
 	}
 	return fmt.Sprintf("%v", v)
-}
-
-func toFloat64(v any) float64 {
-	switch val := v.(type) {
-	case int:
-		return float64(val)
-	case int8:
-		return float64(val)
-	case int16:
-		return float64(val)
-	case int32:
-		return float64(val)
-	case int64:
-		return float64(val)
-	case uint:
-		return float64(val)
-	case uint8:
-		return float64(val)
-	case uint16:
-		return float64(val)
-	case uint32:
-		return float64(val)
-	case uint64:
-		return float64(val)
-	case float32:
-		return float64(val)
-	case float64:
-		return val
-	case string:
-		f, _ := strconv.ParseFloat(val, 64)
-		return f
-	}
-	return 0
 }
 
 func mergeOpenAPITags(tags []*openapi.Tag, args []*openapi.Tag) (list []*openapi.Tag) {

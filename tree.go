@@ -404,12 +404,22 @@ walk:
 			path = path[len(n.path):]
 			isMatch = true
 		}
-
-		if !value.tsr && path != "" {
-			// If there are remaining ‘/’, it is recommended to redirect to a path without ‘/’
-			if path == "/" {
-				value.tsr = n.handler != nil
-			} else if !isMatch {
+		if !value.tsr {
+			if isMatch {
+				if path == "" {
+					// The matching has been completed. Check if the subset matches
+					for i, c := range n.indices {
+						if c == '/' {
+							value.tsr = n.children[i].path == "/" && n.children[i].handler != nil
+							break
+						}
+					}
+					value.tsr = value.tsr || (n.isWildcard && n.children[len(n.children)-1].handler != nil)
+				} else if path == "/" {
+					// If there are remaining ‘/’, it is recommended to redirect to a path without ‘/’
+					value.tsr = n.handler != nil
+				}
+			} else {
 				// There will only be static addresses that cannot be matched. Check if the tsr address matches
 				tsrPath := path
 				if tsrPath[len(tsrPath)-1] == '/' {
@@ -469,7 +479,6 @@ func (n *node) returnValue(params []string, valuePtr *nodeValue) {
 		return
 	}
 	valuePtr.handler = n.handler
-	valuePtr.tsr = valuePtr.tsr && n.handler == nil
 	valuePtr.fullPath = n.fullPath
 	for i, key := range n.params {
 		valuePtr.params = append(valuePtr.params, Param{
