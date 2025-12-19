@@ -132,6 +132,7 @@ func (r *RouterGroup) returnObj() (obj returnObjResult, err error) {
 				obj.groupMap[k] = v
 			}
 			for k, v := range childObj.docsMap {
+				v.tags = mergeOpenAPITags(obj.docsMap[k].tags, v.tags)
 				obj.docsMap[k] = v
 			}
 			for k, v := range childObj.mediaTypes {
