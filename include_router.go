@@ -141,6 +141,20 @@ func (i *includeRouter) returnObj() (obj returnObjResult, err error) {
 				pInfo.inParams = append(pInfo.inParams, in...)
 			}
 		}
+		securityCount := 0
+		for _, item := range pInfo.inParams {
+			if inArray(item.inType, []InType{
+				inTypeSecurityHTTPBearer,
+				inTypeSecurityHTTPBearerJWT,
+				inTypeSecurityHTTPBasic,
+				inTypeSecurityApiKey,
+			}) {
+				securityCount++
+			}
+		}
+		if securityCount > 0 {
+			pInfo.pos += fmt.Sprintf(" (%v Security)", securityCount)
+		}
 		// handle out param
 		numOut := routerMethod.Type().NumOut()
 		if numOut > 1 {

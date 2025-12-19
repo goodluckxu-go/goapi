@@ -480,10 +480,14 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 		if contentType == "" {
 			for _, mediaType := range h.api.responseMediaTypes {
 				schema := &openapi.Schema{}
-				h.handleParamField(schema, path.outParam.field, mediaType)
-				if mediaType == XML {
-					schema.XML = &openapi.XML{
-						Name: path.outParam.field._type.Name(),
+				if mediaType.IsStream() {
+					schema.Type = "string"
+				} else {
+					h.handleParamField(schema, path.outParam.field, mediaType)
+					if mediaType == XML {
+						schema.XML = &openapi.XML{
+							Name: path.outParam.field._type.Name(),
+						}
 					}
 				}
 				resContentMap[string(mediaType)] = &openapi.MediaType{
@@ -493,10 +497,14 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 		} else {
 			mediaType := MediaType(contentType)
 			schema := &openapi.Schema{}
-			h.handleParamField(schema, path.outParam.field, mediaType)
-			if mediaType == XML {
-				schema.XML = &openapi.XML{
-					Name: path.outParam.field._type.Name(),
+			if mediaType.IsStream() {
+				schema.Type = "string"
+			} else {
+				h.handleParamField(schema, path.outParam.field, mediaType)
+				if mediaType == XML {
+					schema.XML = &openapi.XML{
+						Name: path.outParam.field._type.Name(),
+					}
 				}
 			}
 			resContentMap[string(mediaType)] = &openapi.MediaType{

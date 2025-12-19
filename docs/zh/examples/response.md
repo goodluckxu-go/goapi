@@ -1,4 +1,41 @@
 ## [<<](examples.md) 如何定义返回值
+### 系统提供返回
+http返回
+~~~go
+func (*Index) Param(input struct {
+	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
+}) *response.HTTPResponse[string] {
+	return nil
+}
+~~~
+文件返回
+~~~go
+func (*Index) Param(input struct {
+	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
+}) *response.FileResponse[types.Docx] {
+	return nil
+}
+~~~
+SSE返回
+~~~go
+func (*Index) Param(input struct {
+	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
+}) *response.SSEResponse {
+	return &response.SSEResponse{
+		SSEWriter: func(s *response.SSEvent) {
+			for {
+				s.Write(response.SSEventData{
+					Event: "message", 
+					Data:  "测试数据", 
+					Id:    "", 
+					Retry: 0,
+				})
+				time.Sleep(1 * time.Second)
+			}
+		},
+	}
+}
+~~~
 ### 最基本的返回值
 ~~~go
 type BodyResp struct {

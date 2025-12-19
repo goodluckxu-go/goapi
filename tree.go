@@ -350,7 +350,7 @@ func (n *node) incrementChildPrio(pos int) int {
 	// Build new index char string
 	if newPos != pos {
 		n.indices = n.addBytes(n.indices[:newPos], // Unchanged prefix, might be empty
-			n.indices[pos:pos+1],                     // The index char we move
+			n.indices[pos:pos+1], // The index char we move
 			n.indices[newPos:pos], n.indices[pos+1:]) // Rest without char at 'pos'
 	}
 
@@ -379,19 +379,6 @@ type skippedNode struct {
 }
 
 func (n *node) getValue(path string) (value nodeValue) {
-	// Verify the situation where the path is empty
-	if path == "" {
-		if n.path == "" {
-			if n.handler != nil {
-				n.returnValue(nil, &value)
-			}
-		} else if n.path == "/" {
-			if n.handler != nil {
-				value.tsr = true
-			}
-		}
-		return
-	}
 	var skippedNodes []skippedNode
 	var params []string
 walk:

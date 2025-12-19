@@ -1,4 +1,7 @@
 ## [<<](examples.md) 如何使用鉴权验证
+- 鉴权在openapi中的 **securitySchemes** 判断以结构体名称和参数字段名称为key
+- 相同的名称会覆盖，相同的用法定义的key需一致
+- 所有的鉴权接口实现中都可以使用参数 **header**,**cookie**, **query**鉴权
 ### HTTPBearer鉴权定义
 ~~~go
 // 需要实现接口
