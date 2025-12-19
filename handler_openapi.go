@@ -512,7 +512,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				Description: strings.Join(head, ", "),
 			}
 		}
-		resMap["200"] = &openapi.Response{
+		resMap[toString(path.outParam.httpStatus)] = &openapi.Response{
 			Description: "Successful Response",
 			Content:     resContentMap,
 			Headers:     header,
