@@ -13,3 +13,4 @@
 ### [文档定义标签分组](docs_tags.md)
 ### [如何自定义日志](custom_log.md)
 ### [将gorm日志嵌入系统日志](gorm_log.md)
+### [如何处理结构体中定义文档时无法使用复杂文本](rich_text.md)

@@ -10,11 +10,36 @@ func (*Index) Param(ctx *goapi.Context, input struct {
 }
 ~~~
 ### 使用header,cookie,query,path,form,file标签定义简单字段
-定义header,cookie,query,path请求
+定义path请求
+~~~go
+// path参数请求，遇到/则结束
+// 例如：
+//  /param1/test           valid        path=test
+//  /param1/test/          noValid
+//  /param1/test/request   noValid
+func (*Index) Param1(input struct {
+	input  goapi.Router `path:"/param1/{path}" method:"POST" summary:"参数请求"`
+	Path   string       `path:"path" desc:"主键定义，必填"` // path不能定义omitempty为非必填
+}) {
+
+}
+
+// path参数请求，匹配后面所有
+// 例如：
+//  /param1/test           valid        path=test
+//  /param1/test/          valid        path=test/
+//  /param1/test/request   valid        path=test/request
+func (*Index) Param2(input struct {
+	input  goapi.Router `path:"/param2/{path:*}" method:"POST" summary:"参数请求"`
+	Path   string       `path:"path" desc:"主键定义，必填"` // path不能定义omitempty为非必填
+}) {
+
+}
+~~~
+定义header,cookie,query请求
 ~~~go
 func (*Index) Param(input struct {
-	input  goapi.Router `path:"/param/{ID}" method:"POST" summary:"参数请求"`
-	ID     int          `path:"ID" desc:"主键定义，必填"` // path不能定义omitempty为非必填
+	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
 	Token1 string       `cookie:"Token1" desc:"cookie中Token1定义，必填"`
 	Token2 *http.Cookie `cookie:"token2,omitempty" desc:"cookie中token2定义，非必填"`
 	Token3 int64        `header:"Token3" desc:"header的Token3定义，必填"`
