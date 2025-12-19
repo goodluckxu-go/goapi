@@ -24,6 +24,7 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 			DocExpansion: "list",
 			DeepLinking:  true,
 		},
+		RedirectTrailingSlash: true,
 		exceptFunc: func(httpCode int, detail string) Response {
 			return &response.HTTPResponse[string]{
 				HttpCode: httpCode,
@@ -48,14 +49,15 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 
 type API struct {
 	IRouters
-	defaultMiddlewares   []HandleFunc
-	responseMediaTypes   []MediaType
-	Swagger              swagger.Config
-	exceptFunc           func(httpCode int, detail string) Response
-	lang                 Lang
-	log                  Logger
-	addr                 string
-	structTagVariableMap map[string]any
+	defaultMiddlewares    []HandleFunc
+	responseMediaTypes    []MediaType
+	Swagger               swagger.Config
+	RedirectTrailingSlash bool
+	exceptFunc            func(httpCode int, detail string) Response
+	lang                  Lang
+	log                   Logger
+	addr                  string
+	structTagVariableMap  map[string]any
 }
 
 // HTTPExceptionHandler It is an exception handling registration for HTTP

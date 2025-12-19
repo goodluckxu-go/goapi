@@ -834,16 +834,16 @@ func (h *handlerServer) handleHTTPRequest(ctx *Context) {
 		return
 	}
 	value := root.getValue(ctx.Request.URL.Path)
-	if value.handler == nil {
-		if value.tsr {
-			tsrPath := h.handleTsrPath(ctx.Request.URL.Path)
-			code := http.StatusMovedPermanently
-			if ctx.Request.Method != http.MethodGet {
-				code = http.StatusTemporaryRedirect
-			}
-			http.Redirect(ctx.Writer, ctx.Request, tsrPath, code)
-			return
+	if h.handle.api.RedirectTrailingSlash && value.tsr {
+		tsrPath := h.handleTsrPath(ctx.Request.URL.Path)
+		code := http.StatusMovedPermanently
+		if ctx.Request.Method != http.MethodGet {
+			code = http.StatusTemporaryRedirect
 		}
+		http.Redirect(ctx.Writer, ctx.Request, tsrPath, code)
+		return
+	}
+	if value.handler == nil {
 		h.notFind(ctx)
 		return
 	}
