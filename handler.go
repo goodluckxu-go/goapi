@@ -25,6 +25,7 @@ func newHandler(api *API) *handler {
 		mediaTypes:             map[MediaType]struct{}{},
 		publicGroupMiddlewares: make(map[string][]HandleFunc),
 		openapiMap:             map[string]*openapi.OpenAPI{},
+		swaggerMap:             map[string]swagger.Config{},
 	}
 }
 
@@ -54,13 +55,13 @@ func (h *handler) Handle() {
 			h.publicGroupMiddlewares[k] = append(h.publicGroupMiddlewares[k], v.middlewares...)
 		}
 	}
-	h.swaggerMap = obj.swaggerMap
 	for k, v := range obj.docsMap {
 		h.openapiMap[k] = &openapi.OpenAPI{
 			Info:    v.info,
 			Servers: v.servers,
 			Tags:    v.tags,
 		}
+		h.swaggerMap[k] = v.swagger
 	}
 	for _, v := range h.api.responseMediaTypes {
 		h.mediaTypes[v] = struct{}{}

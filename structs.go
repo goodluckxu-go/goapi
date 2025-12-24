@@ -134,13 +134,13 @@ type returnObjDocs struct {
 	info    *openapi.Info
 	tags    []*openapi.Tag
 	servers []*openapi.Server
+	swagger swagger.Config
 }
 
 type returnObjResult struct {
 	paths      []*pathInfo
 	groupMap   map[string]returnObjGroup
 	docsMap    map[string]returnObjDocs
-	swaggerMap map[string]swagger.Config
 	mediaTypes map[MediaType]struct{}
 }
 

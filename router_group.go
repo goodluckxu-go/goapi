@@ -30,11 +30,8 @@ func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
 	docs.info = r.OpenAPIInfo
 	docs.servers = r.OpenAPIServers
 	docs.tags = mergeOpenAPITags(docs.tags, r.OpenAPITags)
+	docs.swagger = r.Swagger
 	obj.docsMap[r.docsPath] = docs
-	swaggerConfig := obj.swaggerMap[r.docsPath]
-	swaggerConfig.DocExpansion = r.Swagger.DocExpansion
-	swaggerConfig.DeepLinking = r.Swagger.DeepLinking
-	obj.swaggerMap[r.docsPath] = swaggerConfig
 	return
 }
 
@@ -123,7 +120,6 @@ func (r *RouterGroup) returnObj() (obj returnObjResult, err error) {
 		},
 	}
 	obj.docsMap = map[string]returnObjDocs{}
-	obj.swaggerMap = map[string]swagger.Config{}
 	obj.mediaTypes = map[MediaType]struct{}{}
 	var childObj returnObjResult
 	for _, hd := range r.handlers {
@@ -141,9 +137,6 @@ func (r *RouterGroup) returnObj() (obj returnObjResult, err error) {
 			for k, v := range childObj.docsMap {
 				v.tags = mergeOpenAPITags(obj.docsMap[k].tags, v.tags)
 				obj.docsMap[k] = v
-			}
-			for k, v := range childObj.swaggerMap {
-				obj.swaggerMap[k] = v
 			}
 			for k, v := range childObj.mediaTypes {
 				obj.mediaTypes[k] = v
