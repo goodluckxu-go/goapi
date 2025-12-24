@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"github.com/goodluckxu-go/goapi/openapi"
+	"github.com/goodluckxu-go/goapi/swagger"
 )
 
 type returnObject interface {
@@ -30,6 +31,10 @@ func (i *IRouters) Child(prefix string, isDocs bool, docsPath string) *RouterChi
 		OpenAPIInfo: &openapi.Info{
 			Title:   "GoAPI",
 			Version: "1.0.0",
+		},
+		Swagger: swagger.Config{
+			DocExpansion: "list",
+			DeepLinking:  true,
 		},
 	}
 	i.handlers = append(i.handlers, child)

@@ -20,10 +20,6 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 		dPath = docsPath[0]
 	}
 	api := &API{
-		Swagger: swagger.Config{
-			DocExpansion: "list",
-			DeepLinking:  true,
-		},
 		RedirectTrailingSlash: true,
 		exceptFunc: func(httpCode int, detail string) Response {
 			return &response.HTTPResponse[string]{
@@ -41,6 +37,10 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 		Title:   "GoAPI",
 		Version: "1.0.0",
 	}
+	api.Swagger = swagger.Config{
+		DocExpansion: "list",
+		DeepLinking:  true,
+	}
 	api.isDocs = isDocs
 	api.docsPath = dPath
 	api.AddMiddleware(api.defaultMiddlewares...)
@@ -51,7 +51,6 @@ type API struct {
 	IRouters
 	defaultMiddlewares    []HandleFunc
 	responseMediaTypes    []MediaType
-	Swagger               swagger.Config
 	RedirectTrailingSlash bool
 	exceptFunc            func(httpCode int, detail string) Response
 	lang                  Lang

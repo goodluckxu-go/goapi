@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/goodluckxu-go/goapi/openapi"
+	"github.com/goodluckxu-go/goapi/swagger"
 )
 
 type RouterGroupInterface interface {
@@ -17,6 +18,7 @@ type RouterChild struct {
 	OpenAPIInfo    *openapi.Info
 	OpenAPIServers []*openapi.Server
 	OpenAPITags    []*openapi.Tag
+	Swagger        swagger.Config
 }
 
 func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
@@ -29,6 +31,10 @@ func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
 	docs.servers = r.OpenAPIServers
 	docs.tags = mergeOpenAPITags(docs.tags, r.OpenAPITags)
 	obj.docsMap[r.docsPath] = docs
+	swaggerConfig := obj.swaggerMap[r.docsPath]
+	swaggerConfig.DocExpansion = r.Swagger.DocExpansion
+	swaggerConfig.DeepLinking = r.Swagger.DeepLinking
+	obj.swaggerMap[r.docsPath] = swaggerConfig
 	return
 }
 
@@ -117,6 +123,7 @@ func (r *RouterGroup) returnObj() (obj returnObjResult, err error) {
 		},
 	}
 	obj.docsMap = map[string]returnObjDocs{}
+	obj.swaggerMap = map[string]swagger.Config{}
 	obj.mediaTypes = map[MediaType]struct{}{}
 	var childObj returnObjResult
 	for _, hd := range r.handlers {
@@ -134,6 +141,9 @@ func (r *RouterGroup) returnObj() (obj returnObjResult, err error) {
 			for k, v := range childObj.docsMap {
 				v.tags = mergeOpenAPITags(obj.docsMap[k].tags, v.tags)
 				obj.docsMap[k] = v
+			}
+			for k, v := range childObj.swaggerMap {
+				obj.swaggerMap[k] = v
 			}
 			for k, v := range childObj.mediaTypes {
 				obj.mediaTypes[k] = v

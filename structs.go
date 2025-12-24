@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/goodluckxu-go/goapi/openapi"
+	"github.com/goodluckxu-go/goapi/swagger"
 )
 
 type paramTag struct {
@@ -139,6 +140,7 @@ type returnObjResult struct {
 	paths      []*pathInfo
 	groupMap   map[string]returnObjGroup
 	docsMap    map[string]returnObjDocs
+	swaggerMap map[string]swagger.Config
 	mediaTypes map[MediaType]struct{}
 }
 

@@ -59,7 +59,7 @@ func (h *handlerServer) HandleSwagger(
 			log.Fatal(err)
 		}
 		openapiBody, _ := json.Marshal(openAPI)
-		routers := fn(docsPath, openAPI.Info.Title, openapiBody, api.Swagger)
+		routers := fn(docsPath, openAPI.Info.Title, openapiBody, h.handle.swaggerMap[docsPath])
 		for _, router := range routers {
 			h.handleSwagger(router)
 		}

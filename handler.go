@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/goodluckxu-go/goapi/openapi"
+	"github.com/goodluckxu-go/goapi/swagger"
 )
 
 func newHandler(api *API) *handler {
@@ -36,6 +37,7 @@ type handler struct {
 	mediaTypes             map[MediaType]struct{}
 	publicGroupMiddlewares map[string][]HandleFunc // group prefix
 	openapiMap             map[string]*openapi.OpenAPI
+	swaggerMap             map[string]swagger.Config
 	except                 *outParam
 }
 
@@ -52,6 +54,7 @@ func (h *handler) Handle() {
 			h.publicGroupMiddlewares[k] = append(h.publicGroupMiddlewares[k], v.middlewares...)
 		}
 	}
+	h.swaggerMap = obj.swaggerMap
 	for k, v := range obj.docsMap {
 		h.openapiMap[k] = &openapi.OpenAPI{
 			Info:    v.info,
