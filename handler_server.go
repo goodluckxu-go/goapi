@@ -78,7 +78,8 @@ func (h *handlerServer) handleSwagger(router swagger.Router) {
 		handle: func(ctx *Context) {
 			router.Handler(ctx.Writer, ctx.Request)
 		},
-		pos: pos,
+		pos:       pos,
+		isSwagger: true,
 	})
 }
 
@@ -840,6 +841,7 @@ func (h *handlerServer) handleHTTPRequest(ctx *Context) {
 		if ctx.Request.Method != http.MethodGet {
 			code = http.StatusTemporaryRedirect
 		}
+		h.log.Debug("redirecting request %v: %v --> %v", code, ctx.Request.URL.Path, tsrPath)
 		http.Redirect(ctx.Writer, ctx.Request, tsrPath, code)
 		return
 	}

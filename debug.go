@@ -18,6 +18,9 @@ func debugPrintRouter(log Logger, paths []*pathInfo) {
 			maxMethodLen = methodLen
 		}
 		pathLen := len(strings.Join(path.paths, ","))
+		if path.isSwagger {
+			pathLen = len(path.paths[0])
+		}
 		if pathLen > maxPathLen {
 			maxPathLen = pathLen
 		}
@@ -32,6 +35,9 @@ func debugPrintRouter(log Logger, paths []*pathInfo) {
 	for _, path := range paths {
 		method := strings.Join(path.methods, ",")
 		p := strings.Join(path.paths, ",")
+		if path.isSwagger {
+			p = path.paths[0]
+		}
 		log.Debug("| %v | %v | %v |", spanFill(method, len(method), maxMethodLen),
 			spanFill(p, len(p), maxPathLen), spanFill(path.pos, len(path.pos), maxPosLen))
 	}

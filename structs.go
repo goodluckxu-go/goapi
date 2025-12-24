@@ -107,6 +107,7 @@ type pathInfo struct {
 	docsPath    string
 	isDocs      bool
 	groupPrefix string
+	isSwagger   bool
 }
 
 type pathInterfaceResult struct {

@@ -1,7 +1,7 @@
 package openapi
 
 import (
-	json "github.com/json-iterator/go"
+	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

@@ -39,7 +39,15 @@ type Router struct {
 func GetSwagger(path, title string, openapiJsonBody []byte, config Config) (routers []Router) {
 	path = handlePath(path)
 	routers = append(routers, Router{
-		Paths: []string{path + "/", path + "/{path}"},
+		Paths: []string{
+			path + "/",
+			path + cssIndexPath,
+			path + cssSwaggerUiPath,
+			path + jsSwaggerInitializerPath,
+			path + jsSwaggerUiBundlePath,
+			path + jsSwaggerUiStandalonePresetPath,
+			path + openapiPath,
+		},
 		Handler: func(writer http.ResponseWriter, request *http.Request) {
 			switch strings.TrimPrefix(request.URL.Path, path) {
 			case "/":
@@ -81,8 +89,6 @@ func GetSwagger(path, title string, openapiJsonBody []byte, config Config) (rout
 			case openapiPath:
 				writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 				_, _ = writer.Write(openapiJsonBody)
-			default:
-				http.NotFound(writer, request)
 			}
 		},
 	})

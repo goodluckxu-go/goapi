@@ -480,7 +480,7 @@ func (n *node) returnValue(params []string, valuePtr *nodeValue) {
 	}
 	valuePtr.handler = n.handler
 	valuePtr.fullPath = n.fullPath
-	valuePtr.tsr = valuePtr.tsr && n.nType != static
+	valuePtr.tsr = valuePtr.tsr && n.handler == nil
 	for i, key := range n.params {
 		valuePtr.params = append(valuePtr.params, Param{
 			Key:   key,
