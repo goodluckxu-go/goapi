@@ -70,7 +70,7 @@ type MediaType string
 
 func (m MediaType) Tag() string {
 	for k, v := range mediaTypeTagMap {
-		if MediaType(k) == m || v == m {
+		if MediaType(k) == m.MediaType() || v == m.MediaType() {
 			return k
 		}
 	}

@@ -650,6 +650,9 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 		}
 		header := map[string]*openapi.Header{}
 		for key, head := range h.handle.except.httpHeader {
+			if key == "Content-Type" {
+				continue
+			}
 			header[key] = &openapi.Header{
 				Description: strings.Join(head, ", "),
 			}
