@@ -224,6 +224,9 @@ func (h *handler) Handle() {
 			}
 		}
 	}
+	if h.api.exceptFunc != nil {
+		h.handleTagExampleByXmlNoSupport(h.except.structField.Type, h.except.field)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -630,6 +633,9 @@ func (h *handler) handleTagByType(kind reflect.Kind, tag *paramTag) {
 }
 
 func (h *handler) handleTagExampleByXmlNoSupport(fType reflect.Type, field *paramField) {
+	if field.tag.example != nil || field.tag._default != nil {
+		return
+	}
 	fVal := reflect.New(fType).Elem()
 	isXmlNoSupport := h.isXmlNoSupport(fVal, field)
 	if !isXmlNoSupport {
@@ -638,7 +644,71 @@ func (h *handler) handleTagExampleByXmlNoSupport(fType reflect.Type, field *para
 	field.tag.example = fVal.Interface()
 }
 
+func (h *handler) xmlDefaultSet(fVal reflect.Value, tag *paramTag) {
+	if fVal.Kind() == reflect.String {
+		fVal.SetString("string")
+		return
+	}
+	if !isNumberType(fVal.Type()) {
+		return
+	}
+	var val *float64
+	if tag.gt != nil && tag.gte != nil {
+		if *tag.gt > *tag.gte {
+			val = toPtr(*tag.gt + 1)
+		} else {
+			val = toPtr(*tag.gte)
+		}
+		return
+	} else if tag.gt != nil {
+		val = toPtr(*tag.gt + 1)
+	} else if tag.gte != nil {
+		val = toPtr(*tag.gte)
+	}
+	if val == nil {
+		if tag.lt != nil && tag.lte != nil {
+			if *tag.lt > *tag.lte {
+				val = toPtr(*tag.lte)
+			} else {
+				val = toPtr(*tag.lt - 1)
+			}
+		} else if tag.lt != nil {
+			val = toPtr(*tag.lt - 1)
+		} else if tag.lte != nil {
+			val = toPtr(*tag.lte)
+		}
+	}
+	if val == nil {
+		return
+	}
+	switch fVal.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		fVal.SetInt(int64(*val))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		fVal.SetUint(uint64(*val))
+	case reflect.Float32, reflect.Float64:
+		fVal.SetFloat(*val)
+	default:
+	}
+}
+
 func (h *handler) isXmlNoSupport(fVal reflect.Value, field *paramField) bool {
+	var val any
+	isNotDefault := true
+	if field.tag.example != nil {
+		val = field.tag.example
+	} else if field.tag._default != nil {
+		val = field.tag._default
+	}
+	if val != nil {
+		vVal := reflect.ValueOf(val)
+		if !vVal.IsZero() {
+			isNotDefault = false
+			if fVal.Type().ConvertibleTo(vVal.Type()) {
+				fVal.Set(vVal.Convert(fVal.Type()))
+			}
+		}
+	}
 	for fVal.Kind() == reflect.Ptr {
 		initPtr(fVal)
 		fVal = fVal.Elem()
@@ -672,31 +742,8 @@ func (h *handler) isXmlNoSupport(fVal reflect.Value, field *paramField) bool {
 		}
 		return rs
 	default:
-		var val any
-		if field.tag._default != nil {
-			val = field.tag._default
-		} else if field.tag.example != nil {
-			val = field.tag.example
-		}
-		if val == nil {
-			switch fVal.Kind() {
-			case reflect.String:
-				fVal.SetString("string")
-			default:
-			}
-		} else {
-			vVal := reflect.ValueOf(val)
-			if vVal.IsZero() {
-				switch fVal.Kind() {
-				case reflect.String:
-					fVal.SetString("string")
-				default:
-				}
-				return false
-			}
-			if isNormalType(fVal.Type()) && fVal.Type().ConvertibleTo(vVal.Type()) {
-				fVal.Set(vVal.Convert(fVal.Type()))
-			}
+		if isNotDefault {
+			h.xmlDefaultSet(fVal, field.tag)
 		}
 	}
 	return false
