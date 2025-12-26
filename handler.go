@@ -259,6 +259,10 @@ func (h *handler) handleHeader(header http.Header) http.Header {
 		key = textproto.CanonicalMIMEHeaderKey(key)
 		rs[key] = val
 	}
+	contentType := MediaType(rs.Get("Content-Type"))
+	if contentType.Tag() != "" {
+		h.mediaTypes[contentType.MediaType()] = struct{}{}
+	}
 	return rs
 }
 
