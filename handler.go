@@ -198,6 +198,32 @@ func (h *handler) Handle() {
 		h.except.field = field
 	}
 	err = h.handleStruct()
+	// handle xml
+	for _, path := range h.paths {
+		if path.inFs != nil {
+			continue
+		}
+		for _, in := range path.inParams {
+			if in.inType != inTypeBody {
+				continue
+			}
+			isBody := false
+			for _, val := range in.values {
+				if !val.mediaType.IsStream() {
+					isBody = true
+					break
+				}
+			}
+			if isBody {
+				h.handleTagExampleByXmlNoSupport(in.structField.Type, in.field)
+			}
+		}
+		if path.outParam != nil {
+			if _, ok := getTypeByCovertInterface[io.Reader](path.outParam.structField.Type); !ok {
+				h.handleTagExampleByXmlNoSupport(path.outParam.structField.Type, path.outParam.field)
+			}
+		}
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -353,7 +379,7 @@ func (h *handler) getNames(field reflect.StructField) (rs paramFieldNames) {
 		nameSplit := strings.Split(name, ",")
 		name = nameSplit[0]
 		if name == "" {
-			name = field.Name
+			name = mediaType.DefaultName(field.Name)
 		}
 		paramName := paramFieldName{
 			name:      name,
@@ -603,6 +629,79 @@ func (h *handler) handleTagByType(kind reflect.Kind, tag *paramTag) {
 	}
 }
 
+func (h *handler) handleTagExampleByXmlNoSupport(fType reflect.Type, field *paramField) {
+	fVal := reflect.New(fType).Elem()
+	isXmlNoSupport := h.isXmlNoSupport(fVal, field)
+	if !isXmlNoSupport {
+		return
+	}
+	field.tag.example = fVal.Interface()
+}
+
+func (h *handler) isXmlNoSupport(fVal reflect.Value, field *paramField) bool {
+	for fVal.Kind() == reflect.Ptr {
+		initPtr(fVal)
+		fVal = fVal.Elem()
+	}
+	switch fVal.Kind() {
+	case reflect.Array, reflect.Slice, reflect.Map:
+		return h.isXmlNoSupport(fVal.Elem(), field)
+	case reflect.Struct:
+		rs := false
+		switch field._type.Kind() {
+		case reflect.Struct:
+			stInfo := h.structs[field.pkgName]
+			if stInfo != nil {
+				field.fields = stInfo.fields
+			}
+		default:
+		}
+		for _, v := range field.fields {
+			if ok := h.isXmlNoSupport(fVal.Field(v.index), v); ok {
+				rs = true
+				continue
+			}
+			tagList := v.names.getFieldName(XML).split
+			for _, tag := range tagList {
+				switch tag {
+				case "attr":
+				default:
+					rs = true
+				}
+			}
+		}
+		return rs
+	default:
+		var val any
+		if field.tag._default != nil {
+			val = field.tag._default
+		} else if field.tag.example != nil {
+			val = field.tag.example
+		}
+		if val == nil {
+			switch fVal.Kind() {
+			case reflect.String:
+				fVal.SetString("string")
+			default:
+			}
+		} else {
+			vVal := reflect.ValueOf(val)
+			if vVal.IsZero() {
+				switch fVal.Kind() {
+				case reflect.String:
+					fVal.SetString("string")
+				default:
+				}
+				return false
+			}
+			if isNormalType(fVal.Type()) && fVal.Type().ConvertibleTo(vVal.Type()) {
+				fVal.Set(vVal.Convert(fVal.Type()))
+			}
+		}
+	}
+	return false
+}
+
 func (h *handler) getPkgName(fType reflect.Type) string {
 	if fType.PkgPath() == "" || fType.Name() == "" {
 		return ""
@@ -680,7 +779,7 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8,
 			reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
 			if v, err := strconv.ParseFloat(inVal, 64); err == nil {
-				*val = toPtr(v)
+				*val = v
 			} else {
 				return err
 			}

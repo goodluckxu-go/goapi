@@ -9,6 +9,9 @@ import (
 	"mime/multipart"
 	"net/http"
 	"reflect"
+	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 type InType string
@@ -57,16 +60,45 @@ const (
 
 const returnMediaTypeField = "media_type"
 
+var mediaTypeTagMap = map[string]MediaType{
+	"xml":  XML,
+	"json": JSON,
+	"yaml": YAML,
+}
+
 type MediaType string
 
 func (m MediaType) Tag() string {
-	switch m {
-	case JSON, "json":
-		return "json"
-	case XML, "xml":
-		return "xml"
+	for k, v := range mediaTypeTagMap {
+		if MediaType(k) == m || v == m {
+			return k
+		}
 	}
 	return ""
+}
+
+func (m MediaType) MediaType() MediaType {
+	mediaType := mediaTypeTagMap[string(m)]
+	if mediaType != "" {
+		return mediaType
+	}
+	return MediaType(strings.Split(string(m), ";")[0])
+}
+
+func (m MediaType) Prefix() string {
+	switch m {
+	case XML:
+		return `<?xml version="1.0" encoding="UTF-8"?>` + "\n"
+	}
+	return ""
+}
+
+func (m MediaType) DefaultName(name string) string {
+	switch m {
+	case YAML:
+		return strings.ToLower(name)
+	}
+	return name
 }
 
 func (m MediaType) IsStream() bool {
@@ -82,13 +114,15 @@ func (m MediaType) Marshaler(v any) ([]byte, error) {
 		return json.Marshal(v)
 	case XML:
 		b := new(bytes.Buffer)
-		b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
-		body, err := xml.Marshal(v)
+		b.WriteString(m.Prefix())
+		body, err := xml.MarshalIndent(v, "", "	")
 		if err != nil {
 			return nil, err
 		}
 		b.Write(body)
 		return b.Bytes(), nil
+	case YAML:
+		return yaml.Marshal(v)
 	}
 	return []byte(toString(v)), nil
 }
@@ -99,6 +133,8 @@ func (m MediaType) Unmarshaler(body io.ReadCloser, value reflect.Value) error {
 		return json.NewDecoder(body).Decode(value.Interface())
 	case XML:
 		return xml.NewDecoder(body).Decode(value.Interface())
+	case YAML:
+		return yaml.NewDecoder(body).Decode(value.Interface())
 	default:
 		value = value.Elem()
 		if value.Type().ConvertibleTo(typeBytes) {
@@ -120,6 +156,7 @@ func (m MediaType) Unmarshaler(body io.ReadCloser, value reflect.Value) error {
 const (
 	JSON           MediaType = "application/json"
 	XML            MediaType = "application/xml"
+	YAML           MediaType = "application/yaml"
 	formUrlencoded MediaType = "application/x-www-form-urlencoded"
 	formMultipart  MediaType = "multipart/form-data"
 )

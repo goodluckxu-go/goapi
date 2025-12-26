@@ -1,7 +1,9 @@
 package goapi
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"strings"
@@ -89,8 +91,21 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 	name = field.names.getFieldName(mediaType)
 	kind := field.kind
 	schema.Description = field.tag.desc
-	schema.Default = field.tag._default
 	schema.Deprecated = field.tag.deprecated
+	if mediaType == XML {
+		schema.XML = &openapi.XML{
+			Extensions: map[string]any{},
+		}
+		for _, v := range name.split {
+			switch v {
+			case "attr":
+				schema.XML.Attribute = true
+			}
+		}
+	}
+	if field.tag._default != nil {
+		schema.Default = field.tag._default
+	}
 	if field.tag.example != nil {
 		schema.Examples = []any{field.tag.example}
 	}
@@ -189,6 +204,26 @@ func (h *handlerOpenAPI) handlePaths() {
 
 		h.handlePath(path)
 	}
+}
+
+func (h *handlerOpenAPI) handleFieldValueByTypeMediaType(mediaType MediaType, val *any) {
+	if val == nil {
+		return
+	}
+	fVal := reflect.ValueOf(val)
+	if isNormalType(fVal.Elem().Type()) {
+		return
+	}
+	buf, err := mediaType.Marshaler(*val)
+	if err != nil {
+		*val = mediaType.Prefix() + err.Error()
+		return
+	}
+	if mediaType == XML {
+		*val = string(buf)
+		return
+	}
+	_ = mediaType.Unmarshaler(io.NopCloser(bytes.NewBuffer(buf)), fVal)
 }
 
 func (h *handlerOpenAPI) handleUsePaths() {
@@ -442,6 +477,11 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			for _, value := range in.values {
 				schema := &openapi.Schema{}
 				h.handleParamField(schema, in.field, value.mediaType)
+				if in.field.tag.example != nil {
+					example := in.field.tag.example
+					h.handleFieldValueByTypeMediaType(value.mediaType, &example)
+					schema.Examples = []any{example}
+				}
 				if value.mediaType == XML {
 					schema.XML = &openapi.XML{
 						Name: in.field._type.Name(),
@@ -489,6 +529,11 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 							Name: path.outParam.field._type.Name(),
 						}
 					}
+					if path.outParam.field.tag.example != nil {
+						example := path.outParam.field.tag.example
+						h.handleFieldValueByTypeMediaType(mediaType, &example)
+						schema.Examples = []any{example}
+					}
 				}
 				resContentMap[string(mediaType)] = &openapi.MediaType{
 					Schema: schema,
@@ -505,6 +550,11 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 					schema.XML = &openapi.XML{
 						Name: path.outParam.field._type.Name(),
 					}
+				}
+				if path.outParam.field.tag.example != nil {
+					example := path.outParam.field.tag.example
+					h.handleFieldValueByTypeMediaType(mediaType, &example)
+					schema.Examples = []any{example}
 				}
 			}
 			resContentMap[string(mediaType)] = &openapi.MediaType{

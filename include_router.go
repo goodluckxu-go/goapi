@@ -235,6 +235,8 @@ func (i *includeRouter) parseIn(field reflect.StructField, deeps []int, security
 						valType = JSON
 					} else if valType.Tag() == XML.Tag() {
 						valType = XML
+					} else if valType.Tag() == YAML.Tag() {
+						valType = YAML
 					}
 					if !inArray(valType, in.values.MediaTypes()) {
 						in.values = append(in.values, paramFieldName{mediaType: valType})

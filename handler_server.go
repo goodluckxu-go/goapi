@@ -873,13 +873,8 @@ func (h *handlerServer) getResponseMediaType(ctx *Context) MediaType {
 		return h.handle.api.responseMediaTypes[0]
 	}
 	mediaType := MediaType(ctx.Request.URL.Query().Get(returnMediaTypeField))
-	switch mediaType.Tag() {
-	case "json":
-		return JSON
-	case "xml":
-		return XML
-	case "":
+	if mediaType == "" || mediaType.Tag() == "" {
 		return h.handle.api.responseMediaTypes[0]
 	}
-	return mediaType
+	return mediaType.MediaType()
 }
