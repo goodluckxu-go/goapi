@@ -108,23 +108,29 @@ func (b BodyResp)GetBody() any  {
 }
 ~~~
 ### 需要使用流式返回数据
-- 返回值需要实现 **io.Reader** 接口
-- **GetBody() any** 返回一个实现 **io.Reader** 接口的返回值
+- 返回值需要实现 **io.ReadCloser** 接口
+- **GetBody() any** 返回一个实现 **io.ReadCloser** 接口的返回值
+- 处理后会自动调用 **Close** 关闭
+- 如果直接返回 **io.ReadCloser** 没有设置 **Content-Type** ，默认 **Content-Type** 为 **application/octet-stream**
 
 基本返回值实现接口
 ~~~go
 type StreamResp struct {
-	R io.Reader
+	R io.ReadCloser
 }
 
 func (s StreamResp) Read(buf []byte) (int, error) {
 	return s.R.Read(buf)
 }
+
+func (s StreamResp) Close() error {
+	return s.R.Close()
+}
 ~~~
 重新定义实现 **GetBody() any** 方法实现接口
 ~~~go
 type StreamResp struct {
-	R io.Reader
+	R io.ReadCloser
 }
 
 func (s StreamResp) GetBody() any {

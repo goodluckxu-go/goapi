@@ -213,7 +213,7 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	if fn, ok := resp.(ResponseBody); ok {
 		resp = fn.GetBody()
 	}
-	if r, ok := getFnByCovertInterface[io.Reader](resp); ok {
+	if r, ok := getFnByCovertInterface[io.ReadCloser](resp); ok {
 		_ = h.copyReader(ctx.Writer, r)
 		return
 	}
@@ -225,7 +225,8 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	_, _ = ctx.Writer.Write(body)
 }
 
-func (h *handlerServer) copyReader(w ResponseWriter, r io.Reader) error {
+func (h *handlerServer) copyReader(w ResponseWriter, r io.ReadCloser) error {
+	defer r.Close()
 	buf := make([]byte, 32*1024)
 	for {
 		n, err := r.Read(buf)

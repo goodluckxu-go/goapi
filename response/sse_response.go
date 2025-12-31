@@ -60,7 +60,6 @@ func (s *SSEResponse) GetBody() any {
 				recover()
 			}()
 			s.SSEWriter(&SSEvent{w})
-			_ = r.Close()
 			_ = w.Close()
 		}()
 	}
