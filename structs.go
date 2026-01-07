@@ -111,21 +111,6 @@ type pathInfo struct {
 	isSwagger   bool
 }
 
-type pathInterfaceResult struct {
-	paths             []*pathInfo
-	publicMiddlewares map[string][]HandleFunc
-	mediaTypes        map[MediaType]struct{}
-	openapiMap        map[string]*openapi.OpenAPI
-	tags              []*openapi.Tag
-}
-
-type pathInterface interface {
-	// input is parent params
-	// docsPath is ChildAPI input
-	// groupPrefix is ChildAPI or APIGroup input
-	returnObj(prefix, docsPath, groupPrefix string, middlewares []HandleFunc, isDocs bool) (obj pathInterfaceResult, err error)
-}
-
 type returnObjGroup struct {
 	middlewares []HandleFunc
 }
