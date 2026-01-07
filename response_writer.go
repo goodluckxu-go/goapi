@@ -53,5 +53,6 @@ func (w *responseWriter) Size() int {
 
 func (w *responseWriter) reset(writer http.ResponseWriter) {
 	w.ResponseWriter = writer
+	w.size = 0
 	w.status = http.StatusOK
 }
