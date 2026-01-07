@@ -172,6 +172,10 @@ func (h *handler) Handle() {
 			path.inParams[key] = in
 		}
 		if path.outParam != nil {
+			field = &paramField{
+				tag:   &paramTag{},
+				_type: path.outParam.structField.Type,
+			}
 			path.outParam.httpStatus = http.StatusOK
 			h.handleOutParam(path.outParam)
 			if _, ok := getTypeByCovertInterface[io.ReadCloser](path.outParam.structField.Type); !ok &&
