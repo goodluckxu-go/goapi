@@ -106,13 +106,17 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 	}
 	if field.tag._default != nil {
 		_default := field.tag._default
-		h.handleNoJsonAndXmlExample(mediaType, &_default)
-		schema.Default = _default
+		isSet := h.handleNoJsonAndXmlExample(mediaType, &_default)
+		if isSet {
+			schema.Default = _default
+		}
 	}
 	if field.tag.example != nil {
 		example := field.tag.example
-		h.handleNoJsonAndXmlExample(mediaType, &example)
-		schema.Examples = []any{example}
+		isSet := h.handleNoJsonAndXmlExample(mediaType, &example)
+		if isSet {
+			schema.Examples = []any{example}
+		}
 	}
 	switch name.inType {
 	case inTypeFile:
@@ -211,12 +215,18 @@ func (h *handlerOpenAPI) handlePaths() {
 	}
 }
 
-func (h *handlerOpenAPI) handleNoJsonAndXmlExample(mediaType MediaType, val *any) {
-	if mediaType == XML || mediaType == JSON || val == nil {
+func (h *handlerOpenAPI) handleNoJsonAndXmlExample(mediaType MediaType, val *any) (isSet bool) {
+	isSet = true
+	if mediaType == JSON || val == nil {
 		return
 	}
-	fVal := reflect.ValueOf(val)
-	if isNormalType(fVal.Elem().Type()) {
+	fType := reflect.TypeOf(*val)
+	if isNormalType(fType) {
+		return
+	}
+	// not a simple type without setting example, because it will be uniformly set using 'handleXmlExample'
+	if mediaType == XML {
+		isSet = false
 		return
 	}
 	buf, err := mediaType.Marshaler(*val)
@@ -224,7 +234,9 @@ func (h *handlerOpenAPI) handleNoJsonAndXmlExample(mediaType MediaType, val *any
 		*val = err.Error()
 		return
 	}
+	fVal := reflect.ValueOf(val)
 	_ = mediaType.Unmarshaler(io.NopCloser(bytes.NewBuffer(buf)), fVal)
+	return
 }
 
 func (h *handlerOpenAPI) handleXmlExample(val *any) {

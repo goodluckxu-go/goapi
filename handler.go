@@ -283,6 +283,9 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 			realVal.Set(reflect.Zero(realVal.Type()))
 			return
 		}
+		if onlyFind {
+			isNoSupport = true
+		}
 		useStructMap[field.pkgName] = struct{}{}
 		stInfo := h.structs[field.pkgName]
 		if stInfo != nil {
