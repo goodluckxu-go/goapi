@@ -208,7 +208,113 @@ func (h *handler) Handle() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// handle other
+	for _, path := range h.paths {
+		if path.inFs != nil {
+			continue
+		}
+		for _, in := range path.inParams {
+			if in.inType == inTypeBody {
+				isBody := false
+				for _, val := range in.values {
+					if !val.mediaType.IsStream() {
+						isBody = true
+					}
+				}
+				if isBody {
+
+				}
+				continue
+			}
+		}
+		if path.outParam != nil {
+			if !path.outParam.field.isTextType {
+				val := reflect.New(path.outParam.structField.Type).Elem()
+				isNoSupport := h.setExample(val, path.outParam.field, false)
+				if isNoSupport {
+					path.outParam.example = val.Interface()
+				}
+			}
+		}
+	}
 	h.handleOpenapiName()
+}
+
+func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool, useStructMaps ...map[string]struct{}) (isNoSupport bool) {
+	name := field.names.getFieldName(XML)
+	for _, v := range name.split {
+		switch v {
+		case "attr":
+		default:
+			isNoSupport = true
+		}
+	}
+	useStructMap := map[string]struct{}{}
+	if len(useStructMaps) > 0 {
+		useStructMap = useStructMaps[0]
+	}
+	realVal := val
+	for val.Kind() == reflect.Ptr {
+		initPtr(val)
+		val = val.Elem()
+	}
+	var example any
+	if field.tag.example != nil {
+		example = field.tag.example
+	} else if field.tag._default != nil {
+		example = field.tag._default
+	}
+	if example != nil && !onlyFind {
+		exampleVal := reflect.ValueOf(example)
+		for exampleVal.Kind() == reflect.Ptr {
+			if exampleVal.IsNil() {
+				continue
+			}
+			exampleVal = exampleVal.Elem()
+		}
+		if exampleVal.Type().ConvertibleTo(val.Type()) {
+			val.Set(exampleVal.Convert(val.Type()))
+			onlyFind = true
+		}
+	}
+	switch val.Kind() {
+	case reflect.Struct:
+		if _, ok := useStructMap[field.pkgName]; ok {
+			realVal.Set(reflect.Zero(realVal.Type()))
+			return
+		}
+		useStructMap[field.pkgName] = struct{}{}
+		stInfo := h.structs[field.pkgName]
+		if stInfo != nil {
+			for _, cField := range stInfo.fields {
+				isChildNoSupport := h.setExample(val.Field(cField.index), cField, onlyFind, useStructMap)
+				if isChildNoSupport {
+					isNoSupport = true
+				}
+			}
+		}
+	case reflect.Slice, reflect.Array:
+		newVal := reflect.MakeSlice(val.Type(), 1, 1)
+		for i := 0; i < newVal.Len(); i++ {
+			isChildNoSupport := h.setExample(newVal.Index(i), field.fields[0], onlyFind, useStructMap)
+			if isChildNoSupport {
+				isNoSupport = true
+			}
+		}
+		if !onlyFind {
+			val.Set(newVal)
+		}
+	case reflect.String:
+		if !onlyFind {
+			if field.tag.regexp != "" {
+				val.SetString(field.tag.regexp)
+			} else {
+				val.SetString("string")
+			}
+		}
+	default:
+	}
+	return
 }
 
 func (h *handler) handleOutParam(outParam *outParam) {

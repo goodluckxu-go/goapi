@@ -79,6 +79,7 @@ type inParam struct {
 	deeps        []int
 	structField  reflect.StructField
 	field        *paramField
+	example      any
 }
 
 type outParam struct {
@@ -86,6 +87,7 @@ type outParam struct {
 	field       *paramField
 	httpStatus  int
 	httpHeader  http.Header
+	example     any
 }
 
 type pathInfo struct {

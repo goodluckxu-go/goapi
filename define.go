@@ -85,14 +85,6 @@ func (m MediaType) MediaType() MediaType {
 	return MediaType(strings.Split(string(m), ";")[0])
 }
 
-func (m MediaType) Prefix() string {
-	switch m {
-	case XML:
-		return `<?xml version="1.0" encoding="UTF-8"?>` + "\n"
-	}
-	return ""
-}
-
 func (m MediaType) DefaultName(name string) string {
 	switch m {
 	case YAML:
@@ -114,8 +106,8 @@ func (m MediaType) Marshaler(v any) ([]byte, error) {
 		return json.Marshal(v)
 	case XML:
 		b := new(bytes.Buffer)
-		b.WriteString(m.Prefix())
-		body, err := xml.MarshalIndent(v, "", "	")
+		b.WriteString(xml.Header)
+		body, err := xml.Marshal(v)
 		if err != nil {
 			return nil, err
 		}
