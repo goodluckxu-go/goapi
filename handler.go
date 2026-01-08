@@ -307,6 +307,20 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 		if !onlyFind {
 			val.Set(newVal)
 		}
+	case reflect.Map:
+		isNoSupport = true
+		mapVal := reflect.New(val.Type().Elem()).Elem()
+		isChildNoSupport := h.setExample(mapVal, field.fields[0], onlyFind, useStructMap)
+		if isChildNoSupport {
+			isNoSupport = true
+		}
+		if !onlyFind {
+			mapKey := reflect.New(val.Type().Key()).Elem()
+			h.setExample(mapKey, &paramField{tag: &paramTag{}}, false, useStructMap)
+			newVal := reflect.MakeMap(reflect.MapOf(mapKey.Type(), mapVal.Type()))
+			newVal.SetMapIndex(mapKey, mapVal)
+			val.Set(newVal)
+		}
 	case reflect.String:
 		if !onlyFind {
 			if field.tag.regexp != "" {

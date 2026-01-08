@@ -220,6 +220,8 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	var body []byte
 	var err error
 	if body, err = mediaType.Marshaler(resp); err != nil {
+		errResp := h.handle.api.exceptFunc(validErrorCode, err.Error())
+		h.handleResponse(ctx, errResp)
 		return
 	}
 	_, _ = ctx.Writer.Write(body)

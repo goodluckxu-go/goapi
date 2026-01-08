@@ -249,7 +249,7 @@ func (h *handlerOpenAPI) handleXmlExample(val *any) {
 	}
 	buf, err := xml.MarshalIndent(*val, "", "	")
 	if err != nil {
-		*val = xml.Header + err.Error()
+		*val = xml.Header + "<!-- " + err.Error() + " -->"
 		return
 	}
 	*val = xml.Header + string(buf)
