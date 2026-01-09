@@ -96,15 +96,11 @@ func (h *handler) Handle() {
 				isBody := false
 				for _, val := range in.values {
 					if val.mediaType.IsStream() {
-						if !isArrayType(in.structField.Type, func(sType reflect.Type) bool {
-							if sType.ConvertibleTo(typeBytes) || sType.Kind() == reflect.String {
-								return true
-							}
-							if _, ok := getTypeByCovertInterface[io.ReadCloser](sType); ok {
-								return true
-							}
-							return false
-						}, 1) {
+						vType := in.structField.Type
+						for vType.Kind() == reflect.Ptr {
+							vType = vType.Elem()
+						}
+						if !(vType.ConvertibleTo(typeBytes) || vType.Kind() == reflect.String || vType == typeReadCloser) {
 							log.Fatal("other media types only support types '[]byte', 'string', and 'io.ReadCloser‘")
 						}
 					} else {
