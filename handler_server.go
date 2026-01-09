@@ -333,7 +333,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				}
 			}
 			if mediaType.IsStream() {
-				return
+				continue
 			}
 			err = h.validParamField(inValue, in.field, mediaType)
 			if err != nil {
@@ -406,8 +406,12 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 	}
 	switch field.kind {
 	case reflect.Struct:
-		sInfo := h.handle.structs[field.pkgName]
-		for _, childField := range sInfo.fields {
+		fields := field.fields
+		if field.pkgName != "" {
+			sInfo := h.handle.structs[field.pkgName]
+			fields = sInfo.fields
+		}
+		for _, childField := range fields {
 			if err = h.validParamField(value.Field(childField.index), childField, mediaType); err != nil {
 				return
 			}
