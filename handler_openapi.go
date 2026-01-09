@@ -83,6 +83,9 @@ func (h *handlerOpenAPI) handleParamFields(fields []*paramField, mediaType Media
 		}
 		childSchema := &openapi.Schema{}
 		name := h.handleParamField(childSchema, field, mediaType)
+		if name.name == "" {
+			continue
+		}
 		properties[name.name] = childSchema
 		if name.required {
 			required = append(required, name.name)
