@@ -31,11 +31,13 @@ type paramField struct {
 	kind       reflect.Kind
 	isTextType bool // Whether to inherit TextInterface
 	names      paramFieldNames
+	name       string // field name
 	anonymous  bool
 	pkgName    string
 	index      int
 	tag        *paramTag
 	fields     []*paramField
+	xmlName    string // The name of the xml structure
 }
 
 type paramFieldName struct {
@@ -70,6 +72,7 @@ type structInfo struct {
 	_type       reflect.Type
 	openapiName string
 	fields      []*paramField
+	xmlName     string // The name of the xml structure
 }
 
 type inParam struct {

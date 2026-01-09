@@ -279,21 +279,25 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 	}
 	switch val.Kind() {
 	case reflect.Struct:
-		if _, ok := useStructMap[field.pkgName]; ok {
-			realVal.Set(reflect.Zero(realVal.Type()))
-			return
+		if field.pkgName != "" {
+			if _, ok := useStructMap[field.pkgName]; ok {
+				realVal.Set(reflect.Zero(realVal.Type()))
+				return
+			}
+			useStructMap[field.pkgName] = struct{}{}
 		}
 		if onlyFind {
 			isNoSupport = true
 		}
-		useStructMap[field.pkgName] = struct{}{}
-		stInfo := h.structs[field.pkgName]
-		if stInfo != nil {
-			for _, cField := range stInfo.fields {
-				isChildNoSupport := h.setExample(val.Field(cField.index), cField, onlyFind, useStructMap)
-				if isChildNoSupport {
-					isNoSupport = true
-				}
+		fields := field.fields
+		if field.pkgName != "" {
+			stInfo := h.structs[field.pkgName]
+			fields = stInfo.fields
+		}
+		for _, cField := range fields {
+			isChildNoSupport := h.setExample(val.Field(cField.index), cField, onlyFind, useStructMap)
+			if isChildNoSupport {
+				isNoSupport = true
 			}
 		}
 	case reflect.Slice, reflect.Array:
@@ -432,6 +436,7 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 	rs = &paramField{
 		index:     index,
 		tag:       &paramTag{},
+		name:      field.Name,
 		names:     names,
 		anonymous: field.Anonymous,
 	}
@@ -479,6 +484,12 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 				}
 				if pField == nil {
 					continue
+				}
+				if vField.Name == "XMLName" {
+					nameSplit := strings.Split(vField.Tag.Get("xml"), ",")
+					if nameSplit[0] != "" {
+						rs.xmlName = nameSplit[0]
+					}
 				}
 				rs.fields = append(rs.fields, pField)
 			}
@@ -529,7 +540,8 @@ func (h *handler) handleStruct() (err error) {
 	for len(h.structTypes) > 0 {
 		for pkgName, structType := range h.structTypes {
 			stInfo := &structInfo{
-				_type: structType,
+				_type:   structType,
+				xmlName: structType.Name(),
 			}
 			for i := 0; i < structType.NumField(); i++ {
 				field := structType.Field(i)
@@ -542,6 +554,12 @@ func (h *handler) handleStruct() (err error) {
 				}
 				if pField == nil {
 					continue
+				}
+				if field.Name == "XMLName" {
+					nameSplit := strings.Split(field.Tag.Get("xml"), ",")
+					if nameSplit[0] != "" {
+						stInfo.xmlName = nameSplit[0]
+					}
 				}
 				stInfo.fields = append(stInfo.fields, pField)
 			}
