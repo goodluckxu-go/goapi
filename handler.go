@@ -272,6 +272,9 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 			}
 			exampleVal = exampleVal.Elem()
 		}
+		if !isNormalType(exampleVal.Type()) {
+			isNoSupport = true
+		}
 		if exampleVal.Type().ConvertibleTo(val.Type()) {
 			val.Set(exampleVal.Convert(val.Type()))
 			onlyFind = true
