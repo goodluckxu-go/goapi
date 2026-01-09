@@ -466,6 +466,24 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 		}
 		rs.fields = append(rs.fields, childField)
 	case reflect.Struct:
+		if rs.pkgName == "" {
+			var pField *paramField
+			for i := 0; i < fType.NumField(); i++ {
+				vField := fType.Field(i)
+				if vField.Name[0] < 'A' || vField.Name[0] > 'Z' {
+					continue
+				}
+				pField, err = h.handleField(vField, i, beforeStructPkgName...)
+				if err != nil {
+					return
+				}
+				if pField == nil {
+					continue
+				}
+				rs.fields = append(rs.fields, pField)
+			}
+			return
+		}
 		if len(beforeStructPkgName) > 0 && !inArray(rs.pkgName, h.structDepends[beforeStructPkgName[0]]) {
 			h.structDepends[beforeStructPkgName[0]] = append(h.structDepends[beforeStructPkgName[0]], rs.pkgName)
 		}

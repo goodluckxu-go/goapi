@@ -193,6 +193,15 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 			field._type.Key().String(): childSchema,
 		}
 	case reflect.Struct:
+		if field.pkgName == "" {
+			properties, required := h.handleParamFields(field.fields, mediaType)
+			schema.Type = "object"
+			schema.MaxProperties = field.tag.max
+			schema.MinProperties = field.tag.min
+			schema.Properties = properties
+			schema.Required = required
+			return
+		}
 		childStInfo := h.handle.structs[field.pkgName]
 		schema.Ref = "#/components/schemas/" + h.getOpenapiName(childStInfo.openapiName, mediaType)
 	case reflect.Ptr:
