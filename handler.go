@@ -88,33 +88,38 @@ func (h *handler) Handle() {
 					return false
 				}, 2) {
 					log.Fatal(fmt.Sprintf("the type of parameter '%v' in '%v' must be "+
-						"‘*multipart.FileHeade’ or an array of ‘*multipart.FileHeader’, has type '%v'",
+						"‘*multipart.FileHeader’ or an array of ‘*multipart.FileHeader’, has type '%v'",
 						in.values[0].name, in.inType.Tag(),
 						in.structField.Type.String()))
 				}
 			} else if in.inType == inTypeBody {
-				isBody := false
+				m := map[uint8]struct{}{}
+				var mList []string
 				for _, val := range in.values {
 					if val.mediaType.IsStream() {
-						vType := in.structField.Type
-						for vType.Kind() == reflect.Ptr {
-							vType = vType.Elem()
-						}
-						if !(vType.ConvertibleTo(typeBytes) || vType.Kind() == reflect.String || vType == typeReadCloser) {
-							log.Fatal("other media types only support types '[]byte', 'string', and 'io.ReadCloser‘")
-						}
+						// stream
+						m[1] = struct{}{}
 					} else {
-						isBody = true
+						// no stream
+						m[0] = struct{}{}
+					}
+					mv := "'" + string(val.mediaType) + "'"
+					if !inArray(mv, mList) {
+						mList = append(mList, mv)
 					}
 				}
-				if isBody {
-					field, err = h.handleField(in.structField, -1)
-					if err != nil {
-						log.Fatal(err)
+				if len(m) != 1 {
+					log.Fatal(fmt.Sprintf("Content-Type %v cannot be used together", strings.Join(mList, ", ")))
+				}
+				if _, ok := m[1]; ok {
+					// stream
+					vType := in.structField.Type
+					for vType.Kind() == reflect.Ptr {
+						vType = vType.Elem()
 					}
-					field.anonymous = true
-					in.field = field
-				} else {
+					if !(vType.ConvertibleTo(typeBytes) || vType.Kind() == reflect.String || vType == typeReadCloser) {
+						log.Fatal("other media types only support types '[]byte', 'string', and 'io.ReadCloser‘")
+					}
 					in.field = &paramField{
 						tag: &paramTag{},
 					}
@@ -127,21 +132,21 @@ func (h *handler) Handle() {
 					if err = h.handleTagByInterface(fType, in.field.tag, fVal); err != nil {
 						log.Fatal(err)
 					}
-					if _, ok := getTypeByCovertInterface[io.ReadCloser](fType); ok {
-						in.field._type = fType
-					}
 					if fType.Kind() == reflect.Ptr {
 						fType = fType.Elem()
 					}
-					if in.field._type == nil {
-						in.field._type = fType
-					}
+					in.field._type = fType
 					if err = h.handleTagByField(in.structField, in.field.tag, fVal); err != nil {
 						log.Fatal(err)
 					}
-					if _, ok := getTypeByCovertInterface[TextInterface](fVal); ok {
-						in.field.kind = reflect.String
+				} else {
+					// no stream
+					field, err = h.handleField(in.structField, -1)
+					if err != nil {
+						log.Fatal(err)
 					}
+					field.anonymous = true
+					in.field = field
 				}
 				path.inParams[key] = in
 				continue
