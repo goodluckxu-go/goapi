@@ -48,12 +48,8 @@ func (h *handlerServer) Handle() {
 
 func (h *handlerServer) HandleSwagger(
 	fn func(path, title string, openapiJsonBody []byte, config swagger.Config) (routers []swagger.Router),
-	api *API,
 	openapiMap map[string]*openapi.OpenAPI,
 ) {
-	if !api.isDocs {
-		return
-	}
 	for docsPath, openAPI := range openapiMap {
 		if err := openAPI.Validate(); err != nil {
 			log.Fatal(err)

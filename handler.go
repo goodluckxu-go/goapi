@@ -56,6 +56,9 @@ func (h *handler) Handle() {
 		}
 	}
 	for k, v := range obj.docsMap {
+		if !v.isDocs {
+			continue
+		}
 		v.info.Summary = h.getMappingTag(v.info.Summary)
 		v.info.Description = h.getMappingTag(v.info.Description)
 		h.openapiMap[k] = &openapi.OpenAPI{

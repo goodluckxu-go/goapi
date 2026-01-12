@@ -33,6 +33,7 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 		structTagVariableMap: map[string]any{},
 		defaultMiddlewares:   []HandleFunc{setLogger()},
 	}
+	api.IsDocs = true
 	api.OpenAPIInfo = &openapi.Info{
 		Title:   "GoAPI",
 		Version: "1.0.0",
@@ -154,10 +155,12 @@ func (a *API) Handler() http.Handler {
 	a.log.Info("Started server process [%v]", pid)
 	handle := newHandler(a)
 	handle.Handle()
-	openapiHandle := newHandlerOpenAPI(a, handle)
-	openapiMap := openapiHandle.Handle()
 	serverHandle := newHandlerServer(handle, a.log)
-	serverHandle.HandleSwagger(swagger.GetSwagger, a, openapiMap)
+	if a.isDocs {
+		openapiHandle := newHandlerOpenAPI(a, handle)
+		openapiMap := openapiHandle.Handle()
+		serverHandle.HandleSwagger(swagger.GetSwagger, openapiMap)
+	}
 	serverHandle.Handle()
 	return serverHandle
 }

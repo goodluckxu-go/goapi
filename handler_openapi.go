@@ -38,6 +38,9 @@ func (h *handlerOpenAPI) Handle() map[string]*openapi.OpenAPI {
 	h.handlePaths()
 	h.handleUsePaths()
 	for docsPath, schemas := range h.schemasMap {
+		if h.handle.openapiMap[docsPath] == nil {
+			continue
+		}
 		if h.handle.openapiMap[docsPath].Components == nil {
 			h.handle.openapiMap[docsPath].Components = &openapi.Components{}
 		}

@@ -11,7 +11,7 @@ type returnObject interface {
 
 type RouterInterface interface {
 	RouterGroupInterface
-	Child(prefix string, isDocs bool, docsPath string) *RouterChild
+	Child(prefix string, docsPath string) *RouterChild
 }
 
 type IRouters struct {
@@ -19,15 +19,16 @@ type IRouters struct {
 }
 
 // Child It is an introduction routing children
-func (i *IRouters) Child(prefix string, isDocs bool, docsPath string) *RouterChild {
+func (i *IRouters) Child(prefix string, docsPath string) *RouterChild {
 	child := &RouterChild{
 		RouterGroup: RouterGroup{
 			prefix:      pathJoin(i.prefix, prefix),
 			groupPrefix: pathJoin(i.groupPrefix, prefix),
-			isDocs:      i.isDocs && isDocs,
+			isDocs:      i.isDocs,
 			docsPath:    pathJoin(i.docsPath, docsPath),
 			middlewares: append(i.middlewares, i.getMiddlewares()...),
 		},
+		IsDocs: true,
 		OpenAPIInfo: &openapi.Info{
 			Title:   "GoAPI",
 			Version: "1.0.0",

@@ -122,6 +122,7 @@ type returnObjGroup struct {
 
 type returnObjDocs struct {
 	info    *openapi.Info
+	isDocs  bool
 	tags    []*openapi.Tag
 	servers []*openapi.Server
 	swagger swagger.Config

@@ -26,6 +26,6 @@ group.AddMiddleware()
 ~~~
 子项目使用中间件
 ~~~go
-child := api.Child("/user", true, "/user")
+child := api.Child("/user", "/user")
 child.AddMiddleware()
 ~~~

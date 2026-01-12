@@ -15,6 +15,7 @@ type RouterGroupInterface interface {
 
 type RouterChild struct {
 	RouterGroup
+	IsDocs         bool // default true
 	OpenAPIInfo    *openapi.Info
 	OpenAPIServers []*openapi.Server
 	OpenAPITags    []*openapi.Tag
@@ -26,7 +27,13 @@ func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
 	if err != nil {
 		return
 	}
+	for _, path := range obj.paths {
+		if path.docsPath == r.docsPath {
+			path.isDocs = path.isDocs && r.IsDocs
+		}
+	}
 	docs := obj.docsMap[r.docsPath]
+	docs.isDocs = r.IsDocs
 	docs.info = r.OpenAPIInfo
 	docs.servers = r.OpenAPIServers
 	docs.tags = mergeOpenAPITags(docs.tags, r.OpenAPITags)
