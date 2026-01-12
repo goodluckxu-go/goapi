@@ -1,6 +1,7 @@
 ## [<<](examples.md) 如何自定义类型
 - 定义的类型都为 **string** 类型
 - 只要类型实现下面两个接口就默认改类型请求或者返回的是字符串类型
+- 必须接口全部实现，否则会出现一些swagger展示问题
 ~~~go
 // 实现接口
 type TextInterface interface {

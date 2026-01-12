@@ -129,14 +129,14 @@ func (h *handler) Handle() {
 						in.field.kind = fType.Elem().Kind()
 					}
 					fVal := getValueByType(fType, true)
-					if err = h.handleTagByInterface(fType, in.field.tag, fVal); err != nil {
+					if err = h.handleTagByInterface(fType, in.field, fVal); err != nil {
 						log.Fatal(err)
 					}
 					if fType.Kind() == reflect.Ptr {
 						fType = fType.Elem()
 					}
 					in.field._type = fType
-					if err = h.handleTagByField(in.structField, in.field.tag, fVal); err != nil {
+					if err = h.handleTagByField(in.structField, in.field); err != nil {
 						log.Fatal(err)
 					}
 				} else {
@@ -158,7 +158,7 @@ func (h *handler) Handle() {
 					if in.inType == inTypeCookie && sType.ConvertibleTo(typeCookie) {
 						return true
 					}
-					if _, ok := getTypeByCovertInterface[TextInterface](sType, true); ok {
+					if isTextInterface(sType) {
 						return true
 					}
 					return false
@@ -281,6 +281,9 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 			onlyFind = true
 		}
 	}
+	if field.isTextType {
+		return
+	}
 	switch val.Kind() {
 	case reflect.Struct:
 		if field.pkgName != "" {
@@ -383,6 +386,12 @@ func (h *handler) handleParam(inType InType, field reflect.StructField, index in
 	}
 	fType := field.Type
 	fType = removeMorePtr(fType)
+	eType := fType
+	if fType.Kind() == reflect.Ptr {
+		eType = fType.Elem()
+	}
+	rs._type = eType
+	rs.kind = eType.Kind()
 	switch inType {
 	case inTypeFile:
 		if fType.ConvertibleTo(typeFile) {
@@ -395,37 +404,29 @@ func (h *handler) handleParam(inType InType, field reflect.StructField, index in
 			rs.kind = reflect.String
 		}
 	}
-	fVal := getValueByType(fType, true)
-	if err = h.handleTagByInterface(fType, rs.tag, fVal); err != nil {
-		return
-	}
-	if err = h.handleTagByField(field, rs.tag, fVal); err != nil {
-		return
-	}
-	if fType.Kind() == reflect.Ptr {
-		fType = fType.Elem()
-	}
-	h.handleTagByType(fType.Kind(), rs.tag)
-	if rs._type == nil {
+	if isTextInterface(fType) {
 		rs._type = fType
-	}
-	if rs.kind == 0 {
-		rs.kind = fType.Kind()
-	}
-	if rType, ok := getTypeByCovertInterface[TextInterface](fVal); ok {
-		rs._type = rType
 		rs.kind = reflect.String
 		rs.isTextType = true
+	}
+	fVal := getValueByType(fType, true)
+	if err = h.handleTagByInterface(fType, rs, fVal); err != nil {
+		return
+	}
+	if err = h.handleTagByField(field, rs); err != nil {
+		return
+	}
+	h.handleTagByType(eType.Kind(), rs.tag)
+	if rs.isTextType {
 		return
 	}
 	var childField *paramField
-	switch fType.Kind() {
+	switch eType.Kind() {
 	case reflect.Slice, reflect.Array:
-		childField, err = h.handleParam(inType, reflect.StructField{Type: fType.Elem()}, -1, names)
+		childField, err = h.handleParam(inType, reflect.StructField{Type: eType.Elem()}, -1, names)
 		if err != nil {
 			return
 		}
-		rs._type = fType
 		rs.fields = append(rs.fields, childField)
 	default:
 	}
@@ -446,30 +447,33 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 	}
 	fType := field.Type
 	fType = removeMorePtr(fType)
-	fVal := getValueByType(fType, true)
-	if err = h.handleTagByInterface(fType, rs.tag, fVal); err != nil {
-		return
-	}
+	eType := fType
 	if fType.Kind() == reflect.Ptr {
-		fType = fType.Elem()
+		eType = fType.Elem()
 	}
-	if err = h.handleTagByField(field, rs.tag, fVal); err != nil {
-		return
-	}
-	h.handleTagByType(fType.Kind(), rs.tag)
-	rs._type = fType
-	rs.kind = fType.Kind()
-	rs.pkgName = h.getPkgName(fType)
-	if rType, ok := getTypeByCovertInterface[TextInterface](fVal); ok {
-		rs._type = rType
+	rs._type = eType
+	rs.kind = eType.Kind()
+	rs.pkgName = h.getPkgName(eType)
+	if isTextInterface(fType) {
+		rs._type = fType
 		rs.kind = reflect.String
 		rs.isTextType = true
+	}
+	fVal := getValueByType(fType, true)
+	if err = h.handleTagByInterface(fType, rs, fVal); err != nil {
+		return
+	}
+	if err = h.handleTagByField(field, rs); err != nil {
+		return
+	}
+	h.handleTagByType(eType.Kind(), rs.tag)
+	if rs.isTextType {
 		return
 	}
 	var childField *paramField
-	switch fType.Kind() {
+	switch eType.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Array:
-		childField, err = h.handleField(reflect.StructField{Type: fType.Elem()}, -1, beforeStructPkgName...)
+		childField, err = h.handleField(reflect.StructField{Type: eType.Elem()}, -1, beforeStructPkgName...)
 		if err != nil {
 			return
 		}
@@ -477,8 +481,8 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 	case reflect.Struct:
 		if rs.pkgName == "" {
 			var pField *paramField
-			for i := 0; i < fType.NumField(); i++ {
-				vField := fType.Field(i)
+			for i := 0; i < eType.NumField(); i++ {
+				vField := eType.Field(i)
 				if vField.Name[0] < 'A' || vField.Name[0] > 'Z' {
 					continue
 				}
@@ -574,7 +578,7 @@ func (h *handler) handleStruct() (err error) {
 	return
 }
 
-func (h *handler) handleTagByInterface(fType reflect.Type, tag *paramTag, valPtr reflect.Value) (err error) {
+func (h *handler) handleTagByInterface(fType reflect.Type, field *paramField, valPtr reflect.Value) (err error) {
 	var val any
 	if fType.Kind() == reflect.Ptr {
 		val = valPtr.Interface()
@@ -582,159 +586,129 @@ func (h *handler) handleTagByInterface(fType reflect.Type, tag *paramTag, valPtr
 	} else {
 		val = valPtr.Elem().Interface()
 	}
-	kind := fType.Kind()
-	isCustomType := false
-	if _, ok := getTypeByCovertInterface[TextInterface](valPtr, true); ok {
-		kind = reflect.String
-		isCustomType = true
-	}
+	kind := field.kind
 	if iTag, ok := val.(TagRegexp); ok && kind == reflect.String {
-		tag.regexp = iTag.Regexp()
+		field.tag.regexp = iTag.Regexp()
 	}
 	if iTag, ok := val.(TagEnum); ok && isNormalType(fType) {
-		tag.enum = iTag.Enum()
-		if err = h.handleTagEnumToFloat64(tag.enum, fType); err != nil {
+		field.tag.enum = iTag.Enum()
+		if err = h.handleTagEnumToFloat64(field.tag.enum, fType); err != nil {
 			return
 		}
 	}
 	if iTag, ok := val.(TagLt); ok && isNumberType(fType) {
-		tag.lt = toPtr(iTag.Lt())
+		field.tag.lt = toPtr(iTag.Lt())
 	}
 	if iTag, ok := val.(TagLte); ok && isNumberType(fType) {
-		tag.lte = toPtr(iTag.Lte())
+		field.tag.lte = toPtr(iTag.Lte())
 	}
 	if iTag, ok := val.(TagGt); ok && isNumberType(fType) {
-		tag.gt = toPtr(iTag.Gt())
+		field.tag.gt = toPtr(iTag.Gt())
 	}
 	if iTag, ok := val.(TagGte); ok && isNumberType(fType) {
-		tag.gte = toPtr(iTag.Gte())
+		field.tag.gte = toPtr(iTag.Gte())
 	}
 	if iTag, ok := val.(TagMultiple); ok && isNumberType(fType) {
-		tag.multiple = toPtr(iTag.Multiple())
+		field.tag.multiple = toPtr(iTag.Multiple())
 	}
 	if iTag, ok := val.(TagMax); ok && inArray(kind, []reflect.Kind{reflect.Array, reflect.Slice,
 		reflect.Map, reflect.String}) {
-		tag.max = toPtr(iTag.Max())
+		field.tag.max = toPtr(iTag.Max())
 	}
 	if iTag, ok := val.(TagMin); ok && inArray(kind, []reflect.Kind{reflect.Array, reflect.Slice,
 		reflect.Map, reflect.String}) {
-		tag.min = iTag.Min()
+		field.tag.min = iTag.Min()
 	}
 	if iTag, ok := val.(TagUnique); ok && inArray(kind, []reflect.Kind{reflect.Array, reflect.Slice}) {
-		tag.unique = iTag.Unique()
+		field.tag.unique = iTag.Unique()
 	}
 	if iTag, ok := val.(TagDesc); ok {
-		tag.desc = h.getMappingTag(iTag.Desc())
+		field.tag.desc = h.getMappingTag(iTag.Desc())
 	}
 	if iTag, ok := val.(TagDefault); ok {
-		valAny := iTag.Default()
-		if isCustomType {
-			fVal := reflect.ValueOf(valAny).Convert(fType)
-			if fn, fnOk := getFnByCovertInterface[TextInterface](fVal, true); fnOk {
-				var valBytes []byte
-				if valBytes, err = fn.MarshalText(); err != nil {
-					return
-				}
-				valAny = string(valBytes)
-			}
-		}
-		tag._default = valAny
+		field.tag._default = iTag.Default()
 	}
 	if iTag, ok := val.(TagExample); ok {
-		valAny := iTag.Example()
-		if isCustomType {
-			fVal := reflect.ValueOf(valAny).Convert(fType)
-			if fn, fnOk := getFnByCovertInterface[TextInterface](fVal, true); fnOk {
-				var valBytes []byte
-				if valBytes, err = fn.MarshalText(); err != nil {
-					return
-				}
-				valAny = string(valBytes)
-			}
-		}
-		tag.example = valAny
+		field.tag.example = iTag.Example()
 	}
 	if iTag, ok := val.(TagDeprecated); ok {
-		tag.deprecated = iTag.Deprecated()
+		field.tag.deprecated = iTag.Deprecated()
 	}
 	return
 }
 
-func (h *handler) handleTagByField(field reflect.StructField, tag *paramTag, valPtr reflect.Value) (err error) {
+func (h *handler) handleTagByField(field reflect.StructField, pField *paramField) (err error) {
 	fType := field.Type
 	for fType.Kind() == reflect.Ptr {
 		fType = fType.Elem()
 	}
-	kind := fType.Kind()
-	if _, ok := getTypeByCovertInterface[TextInterface](valPtr, true); ok {
-		kind = reflect.String
-	}
+	kind := pField.kind
 	if tagVal := field.Tag.Get(tagRegexp); tagVal != "" && kind == reflect.String {
-		tag.regexp = tagVal
+		pField.tag.regexp = tagVal
 	}
 	if tagVal := field.Tag.Get(tagEnum); tagVal != "" && (isNormalType(fType) || kind == reflect.String) {
-		if err = h.parseTagValByKind(tagVal, &tag.enum, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.enum, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagLt); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByKind(tagVal, &tag.lt, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.lt, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagLte); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByKind(tagVal, &tag.lte, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.lte, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagGt); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByKind(tagVal, &tag.gt, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.gt, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagGte); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByKind(tagVal, &tag.gte, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.gte, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagMultiple); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByKind(tagVal, &tag.multiple, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.multiple, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagMax); tagVal != "" && inArray(kind, []reflect.Kind{reflect.Array,
 		reflect.Slice, reflect.Map, reflect.String}) {
-		if err = h.parseTagValByKind(tagVal, &tag.max, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.max, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagMin); tagVal != "" && inArray(kind, []reflect.Kind{reflect.Array,
 		reflect.Slice, reflect.Map, reflect.String}) {
-		if err = h.parseTagValByKind(tagVal, &tag.min, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.min, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagUnique); tagVal != "" && inArray(kind, []reflect.Kind{reflect.Array,
 		reflect.Slice}) {
-		if err = h.parseTagValByKind(tagVal, &tag.unique, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.unique, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagDesc); tagVal != "" {
-		tag.desc = h.getMappingTag(tagVal)
+		pField.tag.desc = h.getMappingTag(tagVal)
 	}
 	if tagVal := field.Tag.Get(tagDefault); tagVal != "" {
-		if err = h.parseTagValByKind(tagVal, &tag._default, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag._default, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagExample); tagVal != "" {
-		if err = h.parseTagValByKind(tagVal, &tag.example, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.example, kind); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagDeprecated); tagVal != "" {
-		if err = h.parseTagValByKind(tagVal, &tag.deprecated, kind); err != nil {
+		if err = h.parseTagValByKind(tagVal, &pField.tag.deprecated, kind); err != nil {
 			return
 		}
 	}

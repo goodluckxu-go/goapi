@@ -116,6 +116,12 @@ func (m MediaType) Marshaler(v any) ([]byte, error) {
 	case YAML:
 		return yaml.Marshal(v)
 	}
+	switch val := v.(type) {
+	case []byte:
+		return val, nil
+	case string:
+		return []byte(val), nil
+	}
 	return []byte(toString(v)), nil
 }
 

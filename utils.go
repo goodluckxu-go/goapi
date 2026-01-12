@@ -1,6 +1,7 @@
 package goapi
 
 import (
+	"encoding"
 	"fmt"
 	"net"
 	"net/http"
@@ -367,4 +368,34 @@ func decryptJWT(j *JWT, jwtStr string, bearerJWT HTTPBearerJWT) error {
 		j.Extensions[k] = v
 	}
 	return nil
+}
+
+// Inherit ‘encoding.TextMarshaler’ and ‘encoding.TextUnmarshaler’
+func isTextInterface(val any) (ok bool) {
+	switch v := val.(type) {
+	case reflect.Value:
+		if _, ok = v.Interface().(encoding.TextMarshaler); !ok {
+			return
+		}
+		if v.Kind() != reflect.Ptr {
+			v = reflect.New(v.Type())
+		}
+		_, ok = v.Interface().(encoding.TextUnmarshaler)
+	case reflect.Type:
+		var ptrVal reflect.Value
+		if v.Kind() != reflect.Ptr {
+			ptrVal = reflect.New(v)
+			if _, ok = ptrVal.Elem().Interface().(encoding.TextMarshaler); !ok {
+				return
+			}
+		} else {
+			ptrVal = reflect.New(v.Elem())
+			if _, ok = ptrVal.Interface().(encoding.TextMarshaler); !ok {
+				return
+			}
+		}
+		_, ok = ptrVal.Interface().(encoding.TextUnmarshaler)
+	default:
+	}
+	return
 }
