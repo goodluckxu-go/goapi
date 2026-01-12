@@ -232,12 +232,23 @@ func (h *handler) Handle() {
 			}
 		}
 		if path.outParam != nil {
-			if !path.outParam.field.isTextType {
+			if _, ok := getTypeByCovertInterface[io.ReadCloser](path.outParam.structField.Type); !ok &&
+				path.outParam.structField.Type != nil && !path.outParam.field.isTextType {
 				val := reflect.New(path.outParam.structField.Type).Elem()
 				isNoSupport := h.setExample(val, path.outParam.field, false)
 				if isNoSupport {
 					path.outParam.example = val.Interface()
 				}
+			}
+		}
+	}
+	if h.api.exceptFunc != nil {
+		if _, ok := getTypeByCovertInterface[io.ReadCloser](h.except.structField.Type); !ok &&
+			h.except.structField.Type != nil && !h.except.field.isTextType {
+			val := reflect.New(h.except.structField.Type).Elem()
+			isNoSupport := h.setExample(val, h.except.field, false)
+			if isNoSupport {
+				h.except.example = val.Interface()
 			}
 		}
 	}

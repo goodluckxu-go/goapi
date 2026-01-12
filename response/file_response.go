@@ -2,6 +2,7 @@ package response
 
 import (
 	"net/http"
+	"net/url"
 )
 
 type FileInterface interface {
@@ -21,7 +22,7 @@ func (f *FileResponse[T]) GetStatusCode() int {
 func (f *FileResponse[T]) GetHeader() http.Header {
 	return map[string][]string{
 		"Content-Type":        {f.t.ContentType()},
-		"Content-Disposition": {"attachment; filename=\"" + f.Filename + "\""},
+		"Content-Disposition": {"attachment; filename=\"" + url.PathEscape(f.Filename) + "\""},
 	}
 }
 
