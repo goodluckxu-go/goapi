@@ -455,6 +455,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 	operation.Tags = path.tags
 	operation.Summary = path.summary
 	operation.Description = path.desc
+	operation.Deprecated = path.deprecated
 	bodyContentMap := map[string]*openapi.MediaType{}
 	bodyProperties := map[string]*openapi.Schema{}
 	var bodyMediaType MediaType

@@ -10,6 +10,7 @@ import "github.com/goodluckxu-go/goapi/openapi"
 //		summary: A short summary of the API.
 //		desc: A description of the API. CommonMark syntax MAY be used for rich text representation.
 //		tags: Multiple contents separated by ','
+//		deprecated: For example deprecated:"true", discard this route
 type Router struct{}
 
 type RouterTags interface {

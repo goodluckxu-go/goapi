@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/textproto"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/goodluckxu-go/goapi/openapi"
@@ -118,11 +119,19 @@ func (i *includeRouter) returnObj() (obj returnObjResult, err error) {
 				for k, v := range paths {
 					paths[k] = pathJoin(i.prefix, v)
 				}
+				deprecated := false
+				deprecatedStr := field.Tag.Get("deprecated")
+				if deprecatedStr != "" {
+					if deprecated, err = strconv.ParseBool(field.Tag.Get("deprecated")); err != nil {
+						return
+					}
+				}
 				pInfo.paths = paths
 				pInfo.methods = methods
 				pInfo.summary = field.Tag.Get(tagSummary)
 				pInfo.desc = field.Tag.Get(tagDesc)
 				pInfo.tags = tagStrs
+				pInfo.deprecated = deprecated
 				tag := field.Tag.Get(tagTags)
 				if tag != "" {
 					pInfo.tags = strings.Split(tag, ",")

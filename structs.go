@@ -110,6 +110,7 @@ type pathInfo struct {
 	summary     string
 	desc        string
 	tags        []string
+	deprecated  bool
 	docsPath    string
 	isDocs      bool
 	groupPrefix string
