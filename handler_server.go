@@ -814,7 +814,6 @@ func (h *handlerServer) getMiddlewares(path string) (rs []HandleFunc) {
 
 func (h *handlerServer) notFind(ctx *Context) {
 	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
-	ctx.log = h.log
 	ctx.handlers = append(ctx.handlers, func(ctx *Context) {
 		http.NotFound(ctx.Writer, ctx.Request)
 	})
