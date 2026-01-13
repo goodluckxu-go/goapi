@@ -37,6 +37,9 @@ func (i *IRouters) Child(prefix string, docsPath string) *RouterChild {
 			DocExpansion: "list",
 			DeepLinking:  true,
 		},
+		RedirectTrailingSlash: true,
+		NoRoute:               defaultNoRoute,
+		NoMethod:              defaultNoMethod,
 	}
 	i.handlers = append(i.handlers, child)
 	return child

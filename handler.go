@@ -39,6 +39,7 @@ type handler struct {
 	publicGroupMiddlewares map[string][]HandleFunc // group prefix
 	openapiMap             map[string]*openapi.OpenAPI
 	swaggerMap             map[string]swagger.Config
+	childMap               map[string]returnObjChild
 	except                 *outParam
 }
 
@@ -55,6 +56,7 @@ func (h *handler) Handle() {
 			h.publicGroupMiddlewares[k] = append(h.publicGroupMiddlewares[k], v.middlewares...)
 		}
 	}
+	h.childMap = obj.childMap
 	for k, v := range obj.docsMap {
 		if !v.isDocs {
 			continue

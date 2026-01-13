@@ -128,10 +128,18 @@ type returnObjDocs struct {
 	swagger swagger.Config
 }
 
+type returnObjChild struct {
+	redirectTrailingSlash  bool
+	handleMethodNotAllowed bool
+	noRoute                func(ctx *Context)
+	noMethod               func(ctx *Context)
+}
+
 type returnObjResult struct {
 	paths      []*pathInfo
 	groupMap   map[string]returnObjGroup
 	docsMap    map[string]returnObjDocs
+	childMap   map[string]returnObjChild
 	mediaTypes map[MediaType]struct{}
 }
 

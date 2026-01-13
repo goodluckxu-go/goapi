@@ -215,3 +215,11 @@ const (
 	validErrorCode = 422
 	authErrorCode  = 401
 )
+
+var defaultNoRoute = func(ctx *Context) {
+	http.Error(ctx.Writer, "404 page not found", http.StatusNotFound)
+}
+
+var defaultNoMethod = func(ctx *Context) {
+	http.Error(ctx.Writer, "405 method not allowed", http.StatusMethodNotAllowed)
+}

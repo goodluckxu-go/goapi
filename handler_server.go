@@ -24,6 +24,7 @@ import (
 func newHandlerServer(handle *handler, log Logger) *handlerServer {
 	hs := &handlerServer{
 		log:    log,
+		trees:  make(methodTrees, 0, 8),
 		handle: handle,
 	}
 	hs.pool.New = func() any {
@@ -812,10 +813,40 @@ func (h *handlerServer) getMiddlewares(path string) (rs []HandleFunc) {
 	return
 }
 
+func (h *handlerServer) getChild(path string) (rs returnObjChild) {
+	var ok bool
+	for {
+		if rs, ok = h.handle.childMap[path]; ok {
+			return
+		}
+		index := strings.LastIndex(path, "/")
+		if index == -1 {
+			return
+		}
+		path = path[:index]
+	}
+}
+
 func (h *handlerServer) notFind(ctx *Context) {
 	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
 	ctx.handlers = append(ctx.handlers, func(ctx *Context) {
-		http.NotFound(ctx.Writer, ctx.Request)
+		child := h.getChild(ctx.Request.URL.Path)
+		if child.handleMethodNotAllowed {
+			allowed := make([]string, 0, len(h.trees)-1)
+			for _, tree := range h.trees {
+				if tree.method == ctx.Request.Method {
+					continue
+				}
+				if val := tree.root.getValue(ctx.Request.URL.Path); val.handler != nil {
+					allowed = append(allowed, tree.method)
+				}
+			}
+			if len(allowed) > 0 {
+				child.noMethod(ctx)
+				return
+			}
+		}
+		child.noRoute(ctx)
 	})
 	ctx.Next()
 }
@@ -850,9 +881,12 @@ func (h *handlerServer) handleHTTPRequest(ctx *Context) {
 		return
 	}
 	value := root.getValue(ctx.Request.URL.Path)
-	if h.handle.api.RedirectTrailingSlash && value.tsr {
-		h.redirect(ctx)
-		return
+	if value.tsr {
+		child := h.getChild(ctx.Request.URL.Path)
+		if child.redirectTrailingSlash {
+			h.redirect(ctx)
+			return
+		}
 	}
 	if value.handler == nil {
 		h.notFind(ctx)

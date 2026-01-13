@@ -15,11 +15,15 @@ type RouterGroupInterface interface {
 
 type RouterChild struct {
 	RouterGroup
-	IsDocs         bool // default true
-	OpenAPIInfo    *openapi.Info
-	OpenAPIServers []*openapi.Server
-	OpenAPITags    []*openapi.Tag
-	Swagger        swagger.Config
+	IsDocs                 bool // default true
+	OpenAPIInfo            *openapi.Info
+	OpenAPIServers         []*openapi.Server
+	OpenAPITags            []*openapi.Tag
+	Swagger                swagger.Config
+	RedirectTrailingSlash  bool
+	HandleMethodNotAllowed bool // support http.StatusMethodNotAllowed
+	NoRoute                func(ctx *Context)
+	NoMethod               func(ctx *Context)
 }
 
 func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
@@ -39,6 +43,12 @@ func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
 	docs.tags = mergeOpenAPITags(docs.tags, r.OpenAPITags)
 	docs.swagger = r.Swagger
 	obj.docsMap[r.docsPath] = docs
+	child := obj.childMap[r.prefix]
+	child.redirectTrailingSlash = r.RedirectTrailingSlash
+	child.handleMethodNotAllowed = r.HandleMethodNotAllowed
+	child.noRoute = r.NoRoute
+	child.noMethod = r.NoMethod
+	obj.childMap[r.prefix] = child
 	return
 }
 
@@ -127,6 +137,7 @@ func (r *RouterGroup) returnObj() (obj returnObjResult, err error) {
 		},
 	}
 	obj.docsMap = map[string]returnObjDocs{}
+	obj.childMap = map[string]returnObjChild{}
 	obj.mediaTypes = map[MediaType]struct{}{}
 	var childObj returnObjResult
 	for _, hd := range r.handlers {
@@ -144,6 +155,9 @@ func (r *RouterGroup) returnObj() (obj returnObjResult, err error) {
 			for k, v := range childObj.docsMap {
 				v.tags = mergeOpenAPITags(obj.docsMap[k].tags, v.tags)
 				obj.docsMap[k] = v
+			}
+			for k, v := range childObj.childMap {
+				obj.childMap[k] = v
 			}
 			for k, v := range childObj.mediaTypes {
 				obj.mediaTypes[k] = v
