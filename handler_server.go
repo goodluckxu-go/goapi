@@ -820,6 +820,19 @@ func (h *handlerServer) notFind(ctx *Context) {
 	ctx.Next()
 }
 
+func (h *handlerServer) redirect(ctx *Context) {
+	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
+	ctx.handlers = append(ctx.handlers, func(ctx *Context) {
+		tsrPath := h.handleTsrPath(ctx.Request.URL.Path)
+		code := http.StatusMovedPermanently
+		if ctx.Request.Method != http.MethodGet {
+			code = http.StatusTemporaryRedirect
+		}
+		http.Redirect(ctx.Writer, ctx.Request, tsrPath, code)
+	})
+	ctx.Next()
+}
+
 func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := h.pool.Get().(*Context)
 	ctx.log = h.log
@@ -838,13 +851,7 @@ func (h *handlerServer) handleHTTPRequest(ctx *Context) {
 	}
 	value := root.getValue(ctx.Request.URL.Path)
 	if h.handle.api.RedirectTrailingSlash && value.tsr {
-		tsrPath := h.handleTsrPath(ctx.Request.URL.Path)
-		code := http.StatusMovedPermanently
-		if ctx.Request.Method != http.MethodGet {
-			code = http.StatusTemporaryRedirect
-		}
-		h.log.Debug("redirecting request %v: %v --> %v", code, ctx.Request.URL.Path, tsrPath)
-		http.Redirect(ctx.Writer, ctx.Request, tsrPath, code)
+		h.redirect(ctx)
 		return
 	}
 	if value.handler == nil {
