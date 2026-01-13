@@ -842,6 +842,7 @@ func (h *handlerServer) notFind(ctx *Context) {
 				}
 			}
 			if len(allowed) > 0 {
+				ctx.Writer.Header().Set("Allow", strings.Join(allowed, ", "))
 				child.noMethod(ctx)
 				return
 			}
