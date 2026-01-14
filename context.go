@@ -3,6 +3,7 @@ package goapi
 import (
 	"net"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 	"sync"
@@ -12,18 +13,19 @@ import (
 )
 
 type Context struct {
-	Request   *http.Request
-	Writer    ResponseWriter
-	writermem responseWriter
-	Values    map[string]any
-	log       Logger
-	mux       sync.RWMutex
-	handlers  []HandleFunc
-	Params    Params
-	index     int
-	fullPath  string
-	mediaType string
-	path      *pathInfo
+	Request    *http.Request
+	Writer     ResponseWriter
+	writermem  responseWriter
+	Values     map[string]any
+	log        Logger
+	mux        sync.RWMutex
+	handlers   []HandleFunc
+	Params     Params
+	index      int
+	fullPath   string
+	mediaType  string
+	path       *pathInfo
+	queryCache url.Values
 }
 
 func (c *Context) reset() {
@@ -33,6 +35,7 @@ func (c *Context) reset() {
 	c.handlers = c.handlers[0:0]
 	c.index = -1
 	c.fullPath = ""
+	c.queryCache = nil
 	levelLog, _ := c.log.(*levelHandleLogger)
 	if _, ok := getFnByCovertInterface[LoggerRequestID](levelLog.log); ok {
 		newLog := c.copyLogger(levelLog.log)
@@ -190,4 +193,20 @@ func (c *Context) ClientIP() string {
 		}
 	}
 	return remoteIP.String()
+}
+
+func (c *Context) initQueryCache() {
+	if c.queryCache == nil {
+		if c.Request != nil {
+			c.queryCache = c.Request.URL.Query()
+		} else {
+			c.queryCache = url.Values{}
+		}
+	}
+}
+
+// Query get all Query, values can be cached
+func (c *Context) Query() url.Values {
+	c.initQueryCache()
+	return c.queryCache
 }

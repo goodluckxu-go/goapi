@@ -274,7 +274,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				}
 			}
 		case inTypeQuery:
-			err = h.handleParamByStringSlice(inValue, in.field, ctx.Request.URL.Query()[in.values[0].name])
+			err = h.handleParamByStringSlice(inValue, in.field, ctx.Query()[in.values[0].name])
 			if err != nil {
 				return
 			}
