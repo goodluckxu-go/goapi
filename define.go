@@ -223,3 +223,25 @@ var defaultNoRoute = func(ctx *Context) {
 var defaultNoMethod = func(ctx *Context) {
 	http.Error(ctx.Writer, "405 method not allowed", http.StatusMethodNotAllowed)
 }
+
+type defaultHttpExcept struct {
+	code int
+	msg  string
+}
+
+type defaultError struct {
+	XMLName xml.Name `json:"-" xml:"error" yaml:"-"`
+	Error   string   `json:"error" xml:",innerxml"`
+}
+
+func (d defaultHttpExcept) GetStatusCode() int {
+	return d.code
+}
+
+func (d defaultHttpExcept) GetBody() any {
+	return defaultError{Error: d.msg}
+}
+
+var defaultExceptFunc = func(httpCode int, msg string) any {
+	return defaultHttpExcept{code: httpCode, msg: msg}
+}

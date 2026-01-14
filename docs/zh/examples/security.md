@@ -34,7 +34,7 @@ type Auth struct {
 func (a *Auth)HTTPBasic(username, password string)  {
 	// 逻辑处理 
 	if username != "admin" && password != "123456" {
-		response.HTTPException(401,"验证失败")
+		goapi.HTTPException(401,"验证失败")
 	}
 }
 ~~~
@@ -55,7 +55,7 @@ type Auth struct {
 func (a *Auth)ApiKey()  {
 	// 逻辑处理 
 	if a.Token != "admin" && a.Name != "admin" && a.ID != 15 {
-		response.HTTPException(401,"验证失败")
+		goapi.HTTPException(401,"验证失败")
 	}
 }
 ~~~
@@ -97,7 +97,7 @@ func (a *Auth) SigningMethod() goapi.SigningMethod {
 func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) { 
 	// 逻辑处理
 	if jwt.ID!="147258" {
-		response.HTTPException(401,"验证失败")
+		goapi.HTTPException(401,"验证失败")
 	}
 }
 ~~~
@@ -135,7 +135,7 @@ func (a *Auth) SigningMethod() goapi.SigningMethod {
 func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) { 
 	// 逻辑处理
 	if jwt.ID!="147258" {
-		response.HTTPException(401,"验证失败")
+		goapi.HTTPException(401,"验证失败")
 	}
 }
 ~~~

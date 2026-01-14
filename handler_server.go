@@ -16,7 +16,6 @@ import (
 	"sync"
 
 	"github.com/goodluckxu-go/goapi/openapi"
-	"github.com/goodluckxu-go/goapi/response"
 	"github.com/goodluckxu-go/goapi/swagger"
 	"github.com/shopspring/decimal"
 )
@@ -116,7 +115,12 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 	pathS := h.handleStaticPath(path.paths[0])
 	fileServer := http.StripPrefix(pathS, http.FileServer(path.inFs))
 	return func(ctx *Context) {
-		defer h.handleExcept(ctx)
+		defer func() {
+			if err := recover(); err != nil {
+				h.handleExcept(ctx, true, toString(err))
+			}
+		}()
+		ctx.path = path
 		ctx.handlers = append(path.middlewares, func(ctx *Context) {
 			if path.isFile {
 				http.ServeFile(ctx.Writer, ctx.Request, fmt.Sprintf("%v", path.inFs))
@@ -130,7 +134,11 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 
 func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 	return func(ctx *Context) {
-		defer h.handleExcept(ctx)
+		defer func() {
+			if err := recover(); err != nil {
+				h.handleExcept(ctx, true, toString(err))
+			}
+		}()
 		ctx.path = path
 		ctx.handlers = make([]HandleFunc, len(path.middlewares)+1)
 		n := copy(ctx.handlers, path.middlewares)
@@ -141,20 +149,33 @@ func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 	}
 }
 
-func (h *handlerServer) handleExcept(ctx *Context) {
-	if except := recover(); except != nil {
-		exceptStr := toString(except)
-		var res exceptInfo
-		err := json.Unmarshal([]byte(exceptStr), &res)
-		var resp any
-		if err != nil {
-			resp = h.handle.api.exceptFunc(http.StatusInternalServerError, exceptStr)
-			h.handle.api.log.Error("panic: %v [recovered]\n%v", exceptStr, string(debug.Stack()))
-		} else {
-			resp = h.handle.api.exceptFunc(res.HttpCode, res.Detail)
+func (h *handlerServer) handleExcept(ctx *Context, isFind bool, err string, code ...int) {
+	var exceptFunc func(httpCode int, detail string) any
+	if isFind {
+		if h.handle.exceptMap[ctx.path.groupPrefix] != nil {
+			exceptFunc = h.handle.exceptMap[ctx.path.groupPrefix].exceptFunc
 		}
-		h.handleResponse(ctx, resp)
+	} else {
+		exceptFunc = h.getChild(ctx.Request.URL.Path).exceptFunc
 	}
+	if exceptFunc == nil {
+		return
+	}
+	if len(code) > 0 {
+		resp := exceptFunc(code[0], err)
+		h.handleResponse(ctx, resp)
+		return
+	}
+	var res exceptJson
+	er := json.Unmarshal([]byte(err), &res)
+	var resp any
+	if er != nil {
+		resp = exceptFunc(http.StatusInternalServerError, err)
+		h.handle.api.log.Error("panic: %v [recovered]\n%v", er, string(debug.Stack()))
+	} else {
+		resp = exceptFunc(res.HttpCode, res.Detail)
+	}
+	h.handleResponse(ctx, resp)
 }
 
 func (h *handlerServer) execRouter(ctx *Context) {
@@ -176,8 +197,7 @@ func (h *handlerServer) execRouter(ctx *Context) {
 	}
 	inputs[lastInputIdx], err = h.handleInParamToValue(ctx, path.inTypes[lastInputIdx], path.inParams)
 	if err != nil {
-		resp := h.handle.api.exceptFunc(validErrorCode, err.Error())
-		h.handleResponse(ctx, resp)
+		h.handleExcept(ctx, true, err.Error(), validErrorCode)
 		return
 	}
 	rs := path.value.Call(inputs)
@@ -220,8 +240,7 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	var body []byte
 	var err error
 	if body, err = mediaType.Marshaler(resp); err != nil {
-		errResp := h.handle.api.exceptFunc(validErrorCode, err.Error())
-		h.handleResponse(ctx, errResp)
+		h.handleExcept(ctx, true, err.Error(), validErrorCode)
 		return
 	}
 	_, _ = ctx.Writer.Write(body)
@@ -358,7 +377,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			security := inValue.Interface().(HTTPBearerJWT)
 			jwt := &JWT{}
 			if err = decryptJWT(jwt, token, security); err != nil {
-				response.HTTPException(authErrorCode, h.handle.api.lang.JwtTranslate(err.Error()))
+				HTTPException(authErrorCode, h.handle.api.lang.JwtTranslate(err.Error()))
 			}
 			security.HTTPBearerJWT(jwt)
 		case inTypeSecurityHTTPBasic:
@@ -831,6 +850,11 @@ func (h *handlerServer) getChild(path string) (rs returnObjChild) {
 }
 
 func (h *handlerServer) notFind(ctx *Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			h.handleExcept(ctx, false, toString(err))
+		}
+	}()
 	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
 	ctx.handlers = append(ctx.handlers, func(ctx *Context) {
 		child := h.getChild(ctx.Request.URL.Path)
@@ -856,6 +880,11 @@ func (h *handlerServer) notFind(ctx *Context) {
 }
 
 func (h *handlerServer) redirect(ctx *Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			h.handleExcept(ctx, false, toString(err))
+		}
+	}()
 	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
 	ctx.handlers = append(ctx.handlers, func(ctx *Context) {
 		tsrPath := h.handleTsrPath(ctx.Request.URL.Path)

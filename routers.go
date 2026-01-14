@@ -40,6 +40,7 @@ func (i *IRouters) Child(prefix string, docsPath string) *RouterChild {
 		RedirectTrailingSlash: true,
 		NoRoute:               defaultNoRoute,
 		NoMethod:              defaultNoMethod,
+		exceptFunc:            defaultExceptFunc,
 	}
 	i.handlers = append(i.handlers, child)
 	return child

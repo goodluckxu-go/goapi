@@ -117,6 +117,11 @@ type pathInfo struct {
 	isSwagger   bool
 }
 
+type exceptInfo struct {
+	exceptFunc func(httpCode int, detail string) any
+	outParam   *outParam
+}
+
 type returnObjGroup struct {
 	middlewares []HandleFunc
 }
@@ -134,6 +139,7 @@ type returnObjChild struct {
 	handleMethodNotAllowed bool
 	noRoute                func(ctx *Context)
 	noMethod               func(ctx *Context)
+	exceptFunc             func(httpCode int, detail string) any
 }
 
 type returnObjResult struct {
@@ -144,8 +150,7 @@ type returnObjResult struct {
 	mediaTypes map[MediaType]struct{}
 }
 
-type exceptInfo struct {
-	HttpCode int               `json:"http_code"`
-	Header   map[string]string `json:"header"`
-	Detail   string            `json:"detail"`
+type exceptJson struct {
+	HttpCode int    `json:"http_code,omitempty"`
+	Detail   string `json:"detail,omitempty"`
 }

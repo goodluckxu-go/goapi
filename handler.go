@@ -26,6 +26,7 @@ func newHandler(api *API) *handler {
 		publicGroupMiddlewares: make(map[string][]HandleFunc),
 		openapiMap:             map[string]*openapi.OpenAPI{},
 		swaggerMap:             map[string]swagger.Config{},
+		exceptMap:              map[string]*exceptInfo{},
 	}
 }
 
@@ -40,7 +41,7 @@ type handler struct {
 	openapiMap             map[string]*openapi.OpenAPI
 	swaggerMap             map[string]swagger.Config
 	childMap               map[string]returnObjChild
-	except                 *outParam
+	exceptMap              map[string]*exceptInfo
 }
 
 func (h *handler) Handle() {
@@ -57,6 +58,11 @@ func (h *handler) Handle() {
 		}
 	}
 	h.childMap = obj.childMap
+	for k, v := range h.childMap {
+		h.exceptMap[k] = &exceptInfo{
+			exceptFunc: v.exceptFunc,
+		}
+	}
 	for k, v := range obj.docsMap {
 		if !v.isDocs {
 			continue
@@ -196,19 +202,29 @@ func (h *handler) Handle() {
 			path.outParam.field = field
 		}
 	}
-	if h.api.exceptFunc != nil {
-		exceptResponse := h.api.exceptFunc(validErrorCode, "")
-		fType := reflect.TypeOf(exceptResponse.GetBody())
-		h.except = &outParam{
-			structField: reflect.StructField{Type: fType},
-			httpStatus:  exceptResponse.GetStatusCode(),
-			httpHeader:  h.handleHeader(exceptResponse.GetHeader()),
+	for _, except := range h.exceptMap {
+		if except.exceptFunc != nil {
+			except.outParam = &outParam{
+				httpStatus: http.StatusOK,
+			}
+			exceptResponse := except.exceptFunc(validErrorCode, "")
+			if fn, ok := exceptResponse.(ResponseHeader); ok {
+				except.outParam.httpHeader = h.handleHeader(fn.GetHeader())
+			}
+			if fn, ok := exceptResponse.(ResponseStatusCode); ok {
+				except.outParam.httpStatus = fn.GetStatusCode()
+			}
+			if fn, ok := exceptResponse.(ResponseBody); ok {
+				exceptResponse = fn.GetBody()
+			}
+			fType := reflect.TypeOf(exceptResponse)
+			except.outParam.structField = reflect.StructField{Type: fType}
+			field, err = h.handleField(except.outParam.structField, -1)
+			if err != nil {
+				log.Fatal(err)
+			}
+			except.outParam.field = field
 		}
-		field, err = h.handleField(h.except.structField, -1)
-		if err != nil {
-			log.Fatal(err)
-		}
-		h.except.field = field
 	}
 	err = h.handleStruct()
 	if err != nil {
@@ -244,13 +260,15 @@ func (h *handler) Handle() {
 			}
 		}
 	}
-	if h.api.exceptFunc != nil {
-		if _, ok := getTypeByCovertInterface[io.ReadCloser](h.except.structField.Type); !ok &&
-			h.except.structField.Type != nil && !h.except.field.isTextType {
-			val := reflect.New(h.except.structField.Type).Elem()
-			isNoSupport := h.setExample(val, h.except.field, false)
-			if isNoSupport {
-				h.except.example = val.Interface()
+	for _, except := range h.exceptMap {
+		if except.exceptFunc != nil {
+			if _, ok := getTypeByCovertInterface[io.ReadCloser](except.outParam.structField.Type); !ok &&
+				except.outParam.structField.Type != nil && !except.outParam.field.isTextType {
+				val := reflect.New(except.outParam.structField.Type).Elem()
+				isNoSupport := h.setExample(val, except.outParam.field, false)
+				if isNoSupport {
+					except.outParam.example = val.Interface()
+				}
 			}
 		}
 	}

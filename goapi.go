@@ -9,7 +9,6 @@ import (
 
 	"github.com/goodluckxu-go/goapi/lang"
 	"github.com/goodluckxu-go/goapi/openapi"
-	"github.com/goodluckxu-go/goapi/response"
 	"github.com/goodluckxu-go/goapi/swagger"
 )
 
@@ -20,12 +19,6 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 		dPath = docsPath[0]
 	}
 	api := &API{
-		exceptFunc: func(httpCode int, detail string) Response {
-			return &response.HTTPResponse[string]{
-				HttpCode: httpCode,
-				Body:     detail,
-			}
-		},
 		log:                  &levelHandleLogger{log: &defaultLogger{}},
 		addr:                 ":8080",
 		lang:                 &lang.EnUs{},
@@ -44,6 +37,7 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 	api.RedirectTrailingSlash = true
 	api.NoRoute = defaultNoRoute
 	api.NoMethod = defaultNoMethod
+	api.exceptFunc = defaultExceptFunc
 	api.isDocs = isDocs
 	api.docsPath = dPath
 	api.AddMiddleware(api.defaultMiddlewares...)
@@ -54,16 +48,10 @@ type API struct {
 	IRouters
 	defaultMiddlewares   []HandleFunc
 	responseMediaTypes   []MediaType
-	exceptFunc           func(httpCode int, detail string) Response
 	lang                 Lang
 	log                  Logger
 	addr                 string
 	structTagVariableMap map[string]any
-}
-
-// HTTPExceptionHandler It is an exception handling registration for HTTP
-func (a *API) HTTPExceptionHandler(f func(httpCode int, detail string) Response) {
-	a.exceptFunc = f
 }
 
 // SetLang It is to set the validation language function

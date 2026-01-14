@@ -4,7 +4,7 @@ http返回
 ~~~go
 func (*Index) Param(input struct {
 	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
-}) *response.HTTPResponse[string] {
+}) *string {
 	return nil
 }
 ~~~
@@ -12,7 +12,7 @@ func (*Index) Param(input struct {
 ~~~go
 func (*Index) Param(input struct {
 	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
-}) *response.FileResponse[types.Docx] {
+}) *string {
 	return nil
 }
 ~~~

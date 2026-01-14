@@ -27,6 +27,13 @@ type RouterChild struct {
 	HandleMethodNotAllowed bool // support http.StatusMethodNotAllowed
 	NoRoute                func(ctx *Context)
 	NoMethod               func(ctx *Context)
+	// func set
+	exceptFunc func(httpCode int, detail string) any
+}
+
+// HTTPExceptionHandler It is an exception handling registration for HTTP
+func (r *RouterChild) HTTPExceptionHandler(f func(httpCode int, detail string) any) {
+	r.exceptFunc = f
 }
 
 func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
@@ -51,6 +58,7 @@ func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
 	child.handleMethodNotAllowed = r.HandleMethodNotAllowed
 	child.noRoute = r.NoRoute
 	child.noMethod = r.NoMethod
+	child.exceptFunc = r.exceptFunc
 	obj.childMap[r.prefix] = child
 	return
 }
