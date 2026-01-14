@@ -116,6 +116,7 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 	pathS := h.handleStaticPath(path.paths[0])
 	fileServer := http.StripPrefix(pathS, http.FileServer(path.inFs))
 	return func(ctx *Context) {
+		defer h.handleExcept(ctx)
 		ctx.handlers = append(path.middlewares, func(ctx *Context) {
 			if path.isFile {
 				http.ServeFile(ctx.Writer, ctx.Request, fmt.Sprintf("%v", path.inFs))
@@ -129,6 +130,7 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 
 func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 	return func(ctx *Context) {
+		defer h.handleExcept(ctx)
 		ctx.path = path
 		ctx.handlers = make([]HandleFunc, len(path.middlewares)+1)
 		n := copy(ctx.handlers, path.middlewares)
@@ -139,23 +141,24 @@ func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 	}
 }
 
+func (h *handlerServer) handleExcept(ctx *Context) {
+	if except := recover(); except != nil {
+		exceptStr := toString(except)
+		var res exceptInfo
+		err := json.Unmarshal([]byte(exceptStr), &res)
+		var resp any
+		if err != nil {
+			resp = h.handle.api.exceptFunc(http.StatusInternalServerError, exceptStr)
+			h.handle.api.log.Error("panic: %v [recovered]\n%v", exceptStr, string(debug.Stack()))
+		} else {
+			resp = h.handle.api.exceptFunc(res.HttpCode, res.Detail)
+		}
+		h.handleResponse(ctx, resp)
+	}
+}
+
 func (h *handlerServer) execRouter(ctx *Context) {
 	path := ctx.path
-	defer func() {
-		if except := recover(); except != nil {
-			exceptStr := toString(except)
-			var res exceptInfo
-			err := json.Unmarshal([]byte(exceptStr), &res)
-			var resp any
-			if err != nil {
-				resp = h.handle.api.exceptFunc(http.StatusInternalServerError, exceptStr)
-				h.handle.api.log.Error("panic: %v [recovered]\n%v", exceptStr, string(debug.Stack()))
-			} else {
-				resp = h.handle.api.exceptFunc(res.HttpCode, res.Detail)
-			}
-			h.handleResponse(ctx, resp)
-		}
-	}()
 	if path.handle != nil {
 		path.handle(ctx)
 		return
