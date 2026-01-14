@@ -11,6 +11,9 @@ type RouterGroupInterface interface {
 	AddMiddleware(middlewares ...HandleFunc)
 	IncludeRouter(router any, prefix string, isDocs bool, middlewares ...HandleFunc)
 	Group(prefix string, isDocs bool) *RouterGroup
+	StaticFile(path, root string)
+	Static(path, root string)
+	StaticFS(path string, fs http.FileSystem)
 }
 
 type RouterChild struct {
