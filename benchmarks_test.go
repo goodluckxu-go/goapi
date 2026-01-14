@@ -43,12 +43,25 @@ func BenchmarkMiddlewareRouter(b *testing.B) {
 	}
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler(func(ctx *Context) {
-		ctx.Request.Header.Set("Token", "111")
 		ctx.Next()
 	}, func(ctx *Context) {
-		ctx.Request.Header.Set("Token2", "258")
 		ctx.Next()
 	})
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamRouter(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/1/zs/li?query1=1&query2=1&query2=2", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Header", "10")
+	req.Header.Add("Cookie", "cookie1=125")
+	req.Header.Add("Cookie", "cookie2=346")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
@@ -60,8 +73,6 @@ func BenchmarkPostDataRouter(b *testing.B) {
 		panic(err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Token", "123")
-	req.Header.Set("Cookie", "Projectid=147")
 	buf, _ := json.Marshal(map[string]interface{}{
 		"Id":   15,
 		"Name": "zs",
@@ -149,17 +160,25 @@ func (t *testRouters) IndexReturn(input struct {
 
 func (t *testRouters) Middleware(input struct {
 	router Router `path:"/middleware" method:"get"`
-	Token  string `header:"Token"`
-	Token2 string `header:"Token2"`
 }) {
 
+}
+
+func (t *testRouters) Param(input struct {
+	router  Router       `path:"/param/{id}/{name:*}" method:"get"`
+	Id      string       `path:"id"`
+	Name    string       `path:"name"`
+	Query1  string       `query:"query1"`
+	Query2  []string     `query:"query2"`
+	Header  string       `header:"Header"`
+	Cookie1 string       `cookie:"cookie1"`
+	Cookie2 *http.Cookie `cookie:"cookie2"`
+}) {
 }
 
 func (t *testRouters) PostData(input struct {
 	router Router `path:"/post" method:"post"`
 	Auth   *testAuth
-	Token  string   `header:"Token"`
-	Type   string   `query:"type"`
 	Body   testBody `body:"json"`
 }) {
 }
