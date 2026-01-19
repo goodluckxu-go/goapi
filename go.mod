@@ -1,4 +1,4 @@
-module github.com/goodluckxu-go/goapi
+module github.com/goodluckxu-go/goapi/v2
 
 go 1.18
 
