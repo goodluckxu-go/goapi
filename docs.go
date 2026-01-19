@@ -5,8 +5,8 @@ import "github.com/goodluckxu-go/goapi/v2/openapi"
 // Router is used to set access routes and routing methods
 //
 //	Tag Description:
-//		path: Access Routing. Multiple contents separated by ','
-//		method: Access method. Multiple contents separated by ','
+//		paths: Access Routing. Multiple contents separated by ','
+//		methods: Access method. Multiple contents separated by ','
 //		summary: A short summary of the API.
 //		desc: A description of the API. CommonMark syntax MAY be used for rich text representation.
 //		tags: Multiple contents separated by ','

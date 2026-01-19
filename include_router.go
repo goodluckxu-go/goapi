@@ -101,8 +101,8 @@ func (i *includeRouter) returnObj() (obj returnObjResult, err error) {
 			field := inputType.Field(l)
 			switch field.Type {
 			case reflect.TypeOf(Router{}):
-				path := field.Tag.Get(tagPath)
-				method := field.Tag.Get(tagMethod)
+				path := field.Tag.Get(tagPaths)
+				method := field.Tag.Get(tagMethods)
 				if (i.prefix == "" && path == "") || method == "" {
 					err = fmt.Errorf("the parameters must have a path and method present")
 					return
