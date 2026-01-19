@@ -10,27 +10,27 @@ go get github.com/goodluckxu-go/goapi
 main.go
 ~~~go
 import (
-"github.com/fatih/color"
-"github.com/goodluckxu-go/goapi"
+	"github.com/fatih/color"
+	"github.com/goodluckxu-go/goapi"
 )
 
 func main() {
-color.NoColor = true // Turn off the default logging console color
-api := goapi.GoAPI(true, "/docs")
-api.SetResponseMediaType(goapi.JSON)
-api.HTTPExceptionHandler(func(httpCode int, detail string) goapi.Response {
-return &goapi.HTTPResponse[Error]{
-HttpCode: httpCode,
-Body: Error{
-Code:  httpCode,
-Error: detail,
-},
-}
-})
-api.IncludeRouter(&IndexController{}, "/v1", true, func(ctx *goapi.Context) {
-ctx.Next()
-})
-_ = api.Run("127.0.0.1:8080")
+	color.NoColor = true // Turn off the default logging console color
+	api := goapi.GoAPI(true, "/docs")
+	api.SetResponseMediaType(goapi.JSON)
+	api.HTTPExceptionHandler(func(httpCode int, detail string) goapi.Response {
+		return &goapi.HTTPResponse[Error]{
+			HttpCode: httpCode, 
+			Body: Error{
+				Code:  httpCode, 
+				Error: detail,
+			},
+		}
+	})
+	api.IncludeRouter(&IndexController{}, "/v1", true, func(ctx *goapi.Context) {
+		ctx.Next()
+	})
+	_ = api.Run("127.0.0.1:8080")
 }
 ~~~
 user_controller.go
@@ -42,103 +42,103 @@ type UserListRouter struct {
 }
 
 type Req struct {
-JwtStr string `json:"jwt_str" desc:"json web token"`
-Page int `json:"page" desc:"now page" gt:"0"`
-Limit int `json:"page" desc:"limit a page count" gte:"10" lte:"100"`
+	JwtStr string `json:"jwt_str" desc:"json web token"`
+	Page int `json:"page" desc:"now page" gt:"0"`
+	Limit int `json:"page" desc:"limit a page count" gte:"10" lte:"100"`
 }
 
 func (u *UserListRouter) Index(input struct {
-router  goapi.Router `path:"/index/{id}" method:"put" summary:"test api" desc:"test api" tags:"admin"`
-Auth    *AdminAuth
-ID      string `path:"id" regexp:"^\d+$"` // path 
-Req     Req `body:"json"`
+	router  goapi.Router `path:"/index/{id}" method:"put" summary:"test api" desc:"test api" tags:"admin"`
+	Auth    *AdminAuth
+	ID      string `path:"id" regexp:"^\d+$"` // path 
+	Req     Req `body:"json"`
 }) Resp {
-jwt := &goapi.JWT{
-Issuer: "custom",
-Subject: input.Name,
-Audience: []string{"/v1"},
-ExpiresAt: time.Now().Add(5 * time.Minute),
-NotBefore: time.Now(),
-IssuedAt: time.Now(),
-ID: "uuid",
-Extensions: map[string]any{
-"name":     1,
-"age":      15,
-"zhangsan": "user",
-},
-}
-jwtStr, err := jwt.Encrypt(&AuthToken{})
-if err != nil {
-response.HTTPException(-1, err.Error())
-}
-return Resp{
-JwtStr: jwtStr
-}
+	jwt := &goapi.JWT{
+		Issuer: "custom", 
+		Subject: input.Name,
+		Audience: []string{"/v1"}, 
+		ExpiresAt: time.Now().Add(5 * time.Minute), 
+		NotBefore: time.Now(), 
+		IssuedAt: time.Now(), 
+		ID: "uuid",
+		Extensions: map[string]any{
+			"name":     1, 
+			"age":      15, 
+			"zhangsan": "user",
+		},
+	}
+	jwtStr, err := jwt.Encrypt(&AuthToken{})
+	if err != nil {
+		response.HTTPException(-1, err.Error())
+	}
+	return Resp{
+		JwtStr: jwtStr
+	}
 }
 
 // Implement HTTPBearer interface
 type AdminAuth struct {
-Admin  string          // Define a value and retrieve it from the controller
+	Admin  string          // Define a value and retrieve it from the controller
 }
 
 func (h *AdminAuth) HTTPBearer(token string) {
-if token != "123456" {
-response.HTTPException(401, "token is error")
-}
-h.Admin = "admin"
+	if token != "123456" {
+		response.HTTPException(401, "token is error")   
+	}
+	h.Admin = "admin"
 }
 
 // Implement HTTPBearerJWT interface
 type AuthToken struct {
-Name string // Define a value and retrieve it from the controller
+	Name string // Define a value and retrieve it from the controller
 }
 
 var privateKey, _ = os.ReadFile("private.pem")
 var publicKey, _ = os.ReadFile("public.pem")
 
 func (a *AuthToken) EncryptKey() (any, error) {
-block, _ := pem.Decode(privateKey)
-return x509.ParsePKCS8PrivateKey(block.Bytes)
+	block, _ := pem.Decode(privateKey)
+	return x509.ParsePKCS8PrivateKey(block.Bytes)
 }
 
 func (a *AuthToken) DecryptKey() (any, error) {
-block, _ := pem.Decode(publicKey)
-return x509.ParsePKIXPublicKey(block.Bytes)
+	block, _ := pem.Decode(publicKey)
+	return x509.ParsePKIXPublicKey(block.Bytes)
 }
 
 func (a *AuthToken) SigningMethod() goapi.SigningMethod {
-return goapi.SigningMethodRS256
+	return goapi.SigningMethodRS256
 }
 
 func (a *AuthToken) HTTPBearerJWT(jwt *goapi.JWT) {
-fmt.Println(jwt)
-a.Name = jwt.Subject
+	fmt.Println(jwt)
+	a.Name = jwt.Subject
 }
 
 // Implement HTTPBasic interface
 type AdminAuth struct {
-Admin  string          // Define a value and retrieve it from the controller
+	Admin  string          // Define a value and retrieve it from the controller
 }
 
 func (h *AdminAuth) HTTPBasic(username,password string) {
-if username != "admin" || password != "123456" {
-response.HTTPException(401, "token is error")
-}
-h.Admin = "admin"
+	if username != "admin" || password != "123456" {
+		response.HTTPException(401, "token is error")
+	} 
+	h.Admin = "admin"
 }
 
 
 // Implement ApiKey interface
 type AdminAuth struct {
-Token  string   `header:"Token"`
-Admin  string          // Define a value and retrieve it from the controller
+	Token  string   `header:"Token"`
+	Admin  string          // Define a value and retrieve it from the controller
 }
 
 func (h *AdminAuth) ApiKey() {
-if h.Token != "123456" {
-response.HTTPException(401, "token is error")
-}
-h.Admin = "admin"
+	if h.Token != "123456" {
+		response.HTTPException(401, "token is error")
+	}
+	h.Admin = "admin"
 }
 ~~~
 A new type implementation verification interface can be used for verification
@@ -218,31 +218,31 @@ goapi.SetLogLevel(goapi.LogInfo | goapi.LogWarning)
 - tags: Multiple contents separated by ','
 ### Annotation of parameter structure tag in the method
 - header
-    - Can use commonly used types(ptr, slice), in slice type use ',' split
-    - Value is an alias for a field, 'omitempty' is nullable
+  - Can use commonly used types(ptr, slice), in slice type use ',' split
+  - Value is an alias for a field, 'omitempty' is nullable
 - cookie
-    - Can use commonly used types(ptr, slice) or '*http.Cookie', in slice type use ',' split
-    - Value is an alias for a field, 'omitempty' is nullable
+  - Can use commonly used types(ptr, slice) or '*http.Cookie', in slice type use ',' split
+  - Value is an alias for a field, 'omitempty' is nullable
 - query
-    - Can use commonly used types(ptr, slice)
-    - Value is an alias for a field, 'omitempty' is nullable
+  - Can use commonly used types(ptr, slice)
+  - Value is an alias for a field, 'omitempty' is nullable
 - path
-    - Can use commonly used types(ptr, slice), in slice type use ',' split
-    - Value is an alias for a field, 'omitempty' is nullable
+  - Can use commonly used types(ptr, slice), in slice type use ',' split
+  - Value is an alias for a field, 'omitempty' is nullable
 - form
-    - Can use commonly used types(ptr, slice), in slice type use ',' split
-    - default media type 'application/x-www-form-urlencoded', if file exists 'multipart/form-data'
-    - Value is an alias for a field, 'omitempty' is nullable
+  - Can use commonly used types(ptr, slice), in slice type use ',' split
+  - default media type 'application/x-www-form-urlencoded', if file exists 'multipart/form-data'
+  - Value is an alias for a field, 'omitempty' is nullable
 - file
-    - Can use commonly used '*multipart.FileHeader' or '[]*multipart.FileHeader'
-    - default media type 'multipart/form-data'
-    - Value is an alias for a field, 'omitempty' is nullable
+  - Can use commonly used '*multipart.FileHeader' or '[]*multipart.FileHeader'
+  - default media type 'multipart/form-data'
+  - Value is an alias for a field, 'omitempty' is nullable
 - body
-    - The values are 'xml' and 'json', Multiple uses ',' segmentation
-    - The value is for other media types(example 'text/plain'), The type is '[]byte', 'string' or 'io.ReadCloser'
-    - Value of json is media type 'application/json', xml is media type 'application/xml'
-    - Body of tag use value, 'omitempty' is nullable
-    - When the value is 'application/octet-stream', indicates that the body is uploaded as a file
+  - The values are 'xml' and 'json', Multiple uses ',' segmentation
+  - The value is for other media types(example 'text/plain'), The type is '[]byte', 'string' or 'io.ReadCloser'
+  - Value of json is media type 'application/json', xml is media type 'application/xml'
+  - Body of tag use value, 'omitempty' is nullable
+  - When the value is 'application/octet-stream', indicates that the body is uploaded as a file
 ### Structure tag annotation
 - regexp
     - Regular expression of value
