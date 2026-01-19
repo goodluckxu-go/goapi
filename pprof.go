@@ -8,7 +8,7 @@ type pprofInfo struct {
 }
 
 func (p *pprofInfo) Pprof(ctx *Context, input struct {
-	router Router `path:"/pprof/,/pprof/{path}" method:"get" tags:"pprof"`
+	router Router `paths:"/pprof/,/pprof/{path}" methods:"get" tags:"pprof"`
 	Path   string `path:"path"`
 }) {
 	switch input.Path {

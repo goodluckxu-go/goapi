@@ -144,13 +144,13 @@ type testRouters struct {
 }
 
 func (t *testRouters) Index(input struct {
-	router Router `path:"/index" method:"get"`
+	router Router `paths:"/index" methods:"get"`
 }) {
 
 }
 
 func (t *testRouters) IndexReturn(input struct {
-	router Router `path:"/index/return" method:"get"`
+	router Router `paths:"/index/return" methods:"get"`
 }) testBody {
 	return testBody{
 		Id:   15,
@@ -159,13 +159,13 @@ func (t *testRouters) IndexReturn(input struct {
 }
 
 func (t *testRouters) Middleware(input struct {
-	router Router `path:"/middleware" method:"get"`
+	router Router `paths:"/middleware" methods:"get"`
 }) {
 
 }
 
 func (t *testRouters) Param(input struct {
-	router  Router       `path:"/param/{id}/{name:*}" method:"get"`
+	router  Router       `paths:"/param/{id}/{name:*}" methods:"get"`
 	Id      string       `path:"id"`
 	Name    string       `path:"name"`
 	Query1  string       `query:"query1"`
@@ -177,14 +177,14 @@ func (t *testRouters) Param(input struct {
 }
 
 func (t *testRouters) PostData(input struct {
-	router Router `path:"/post" method:"post"`
+	router Router `paths:"/post" methods:"post"`
 	Auth   *testAuth
 	Body   testBody `body:"json"`
 }) {
 }
 
 func (t *testRouters) PostFile(input struct {
-	router Router                `path:"/post/file" method:"post"`
+	router Router                `paths:"/post/file" methods:"post"`
 	File   *multipart.FileHeader `file:"file"`
 	Name   string                `form:"name"`
 }) {
