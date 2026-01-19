@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/goodluckxu-go/goapi/openapi"
+	"github.com/goodluckxu-go/goapi/v2/openapi"
 )
 
 func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {

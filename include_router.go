@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/goodluckxu-go/goapi/openapi"
+	"github.com/goodluckxu-go/goapi/v2/openapi"
 )
 
 type includeRouter struct {

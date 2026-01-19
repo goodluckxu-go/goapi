@@ -6,17 +6,17 @@
 ### 安装
 1. 下载并安装 GoAPI：
 ~~~
-go get -u github.com/goodluckxu-go/goapi
+go get -u github.com/goodluckxu-go/goapi/v2
 ~~~
 2. 将 GoAPI 引入到代码中：
 ~~~go
-import "github.com/goodluckxu-go/goapi"
+import "github.com/goodluckxu-go/goapi/v2"
 ~~~
 3. (可选）GoAPI还有其他包可使用：
 ~~~go
 import (
-	"github.com/goodluckxu-go/goapi/lang" //语音包
-	"github.com/goodluckxu-go/goapi/response" // 扩展返回包 
+	"github.com/goodluckxu-go/goapi/v2/lang" //语音包
+	"github.com/goodluckxu-go/goapi/v2/response" // 扩展返回包 
 	"github.com/fatih/color" // 颜色包
 )
 
@@ -45,8 +45,8 @@ package main
 import (
 	"log"
 
-	"github.com/goodluckxu-go/goapi"
-	"github.com/goodluckxu-go/goapi/lang"
+	"github.com/goodluckxu-go/goapi/v2"
+	"github.com/goodluckxu-go/goapi/v2/lang"
 )
 
 func main() {

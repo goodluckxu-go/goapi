@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/goodluckxu-go/goapi/openapi"
-	"github.com/goodluckxu-go/goapi/swagger"
+	"github.com/goodluckxu-go/goapi/v2/openapi"
+	"github.com/goodluckxu-go/goapi/v2/swagger"
 )
 
 func newHandler(api *API) *handler {

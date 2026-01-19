@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/goodluckxu-go/goapi/lang"
-	"github.com/goodluckxu-go/goapi/openapi"
-	"github.com/goodluckxu-go/goapi/swagger"
+	"github.com/goodluckxu-go/goapi/v2/lang"
+	"github.com/goodluckxu-go/goapi/v2/openapi"
+	"github.com/goodluckxu-go/goapi/v2/swagger"
 )
 
 // GoAPI It is a newly created API function

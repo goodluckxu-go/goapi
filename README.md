@@ -5,7 +5,7 @@
 - [中文文档](docs/zh/index.md)
 ## 用法
 ~~~bash
-go get github.com/goodluckxu-go/goapi
+go get github.com/goodluckxu-go/goapi/v2
 ~~~
 ## 功能
 - 实现了http服务，路由使用gin路由模式的前缀树方式实现

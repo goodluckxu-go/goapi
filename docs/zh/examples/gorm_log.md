@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/goodluckxu-go/goapi"
+	"github.com/goodluckxu-go/goapi/v2"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"
 )

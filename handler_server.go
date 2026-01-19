@@ -15,8 +15,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/goodluckxu-go/goapi/openapi"
-	"github.com/goodluckxu-go/goapi/swagger"
+	"github.com/goodluckxu-go/goapi/v2/openapi"
+	"github.com/goodluckxu-go/goapi/v2/swagger"
 	"github.com/shopspring/decimal"
 )
 
@@ -63,7 +63,7 @@ func (h *handlerServer) HandleSwagger(
 }
 
 func (h *handlerServer) handleSwagger(router swagger.Router) {
-	pos := "github.com/goodluckxu-go/goapi/swagger.GetSwagger (docs)"
+	pos := "github.com/goodluckxu-go/goapi/v2/swagger.GetSwagger (docs)"
 	if len(h.handle.api.defaultMiddlewares) > 0 {
 		pos += fmt.Sprintf(" (%v Middleware)", len(h.handle.api.defaultMiddlewares))
 	}

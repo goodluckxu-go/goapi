@@ -3,7 +3,7 @@ package lang
 import (
 	"strings"
 
-	"github.com/goodluckxu-go/goapi/utils"
+	"github.com/goodluckxu-go/goapi/v2/utils"
 )
 
 type EnUs struct {

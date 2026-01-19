@@ -1,6 +1,6 @@
 package goapi
 
-import "github.com/goodluckxu-go/goapi/openapi"
+import "github.com/goodluckxu-go/goapi/v2/openapi"
 
 // Router is used to set access routes and routing methods
 //
