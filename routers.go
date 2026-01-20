@@ -26,6 +26,7 @@ func (i *IRouters) Child(prefix string, docsPath string) *RouterChild {
 			groupPrefix: pathJoin(i.groupPrefix, prefix),
 			isDocs:      i.isDocs,
 			docsPath:    pathJoin(i.docsPath, docsPath),
+			childPath:   pathJoin(i.childPath, prefix),
 			middlewares: append(i.middlewares, i.getMiddlewares()...),
 		},
 		IsDocs: true,

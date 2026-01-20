@@ -53,13 +53,13 @@ func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
 	docs.tags = mergeOpenAPITags(docs.tags, r.OpenAPITags)
 	docs.swagger = r.Swagger
 	obj.docsMap[r.docsPath] = docs
-	child := obj.childMap[r.prefix]
+	child := obj.childMap[r.childPath]
 	child.redirectTrailingSlash = r.RedirectTrailingSlash
 	child.handleMethodNotAllowed = r.HandleMethodNotAllowed
 	child.noRoute = r.NoRoute
 	child.noMethod = r.NoMethod
 	child.exceptFunc = r.exceptFunc
-	obj.childMap[r.prefix] = child
+	obj.childMap[r.childPath] = child
 	return
 }
 
@@ -68,6 +68,7 @@ type RouterGroup struct {
 	groupPrefix string
 	isDocs      bool
 	docsPath    string
+	childPath   string
 	middlewares []HandleFunc
 	handlers    []any
 }
@@ -87,6 +88,7 @@ func (r *RouterGroup) IncludeRouter(router any, prefix string, isDocs bool, midd
 		groupPrefix: r.groupPrefix,
 		isDocs:      r.isDocs && isDocs,
 		docsPath:    r.docsPath,
+		childPath:   r.childPath,
 		middlewares: append(r.middlewares, append(r.getMiddlewares(), middlewares...)...),
 	})
 }
@@ -126,6 +128,7 @@ func (r *RouterGroup) Group(prefix string, isDocs bool) *RouterGroup {
 		groupPrefix: pathJoin(r.groupPrefix, prefix),
 		isDocs:      r.isDocs && isDocs,
 		docsPath:    r.docsPath,
+		childPath:   r.childPath,
 		middlewares: append(r.middlewares, r.getMiddlewares()...),
 	}
 	r.handlers = append(r.handlers, group)

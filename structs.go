@@ -112,6 +112,7 @@ type pathInfo struct {
 	tags        []string
 	deprecated  bool
 	docsPath    string
+	childPath   string
 	isDocs      bool
 	groupPrefix string
 	isSwagger   bool

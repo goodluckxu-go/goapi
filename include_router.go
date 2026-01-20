@@ -16,6 +16,7 @@ type includeRouter struct {
 	groupPrefix string
 	isDocs      bool
 	docsPath    string
+	childPath   string
 	middlewares []HandleFunc
 }
 
@@ -90,6 +91,7 @@ func (i *includeRouter) returnObj() (obj returnObjResult, err error) {
 			middlewares: i.middlewares,
 			isDocs:      i.isDocs,
 			docsPath:    i.docsPath,
+			childPath:   i.childPath,
 			groupPrefix: i.groupPrefix,
 		}
 		if len(pInfo.middlewares) > 0 {

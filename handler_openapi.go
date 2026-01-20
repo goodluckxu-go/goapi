@@ -636,7 +636,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			Headers:     header,
 		}
 	}
-	except := h.handle.exceptMap[path.groupPrefix]
+	except := h.handle.exceptMap[path.childPath]
 	if except != nil && except.outParam != nil {
 		resContentMap := map[string]*openapi.MediaType{}
 		contentType := except.outParam.httpHeader.Get("Content-Type")

@@ -152,8 +152,8 @@ func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 func (h *handlerServer) handleExcept(ctx *Context, isFind bool, err string, code ...int) {
 	var exceptFunc func(httpCode int, detail string) any
 	if isFind {
-		if h.handle.exceptMap[ctx.path.groupPrefix] != nil {
-			exceptFunc = h.handle.exceptMap[ctx.path.groupPrefix].exceptFunc
+		if h.handle.exceptMap[ctx.path.childPath] != nil {
+			exceptFunc = h.handle.exceptMap[ctx.path.childPath].exceptFunc
 		}
 	} else {
 		exceptFunc = h.getChild(ctx.Request.URL.Path).exceptFunc
