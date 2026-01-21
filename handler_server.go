@@ -264,7 +264,7 @@ func (h *handlerServer) copyReader(w ResponseWriter, r io.ReadCloser) error {
 func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, ins []*inParam) (value reflect.Value, err error) {
 	value = reflect.New(inType).Elem()
 	for value.Kind() == reflect.Ptr {
-		h.initPtr(value)
+		initPtr(value)
 		value = value.Elem()
 	}
 	var formType MediaType
@@ -359,6 +359,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				return
 			}
 		case inTypeSecurityHTTPBearer:
+			initPtr(inValue)
 			authorization := ctx.Request.Header.Get("Authorization")
 			authList := strings.Split(authorization, " ")
 			token := ""
@@ -368,6 +369,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			security := inValue.Interface().(HTTPBearer)
 			security.HTTPBearer(token)
 		case inTypeSecurityHTTPBearerJWT:
+			initPtr(inValue)
 			authorization := ctx.Request.Header.Get("Authorization")
 			authList := strings.Split(authorization, " ")
 			token := ""
@@ -381,10 +383,12 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			}
 			security.HTTPBearerJWT(jwt)
 		case inTypeSecurityHTTPBasic:
+			initPtr(inValue)
 			username, password, _ := ctx.Request.BasicAuth()
 			security := inValue.Interface().(HTTPBasic)
 			security.HTTPBasic(username, password)
 		case inTypeSecurityApiKey:
+			initPtr(inValue)
 			security := inValue.Interface().(ApiKey)
 			security.ApiKey()
 		case inTypeOther:
@@ -552,7 +556,7 @@ func (h *handlerServer) handleParamByFields(value reflect.Value, field *paramFie
 			value.Set(reflect.ValueOf(fields[0]).Convert(value.Type()))
 			break
 		}
-		h.initPtr(value)
+		initPtr(value)
 		value = value.Elem()
 	}
 	switch value.Kind() {
@@ -586,7 +590,7 @@ func (h *handlerServer) handleParamByCookie(value reflect.Value, field *paramFie
 			value.Set(reflect.ValueOf(cookie).Convert(value.Type()))
 			return
 		}
-		h.initPtr(value)
+		initPtr(value)
 		value = value.Elem()
 	}
 	return
@@ -608,7 +612,7 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 		if value.Type().ConvertibleTo(typeFile) || value.Type().ConvertibleTo(typeCookie) {
 			break
 		}
-		h.initPtr(value)
+		initPtr(value)
 		if _, ok := getTypeByCovertInterface[TextInterface](value); ok {
 			break
 		}
@@ -742,7 +746,7 @@ func (h *handlerServer) handleParamByOther(ctx *Context, value reflect.Value) {
 			value.Set(reflect.ValueOf(ctx).Convert(value.Type()))
 			return
 		}
-		h.initPtr(value)
+		initPtr(value)
 		value = value.Elem()
 	}
 }
@@ -777,7 +781,7 @@ func (h *handlerServer) validFloat64(vFloat float64, desc string, field *paramFi
 
 func (h *handlerServer) removeMorPtrValue(value reflect.Value) reflect.Value {
 	for value.Kind() == reflect.Ptr {
-		h.initPtr(value)
+		initPtr(value)
 		if value.Elem().Kind() != reflect.Ptr {
 			return value
 		}
@@ -791,7 +795,7 @@ func (h *handlerServer) getParamValue(value reflect.Value, deeps []int) reflect.
 		index := deeps[0]
 		deeps = deeps[1:]
 		for value.Kind() == reflect.Ptr {
-			h.initPtr(value)
+			initPtr(value)
 			value = value.Elem()
 		}
 		value = value.Field(index)
@@ -813,14 +817,6 @@ func (h *handlerServer) setBody(value reflect.Value, reader io.ReadCloser, media
 	}
 	value.Set(newValue.Elem())
 	return
-}
-
-func (h *handlerServer) initPtr(fVal reflect.Value) {
-	if fVal.Kind() != reflect.Ptr || !fVal.IsNil() {
-		return
-	}
-	newVal := reflect.New(fVal.Type().Elem())
-	fVal.Set(newVal)
 }
 
 func (h *handlerServer) getMiddlewares(path string) (rs []HandleFunc) {

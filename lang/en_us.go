@@ -1,64 +1,62 @@
 package lang
 
 import (
+	"fmt"
 	"strings"
-
-	"github.com/goodluckxu-go/goapi/v2/utils"
 )
 
 type EnUs struct {
 }
 
 func (e *EnUs) Required(field string) string {
-	return utils.JoinString("The ", field, " is mandatory")
+	return fmt.Sprintf("The %v is mandatory", field)
 }
 
 func (e *EnUs) Lt(field string, val float64) string {
-	return utils.JoinString("The value of ", field, " must be less than ", utils.ToString(val))
+	return fmt.Sprintf("The value of %v must be less than %v", field, val)
 }
 
 func (e *EnUs) Lte(field string, val float64) string {
-	return utils.JoinString("The value of ", field, " must be less than or equal to ", utils.ToString(val))
+	return fmt.Sprintf("The value of %v must be less than or equal to %v", field, val)
 }
 
 func (e *EnUs) Gt(field string, val float64) string {
-	return utils.JoinString("The value of ", field, " must be greater than ", utils.ToString(val))
+	return fmt.Sprintf("The value of %v must be greater than %v", field, val)
 }
 
 func (e *EnUs) Gte(field string, val float64) string {
-	return utils.JoinString("The value of ", field, " must be greater than or equal to ", utils.ToString(val))
+	return fmt.Sprintf("The value of %v must be greater than or equal to %v", field, val)
 }
 
 func (e *EnUs) MultipleOf(field string, val float64) string {
-	return utils.JoinString("The value of ", field, " must be a multiple of ", utils.ToString(val))
+	return fmt.Sprintf("The value of %v must be a multiple of %v", field, val)
 }
 
 func (e *EnUs) Max(field string, val uint64) string {
-	return utils.JoinString("The maximum length of ", field, " is ", utils.ToString(val))
+	return fmt.Sprintf("The maximum length of %v is %v", field, val)
 }
 
 func (e *EnUs) Min(field string, val uint64) string {
-	return utils.JoinString("The minimum length of ", field, " is ", utils.ToString(val))
+	return fmt.Sprintf("The minimum length of %v is %v", field, val)
 }
 
 func (e *EnUs) Unique(field string) string {
-	return utils.JoinString("The value in ", field, " is duplicated")
+	return fmt.Sprintf("The value in %v is duplicated", field)
 }
 
 func (e *EnUs) Regexp(field string, val string) string {
-	return utils.JoinString("The value of ", field, " does not satisfy the regular expression ", utils.ToString(val))
+	return fmt.Sprintf("The value of %v does not satisfy the regular expression %v", field, val)
 }
 
 func (e *EnUs) Enum(field string, val []any) string {
 	s := ""
-	for k, v := range val {
-		if k == 0 {
-			s += utils.ToString(v)
-		} else {
-			s += "," + utils.ToString(v)
-		}
+	for _, v := range val {
+		s += fmt.Sprintf(",%v", v)
 	}
-	return utils.JoinString("The value of ", field, " must be in ", s)
+	if s != "" {
+		s = s[1:]
+	}
+	return fmt.Sprintf("The value of %v must be in %v", field, s)
 }
 
 func (e *EnUs) JwtTranslate(msg string) string {
