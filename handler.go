@@ -485,6 +485,9 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 	if fType.Kind() == reflect.Ptr {
 		eType = fType.Elem()
 	}
+	if rs.name == "" {
+		rs.name = eType.Name()
+	}
 	rs._type = eType
 	rs.kind = eType.Kind()
 	rs.pkgName = h.getPkgName(eType)
@@ -506,7 +509,22 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 	}
 	var childField *paramField
 	switch eType.Kind() {
-	case reflect.Map, reflect.Slice, reflect.Array:
+	case reflect.Map:
+		var childKey *paramField
+		childKey, err = h.handleField(reflect.StructField{Type: eType.Key()}, -1)
+		if err != nil {
+			return
+		}
+		if childKey.kind != reflect.String {
+			err = fmt.Errorf("the key of a map must be of string type")
+			return
+		}
+		childField, err = h.handleField(reflect.StructField{Type: eType.Elem()}, -1, beforeStructPkgName...)
+		if err != nil {
+			return
+		}
+		rs.fields = append(rs.fields, childKey, childField)
+	case reflect.Slice, reflect.Array:
 		childField, err = h.handleField(reflect.StructField{Type: eType.Elem()}, -1, beforeStructPkgName...)
 		if err != nil {
 			return

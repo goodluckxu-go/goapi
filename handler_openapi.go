@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"bytes"
+	"encoding"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -196,10 +197,13 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		schema.Type = "object"
 		schema.MaxProperties = field.tag.max
 		schema.MinProperties = field.tag.min
-		childSchema := &openapi.Schema{}
-		h.handleParamField(childSchema, field.fields[0], mediaType)
+		childSchema := &openapi.Schema{
+			PropertyNames: &openapi.Schema{},
+		}
+		h.handleParamField(childSchema.PropertyNames, field.fields[0], mediaType)
+		h.handleParamField(childSchema, field.fields[1], mediaType)
 		schema.Properties = map[string]*openapi.Schema{
-			field._type.Key().String(): childSchema,
+			h.getMapKeyExample(field.fields[0]): childSchema,
 		}
 	case reflect.Struct:
 		if field.pkgName == "" {
@@ -221,6 +225,27 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		schema.Type = "string"
 	}
 	return
+}
+
+func (h *handlerOpenAPI) getMapKeyExample(field *paramField) string {
+	var example any
+	if field.tag.example != nil {
+		example = field.tag.example
+	} else if field.tag._default != nil {
+		example = field.tag._default
+	}
+	if example == nil {
+		return "string"
+	}
+	if field.isTextType {
+		if fn, ok := getFnByCovertInterface[encoding.TextMarshaler](example); ok {
+			text, err := fn.MarshalText()
+			if err == nil {
+				return string(text)
+			}
+		}
+	}
+	return toString(example)
 }
 
 func (h *handlerOpenAPI) handlePaths() {

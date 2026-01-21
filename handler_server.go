@@ -397,6 +397,9 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 func (h *handlerServer) validParamField(value reflect.Value, field *paramField, mediaType MediaType) (err error) {
 	name := field.names.getFieldName(mediaType)
 	desc := name.name
+	if desc == "" {
+		desc = field.name
+	}
 	if field.tag.desc != "" {
 		desc = field.tag.desc
 	}
@@ -464,7 +467,10 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
 		}
 		for _, key := range value.MapKeys() {
-			if err = h.validParamField(value.MapIndex(key), field.fields[0], mediaType); err != nil {
+			if err = h.validParamField(key, field.fields[0], mediaType); err != nil {
+				return
+			}
+			if err = h.validParamField(value.MapIndex(key), field.fields[1], mediaType); err != nil {
 				return
 			}
 		}
@@ -494,17 +500,17 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		vFloat := float64(value.Int())
-		if err = h.validFloat64(vFloat, &name, field); err != nil {
+		if err = h.validFloat64(vFloat, desc, field); err != nil {
 			return
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		vFloat := float64(value.Uint())
-		if err = h.validFloat64(vFloat, &name, field); err != nil {
+		if err = h.validFloat64(vFloat, desc, field); err != nil {
 			return
 		}
 	case reflect.Float32, reflect.Float64:
 		vFloat := value.Float()
-		if err = h.validFloat64(vFloat, &name, field); err != nil {
+		if err = h.validFloat64(vFloat, desc, field); err != nil {
 			return
 		}
 	default:
@@ -673,7 +679,7 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 			}
 			return
 		}
-		if err = h.validFloat64(float64(valInt), &name, field); err != nil {
+		if err = h.validFloat64(float64(valInt), desc, field); err != nil {
 			return
 		}
 		value.Set(reflect.ValueOf(valInt).Convert(value.Type()))
@@ -691,7 +697,7 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 			}
 			return
 		}
-		if err = h.validFloat64(float64(valUint), &name, field); err != nil {
+		if err = h.validFloat64(float64(valUint), desc, field); err != nil {
 			return
 		}
 		value.Set(reflect.ValueOf(valUint).Convert(value.Type()))
@@ -709,7 +715,7 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 			}
 			return
 		}
-		if err = h.validFloat64(valFloat, &name, field); err != nil {
+		if err = h.validFloat64(valFloat, desc, field); err != nil {
 			return
 		}
 		value.Set(reflect.ValueOf(valFloat).Convert(value.Type()))
@@ -741,11 +747,7 @@ func (h *handlerServer) handleParamByOther(ctx *Context, value reflect.Value) {
 	}
 }
 
-func (h *handlerServer) validFloat64(vFloat float64, name *paramFieldName, field *paramField) (err error) {
-	desc := name.name
-	if field.tag.desc != "" {
-		desc = field.tag.desc
-	}
+func (h *handlerServer) validFloat64(vFloat float64, desc string, field *paramField) (err error) {
 	if field.tag.lt != nil && vFloat >= *field.tag.lt {
 		return errors.New(h.handle.api.lang.Lt(desc, *field.tag.lt))
 	}

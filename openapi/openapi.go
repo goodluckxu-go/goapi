@@ -2265,6 +2265,7 @@ type Schema struct {
 	MinProperties     uint64              `json:"minProperties"`
 	Required          []string            `json:"required"`
 	DependentRequired map[string][]string `json:"dependentRequired"`
+	PropertyNames     *Schema             `json:"propertyNames"`
 
 	OneOf []*Schema `json:"oneOf"`
 	AnyOf []*Schema `json:"anyOf"`
@@ -2339,6 +2340,7 @@ func (s *Schema) marshalField() []marshalField {
 		{"minProperties", s.MinProperties, s.MinProperties == 0},
 		{"required", s.Required, s.Required == nil},
 		{"dependentRequired", s.DependentRequired, s.DependentRequired == nil},
+		{"propertyNames", s.PropertyNames, s.PropertyNames == nil},
 		{"oneOf", s.OneOf, s.OneOf == nil},
 		{"anyOf", s.AnyOf, s.AnyOf == nil},
 		{"allOf", s.AllOf, s.AllOf == nil},
@@ -2394,6 +2396,7 @@ func (s *Schema) UnmarshalJSON(buf []byte) (err error) {
 	delete(x.Extensions, "minProperties")
 	delete(x.Extensions, "required")
 	delete(x.Extensions, "dependentRequired")
+	delete(x.Extensions, "propertyNames")
 	delete(x.Extensions, "oneOf")
 	delete(x.Extensions, "anyOf")
 	delete(x.Extensions, "allOf")
@@ -2437,6 +2440,12 @@ func (s *Schema) Validate(openapi *OpenAPI) error {
 	for k, v := range s.Properties {
 		if err := v.Validate(openapi); err != nil {
 			return verifyError(fmt.Sprintf("properties[%v]", k), err)
+		}
+	}
+
+	if s.PropertyNames != nil {
+		if err := s.PropertyNames.Validate(openapi); err != nil {
+			return verifyError("propertyNames", err)
 		}
 	}
 
