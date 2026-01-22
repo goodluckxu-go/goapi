@@ -298,6 +298,8 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 		example = field.tag.example
 	} else if field.tag._default != nil {
 		example = field.tag._default
+	} else if len(field.tag.enum) > 0 {
+		example = field.tag.enum[0]
 	}
 	if example != nil && !onlyFind {
 		exampleVal := reflect.ValueOf(example)
@@ -375,6 +377,39 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 			}
 		}
 	default:
+		if !isNumberType(val.Type()) {
+			return
+		}
+		var valFloat *float64
+		if field.tag.gt != nil && field.tag.gte != nil {
+			if *field.tag.gt > *field.tag.gte {
+				valFloat = toPtr(*field.tag.gt + 1)
+			} else {
+				valFloat = toPtr(*field.tag.gte)
+			}
+			return
+		} else if field.tag.gt != nil {
+			valFloat = toPtr(*field.tag.gt + 1)
+		} else if field.tag.gte != nil {
+			valFloat = toPtr(*field.tag.gte)
+		}
+		if valFloat == nil {
+			if field.tag.lt != nil && field.tag.lte != nil {
+				if *field.tag.lt > *field.tag.lte {
+					valFloat = toPtr(*field.tag.lte)
+				} else {
+					valFloat = toPtr(*field.tag.lt - 1)
+				}
+			} else if field.tag.lt != nil {
+				valFloat = toPtr(*field.tag.lt - 1)
+			} else if field.tag.lte != nil {
+				valFloat = toPtr(*field.tag.lte)
+			}
+		}
+		if valFloat == nil {
+			return
+		}
+		val.Set(reflect.ValueOf(*valFloat).Convert(val.Type()))
 	}
 	return
 }
