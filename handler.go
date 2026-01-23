@@ -91,6 +91,9 @@ func (h *handler) Handle() {
 		path.desc = h.getMappingTag(path.desc)
 		path.summary = h.getMappingTag(path.summary)
 		for key, in := range path.inParams {
+			if in.parentInType != "" && !inArray(in.inType, []InType{inTypeQuery, inTypeHeader, inTypeCookie}) {
+				log.Fatal("only 'query','header' and 'cookie' can be passed into interface security")
+			}
 			if in.inType == inTypeFile {
 				if !isArrayType(in.structField.Type, func(sType reflect.Type) bool {
 					if sType.ConvertibleTo(typeFile) {
