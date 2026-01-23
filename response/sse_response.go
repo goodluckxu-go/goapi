@@ -38,10 +38,6 @@ type SSEResponse struct {
 	SSEWriter func(s *SSEvent)
 }
 
-func (s *SSEResponse) GetStatusCode() int {
-	return http.StatusOK
-}
-
 func (s *SSEResponse) GetHeader() http.Header {
 	return map[string][]string{
 		"Content-Type":  {"text/event-stream"},
