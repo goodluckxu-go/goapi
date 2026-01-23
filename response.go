@@ -5,14 +5,8 @@ import (
 	"net/http"
 )
 
-type Response interface {
-	ResponseStatusCode
-	ResponseHeader
-	ResponseBody
-}
-
-type ResponseStatusCode interface {
-	GetStatusCode() int
+type ResponseStatus interface {
+	GetStatus() int
 }
 
 type ResponseHeader interface {

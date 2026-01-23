@@ -91,7 +91,7 @@ func (h *handler) Handle() {
 		path.desc = h.getMappingTag(path.desc)
 		path.summary = h.getMappingTag(path.summary)
 		for key, in := range path.inParams {
-			if in.parentInType != "" && !inArray(in.inType, []InType{inTypeQuery, inTypeHeader, inTypeCookie}) {
+			if in.parentInType != "" && !inArray(in.inType, []InType{inTypeQuery, inTypeHeader, inTypeCookie, inTypeOther}) {
 				log.Fatal("only 'query','header' and 'cookie' can be passed into interface security")
 			}
 			if in.inType == inTypeFile {
@@ -214,8 +214,8 @@ func (h *handler) Handle() {
 			if fn, ok := exceptResponse.(ResponseHeader); ok {
 				except.outParam.httpHeader = h.handleHeader(fn.GetHeader())
 			}
-			if fn, ok := exceptResponse.(ResponseStatusCode); ok {
-				except.outParam.httpStatus = fn.GetStatusCode()
+			if fn, ok := exceptResponse.(ResponseStatus); ok {
+				except.outParam.httpStatus = fn.GetStatus()
 			}
 			if fn, ok := exceptResponse.(ResponseBody); ok {
 				exceptResponse = fn.GetBody()
@@ -429,8 +429,8 @@ func (h *handler) handleOutParam(outParam *outParam) {
 	if fn, ok := valAny.(ResponseHeader); ok {
 		outParam.httpHeader = h.handleHeader(fn.GetHeader())
 	}
-	if fn, ok := valAny.(ResponseStatusCode); ok {
-		outParam.httpStatus = fn.GetStatusCode()
+	if fn, ok := valAny.(ResponseStatus); ok {
+		outParam.httpStatus = fn.GetStatus()
 	}
 	if fn, ok := valAny.(ResponseBody); ok {
 		outParam.structField.Type = reflect.TypeOf(fn.GetBody())

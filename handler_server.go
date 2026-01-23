@@ -227,8 +227,8 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 			ctx.Writer.Header().Add(key, val)
 		}
 	}
-	if fn, ok := resp.(ResponseStatusCode); ok {
-		ctx.Writer.WriteHeader(fn.GetStatusCode())
+	if fn, ok := resp.(ResponseStatus); ok {
+		ctx.Writer.WriteHeader(fn.GetStatus())
 	}
 	if fn, ok := resp.(ResponseBody); ok {
 		resp = fn.GetBody()
