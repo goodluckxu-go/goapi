@@ -3,7 +3,6 @@ package goapi
 import (
 	"encoding"
 	"fmt"
-	"net"
 	"net/http"
 	"path"
 	"reflect"
@@ -125,19 +124,6 @@ func pathJoin(val string, args ...string) string {
 		}
 	}
 	return val + slash
-}
-
-var localIP string
-
-func GetLocalIP() string {
-	if localIP == "" {
-		conn, err := net.Dial("udp", "114.114.114.114:53")
-		if err != nil {
-			return "127.0.0.1"
-		}
-		localIP = conn.LocalAddr().(*net.UDPAddr).IP.String()
-	}
-	return localIP
 }
 
 func removeMorePtr(fType reflect.Type) reflect.Type {
