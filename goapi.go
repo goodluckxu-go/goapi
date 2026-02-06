@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/goodluckxu-go/goapi/v2/lang"
-	"github.com/goodluckxu-go/goapi/v2/openapi"
 	"github.com/goodluckxu-go/goapi/v2/swagger"
 )
 
@@ -25,19 +24,7 @@ func GoAPI(isDocs bool, docsPath ...string) *API {
 		structTagVariableMap: map[string]any{},
 		defaultMiddlewares:   []HandleFunc{setLogger()},
 	}
-	api.IsDocs = true
-	api.OpenAPIInfo = &openapi.Info{
-		Title:   "GoAPI",
-		Version: "1.0.0",
-	}
-	api.Swagger = swagger.Config{
-		DocExpansion: "list",
-		DeepLinking:  true,
-	}
-	api.RedirectTrailingSlash = true
-	api.NoRoute = defaultNoRoute
-	api.NoMethod = defaultNoMethod
-	api.exceptFunc = defaultExceptFunc
+	api.init()
 	api.isDocs = isDocs
 	api.docsPath = dPath
 	api.AddMiddleware(api.defaultMiddlewares...)

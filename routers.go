@@ -1,10 +1,5 @@
 package goapi
 
-import (
-	"github.com/goodluckxu-go/goapi/v2/openapi"
-	"github.com/goodluckxu-go/goapi/v2/swagger"
-)
-
 type returnObject interface {
 	returnObj() (obj returnObjResult, err error)
 }
@@ -29,20 +24,8 @@ func (i *IRouters) Child(prefix string, docsPath string) *RouterChild {
 			childPath:   pathJoin(i.childPath, prefix),
 			middlewares: append(i.middlewares, i.getMiddlewares()...),
 		},
-		IsDocs: true,
-		OpenAPIInfo: &openapi.Info{
-			Title:   "GoAPI",
-			Version: "1.0.0",
-		},
-		Swagger: swagger.Config{
-			DocExpansion: "list",
-			DeepLinking:  true,
-		},
-		RedirectTrailingSlash: true,
-		NoRoute:               defaultNoRoute,
-		NoMethod:              defaultNoMethod,
-		exceptFunc:            defaultExceptFunc,
 	}
+	child.init()
 	i.handlers = append(i.handlers, child)
 	return child
 }

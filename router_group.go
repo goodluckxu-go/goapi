@@ -7,6 +7,11 @@ import (
 	"github.com/goodluckxu-go/goapi/v2/swagger"
 )
 
+type RouterChildInterface interface {
+	RouterGroupInterface
+	HTTPExceptionHandler(f func(httpCode int, detail string) any)
+}
+
 type RouterGroupInterface interface {
 	AddMiddleware(middlewares ...HandleFunc)
 	IncludeRouter(router any, prefix string, isDocs bool, middlewares ...HandleFunc)
@@ -34,6 +39,23 @@ type RouterChild struct {
 // HTTPExceptionHandler It is an exception handling registration for HTTP
 func (r *RouterChild) HTTPExceptionHandler(f func(httpCode int, detail string) any) {
 	r.exceptFunc = f
+}
+
+func (r *RouterChild) init() *RouterChild {
+	r.IsDocs = true
+	r.OpenAPIInfo = &openapi.Info{
+		Title:   "GoAPI",
+		Version: "1.0.0",
+	}
+	r.Swagger = swagger.Config{
+		DocExpansion: "list",
+		DeepLinking:  true,
+	}
+	r.RedirectTrailingSlash = true
+	r.NoRoute = defaultNoRoute
+	r.NoMethod = defaultNoMethod
+	r.exceptFunc = defaultExceptFunc
+	return r
 }
 
 func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
