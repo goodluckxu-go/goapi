@@ -9,8 +9,6 @@ import (
 
 	"github.com/goodluckxu-go/goapi/v2/lang"
 	"github.com/goodluckxu-go/goapi/v2/swagger"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 )
 
 // GoAPI It is a newly created API function
@@ -41,9 +39,6 @@ type API struct {
 	log                  Logger
 	addr                 string
 	structTagVariableMap map[string]any
-
-	// UseH2C enable h2c support.
-	UseH2C bool
 }
 
 // SetLang It is to set the validation language function
@@ -143,11 +138,7 @@ func (a *API) Handler() http.Handler {
 		serverHandle.HandleSwagger(swagger.GetSwagger, openapiMap)
 	}
 	serverHandle.Handle()
-	if !a.UseH2C {
-		return serverHandle
-	}
-	h2s := &http2.Server{}
-	return h2c.NewHandler(serverHandle, h2s)
+	return serverHandle
 }
 
 func (a *API) printAddr(addr string) string {
