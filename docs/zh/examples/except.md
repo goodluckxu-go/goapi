@@ -7,7 +7,7 @@ type MainError struct {
 	Error string
 }
 
-func(m MainError)GetStatusCode() int {
+func(m MainError)GetStatus() int {
 	return m.Code
 }
 
@@ -28,7 +28,7 @@ type ChildError struct {
 
 func main() {
 	api := goapi.GoAPI(true)
-	api.HTTPExceptionHandler(func(httpCode int, detail string) any {
+	api.HTTPException(func(httpCode int, detail string) any {
 		return MainError{
 			Code: httpCode,
 			Error:  detail,
@@ -36,7 +36,7 @@ func main() {
 	})
 	admin:=api.Child("/admin", "/admin")
 	{
-		admin.HTTPExceptionHandler(func(httpCode int, detail string) any {
+		admin.HTTPException(func(httpCode int, detail string) any {
 			return ChildError{
 				Code: httpCode, 
 				Msg:  detail,
@@ -46,7 +46,7 @@ func main() {
 	}
 	user:=api.Child("/user", "/v1")
 	{
-		user.HTTPExceptionHandler(func(httpCode int, detail string) any {
+		user.HTTPException(func(httpCode int, detail string) any {
 			return ChildError{
 				Code: httpCode, 
 				Msg:  detail,

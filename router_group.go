@@ -9,7 +9,9 @@ import (
 
 type RouterChildInterface interface {
 	RouterGroupInterface
-	HTTPExceptionHandler(f func(httpCode int, detail string) any)
+	HTTPException(handler func(httpCode int, detail string) any)
+	NoRoute(handler func(ctx *Context))
+	NoMethod(handler func(ctx *Context))
 }
 
 type RouterGroupInterface interface {
@@ -30,15 +32,25 @@ type RouterChild struct {
 	Swagger                swagger.Config
 	RedirectTrailingSlash  bool
 	HandleMethodNotAllowed bool // support http.StatusMethodNotAllowed
-	NoRoute                func(ctx *Context)
-	NoMethod               func(ctx *Context)
 	// func set
+	noRoute    func(ctx *Context)
+	noMethod   func(ctx *Context)
 	exceptFunc func(httpCode int, detail string) any
 }
 
-// HTTPExceptionHandler It is an exception handling registration for HTTP
-func (r *RouterChild) HTTPExceptionHandler(f func(httpCode int, detail string) any) {
-	r.exceptFunc = f
+// HTTPException adds handlers for http exception
+func (r *RouterChild) HTTPException(handler func(httpCode int, detail string) any) {
+	r.exceptFunc = handler
+}
+
+// NoRoute adds handlers for NoRoute. It returns a 404 code by default.
+func (r *RouterChild) NoRoute(handler func(ctx *Context)) {
+	r.noRoute = handler
+}
+
+// NoMethod sets the handlers called when HandleMethodNotAllowed = true.
+func (r *RouterChild) NoMethod(handler func(ctx *Context)) {
+	r.noMethod = handler
 }
 
 func (r *RouterChild) init() *RouterChild {
@@ -52,8 +64,8 @@ func (r *RouterChild) init() *RouterChild {
 		DeepLinking:  true,
 	}
 	r.RedirectTrailingSlash = true
-	r.NoRoute = defaultNoRoute
-	r.NoMethod = defaultNoMethod
+	r.noRoute = defaultNoRoute
+	r.noMethod = defaultNoMethod
 	r.exceptFunc = defaultExceptFunc
 	return r
 }
@@ -78,8 +90,8 @@ func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
 	child := obj.childMap[r.childPath]
 	child.redirectTrailingSlash = r.RedirectTrailingSlash
 	child.handleMethodNotAllowed = r.HandleMethodNotAllowed
-	child.noRoute = r.NoRoute
-	child.noMethod = r.NoMethod
+	child.noRoute = r.noRoute
+	child.noMethod = r.noMethod
 	child.exceptFunc = r.exceptFunc
 	obj.childMap[r.childPath] = child
 	return

@@ -54,8 +54,8 @@ func (*Index) Post(input struct {
 ### 重新定义返回值的情况
 ~~~go
 // 实现接口可重新定义http_code返回状态，不实现默认返回200
-type ResponseStatusCode interface {
-	GetStatusCode() int
+type ResponseStatus interface {
+	GetStatus() int
 }
 
 // 实现接口可重新定义header返回请求
@@ -68,7 +68,7 @@ type ResponseBody interface {
 	GetBody() any
 }
 
-func (b BodyResp)GetStatusCode() int {
+func (b BodyResp)GetStatus() int {
     return 201
 }
 
