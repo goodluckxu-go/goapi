@@ -26,6 +26,7 @@ type Context struct {
 	mediaType  string
 	path       *pathInfo
 	queryCache url.Values
+	ChildPath  string
 }
 
 func (c *Context) reset() {

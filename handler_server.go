@@ -118,10 +118,11 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 	return func(ctx *Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				h.handleExcept(ctx, true, toString(err))
+				h.handleExcept(ctx, toString(err))
 			}
 		}()
 		ctx.path = path
+		ctx.ChildPath = path.childPath
 		ctx.handlers = append(path.middlewares, func(ctx *Context) {
 			if path.isFile {
 				http.ServeFile(ctx.Writer, ctx.Request, fmt.Sprintf("%v", path.inFs))
@@ -137,10 +138,11 @@ func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 	return func(ctx *Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				h.handleExcept(ctx, true, toString(err))
+				h.handleExcept(ctx, toString(err))
 			}
 		}()
 		ctx.path = path
+		ctx.ChildPath = path.childPath
 		ctx.handlers = make([]HandleFunc, len(path.middlewares)+1)
 		n := copy(ctx.handlers, path.middlewares)
 		ctx.handlers[n] = func(ctx *Context) {
@@ -150,14 +152,10 @@ func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 	}
 }
 
-func (h *handlerServer) handleExcept(ctx *Context, isFind bool, err string, code ...int) {
+func (h *handlerServer) handleExcept(ctx *Context, err string, code ...int) {
 	var exceptFunc func(httpCode int, detail string) any
-	if isFind {
-		if h.handle.exceptMap[ctx.path.childPath] != nil {
-			exceptFunc = h.handle.exceptMap[ctx.path.childPath].exceptFunc
-		}
-	} else {
-		exceptFunc = h.getChild(ctx.Request.URL.Path).exceptFunc
+	if h.handle.exceptMap[ctx.ChildPath] != nil {
+		exceptFunc = h.handle.exceptMap[ctx.ChildPath].exceptFunc
 	}
 	if exceptFunc == nil {
 		return
@@ -198,7 +196,7 @@ func (h *handlerServer) execRouter(ctx *Context) {
 	}
 	inputs[lastInputIdx], err = h.handleInParamToValue(ctx, path.inTypes[lastInputIdx], path.inParams)
 	if err != nil {
-		h.handleExcept(ctx, true, err.Error(), validErrorCode)
+		h.handleExcept(ctx, err.Error(), validErrorCode)
 		return
 	}
 	rs := path.value.Call(inputs)
@@ -241,7 +239,7 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	var body []byte
 	var err error
 	if body, err = mediaType.Marshaler(resp); err != nil {
-		h.handleExcept(ctx, true, err.Error(), validErrorCode)
+		h.handleExcept(ctx, err.Error(), validErrorCode)
 		return
 	}
 	_, _ = ctx.Writer.Write(body)
@@ -834,10 +832,11 @@ func (h *handlerServer) getMiddlewares(path string) (rs []HandleFunc) {
 	return
 }
 
-func (h *handlerServer) getChild(path string) (rs returnObjChild) {
+func (h *handlerServer) getChildPath(path string) (childPath string) {
 	var ok bool
 	for {
-		if rs, ok = h.handle.childMap[path]; ok {
+		if _, ok = h.handle.childMap[path]; ok {
+			childPath = path
 			return
 		}
 		index := strings.LastIndex(path, "/")
@@ -851,12 +850,12 @@ func (h *handlerServer) getChild(path string) (rs returnObjChild) {
 func (h *handlerServer) notFind(ctx *Context) {
 	defer func() {
 		if err := recover(); err != nil {
-			h.handleExcept(ctx, false, toString(err))
+			h.handleExcept(ctx, toString(err))
 		}
 	}()
 	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
 	ctx.handlers = append(ctx.handlers, func(ctx *Context) {
-		child := h.getChild(ctx.Request.URL.Path)
+		child := h.handle.childMap[ctx.ChildPath]
 		if child.handleMethodNotAllowed {
 			allowed := make([]string, 0, len(h.trees)-1)
 			for _, tree := range h.trees {
@@ -881,7 +880,7 @@ func (h *handlerServer) notFind(ctx *Context) {
 func (h *handlerServer) redirect(ctx *Context) {
 	defer func() {
 		if err := recover(); err != nil {
-			h.handleExcept(ctx, false, toString(err))
+			h.handleExcept(ctx, toString(err))
 		}
 	}()
 	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
@@ -909,24 +908,26 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *handlerServer) handleHTTPRequest(ctx *Context) {
 	root := h.trees.get(ctx.Request.Method)
 	if root == nil {
+		ctx.ChildPath = h.getChildPath(ctx.Request.URL.Path)
 		h.notFind(ctx)
 		return
 	}
 	value := root.getValue(ctx.Request.URL.Path)
+	if value.handler != nil {
+		ctx.Params = value.params
+		ctx.fullPath = value.fullPath
+		value.handler(ctx)
+		return
+	}
+	ctx.ChildPath = h.getChildPath(ctx.Request.URL.Path)
 	if value.tsr {
-		child := h.getChild(ctx.Request.URL.Path)
+		child := h.handle.childMap[ctx.ChildPath]
 		if child.redirectTrailingSlash {
 			h.redirect(ctx)
 			return
 		}
 	}
-	if value.handler == nil {
-		h.notFind(ctx)
-		return
-	}
-	ctx.Params = value.params
-	ctx.fullPath = value.fullPath
-	value.handler(ctx)
+	h.notFind(ctx)
 }
 
 func (h *handlerServer) handleTsrPath(path string) string {
