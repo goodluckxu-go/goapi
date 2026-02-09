@@ -32,17 +32,17 @@ func (*CustomLog) Fatal(format string, a ...any) {
 
 }
 ~~~
-### 日志添加每次记录请求id
+### 日志写入传入上下文判断
 ~~~go
 // 实现接口
-type LoggerRequestParam interface {
-	SetRequestParam(childPath, requestID string)
+type LoggerContext interface {
+	SetContext(ctx *Context)
 }
 
-// 上面的所有请求都可以用判断是哪个childPath请求的，每次请求的id是多少判断是哪次请求
-func (c *CustomLog) SetRequestParam(childPath, requestID string) {
-    c.childPath = childPath
-    c.requestID = requestID
+// 实现接口
+func (c *CustomLog) SetContext(ctx *Context) {
+    _ = ctx.RequestID // 可获取每次请求的ID
+    _ = ctx.ChildPath // 可获取每次请求的程序定义请求前缀
 }
 ~~~
 ### 使用日志
@@ -51,6 +51,7 @@ func main() {
 	// 设置日志级别
 	goapi.SetLogLevel(goapi.LogInfo | goapi.LogError | goapi.LogDebug | goapi.LogFail | goapi.LogError)
 	api := goapi.GoAPI(true)
+	api.GenerateRequestID = true // 生成每次请求的ID
 	api.SetLogger(&CustomLog{})
 }
 ~~~

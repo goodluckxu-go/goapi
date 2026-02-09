@@ -38,6 +38,7 @@ type API struct {
 	log                  Logger
 	addr                 string
 	structTagVariableMap map[string]any
+	GenerateRequestID    bool // '*Context' can obtain the value of RequestID
 }
 
 // SetLang It is to set the validation language function

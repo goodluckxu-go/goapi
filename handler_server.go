@@ -904,17 +904,24 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.writermem.reset(w)
 	ctx.reset()
 	ctx.Request = r
+	h.generateRequestID(ctx)
 	h.handleHTTPRequest(ctx)
 	h.pool.Put(ctx)
 }
 
+func (h *handlerServer) generateRequestID(ctx *Context) {
+	if h.handle.api.GenerateRequestID {
+		pk, _ := uuid.NewV4()
+		ctx.RequestID = pk.String()
+	}
+}
+
 func (h *handlerServer) handleLogger(ctx *Context) {
 	levelLog, _ := ctx.log.(*levelHandleLogger)
-	if _, ok := getFnByCovertInterface[LoggerRequestParam](levelLog.log); ok {
+	if _, ok := getFnByCovertInterface[LoggerContext](levelLog.log); ok {
 		newLog := h.copyLogger(levelLog.log)
-		if fn, fnOk := newLog.(LoggerRequestParam); fnOk {
-			pk, _ := uuid.NewV4()
-			fn.SetRequestParam(ctx.ChildPath, pk.String())
+		if fn, fnOk := newLog.(LoggerContext); fnOk {
+			fn.SetContext(ctx)
 		}
 		ctx.log = &levelHandleLogger{log: newLog}
 	}

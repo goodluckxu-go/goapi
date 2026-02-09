@@ -24,6 +24,7 @@ type Context struct {
 	path       *pathInfo
 	queryCache url.Values
 	ChildPath  string
+	RequestID  string
 }
 
 func (c *Context) reset() {
@@ -35,6 +36,7 @@ func (c *Context) reset() {
 	c.fullPath = ""
 	c.queryCache = nil
 	c.ChildPath = ""
+	c.RequestID = ""
 }
 
 func (c *Context) Deadline() (deadline time.Time, ok bool) {
