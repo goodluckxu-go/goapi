@@ -35,13 +35,14 @@ func (*CustomLog) Fatal(format string, a ...any) {
 ### 日志添加每次记录请求id
 ~~~go
 // 实现接口
-type LoggerRequestID interface {
-	SetRequestID(id string)
+type LoggerRequestParam interface {
+	SetRequestParam(childPath, requestID string)
 }
 
-// 上面的所有请求都可以用c.id判断是哪次请求
-func (c *CustomLog) SetRequestID(id string) {
-    c.id = id
+// 上面的所有请求都可以用判断是哪个childPath请求的，每次请求的id是多少判断是哪次请求
+func (c *CustomLog) SetRequestParam(childPath, requestID string) {
+    c.childPath = childPath
+    c.requestID = requestID
 }
 ~~~
 ### 使用日志

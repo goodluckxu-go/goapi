@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gofrs/uuid"
 	"github.com/goodluckxu-go/goapi/v2/openapi"
 	"github.com/goodluckxu-go/goapi/v2/swagger"
 	"github.com/shopspring/decimal"
@@ -123,6 +124,7 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 		}()
 		ctx.path = path
 		ctx.ChildPath = path.childPath
+		h.handleLogger(ctx)
 		ctx.handlers = append(path.middlewares, func(ctx *Context) {
 			if path.isFile {
 				http.ServeFile(ctx.Writer, ctx.Request, fmt.Sprintf("%v", path.inFs))
@@ -143,6 +145,7 @@ func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 		}()
 		ctx.path = path
 		ctx.ChildPath = path.childPath
+		h.handleLogger(ctx)
 		ctx.handlers = make([]HandleFunc, len(path.middlewares)+1)
 		n := copy(ctx.handlers, path.middlewares)
 		ctx.handlers[n] = func(ctx *Context) {
@@ -905,10 +908,63 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.pool.Put(ctx)
 }
 
+func (h *handlerServer) handleLogger(ctx *Context) {
+	levelLog, _ := ctx.log.(*levelHandleLogger)
+	if _, ok := getFnByCovertInterface[LoggerRequestParam](levelLog.log); ok {
+		newLog := h.copyLogger(levelLog.log)
+		if fn, fnOk := newLog.(LoggerRequestParam); fnOk {
+			pk, _ := uuid.NewV4()
+			fn.SetRequestParam(ctx.ChildPath, pk.String())
+		}
+		ctx.log = &levelHandleLogger{log: newLog}
+	}
+}
+
+func (h *handlerServer) copyLogger(log Logger) Logger {
+	val := reflect.ValueOf(log)
+	var newVal reflect.Value
+	if val.Kind() == reflect.Ptr {
+		newVal = reflect.New(val.Type().Elem())
+	} else {
+		newVal = reflect.New(val.Type()).Elem()
+	}
+	h.copyStruct(newVal, val)
+	return newVal.Interface().(Logger)
+}
+
+func (h *handlerServer) copyStruct(dst, src reflect.Value) {
+	if dst.Type() != src.Type() || src.IsZero() {
+		return
+	}
+	switch src.Kind() {
+	case reflect.Ptr:
+		h.copyStruct(dst.Elem(), src.Elem())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64, reflect.String, reflect.Bool:
+		dst.Set(src)
+	case reflect.Slice, reflect.Array:
+		for i := 0; i < src.Len(); i++ {
+			h.copyStruct(dst.Index(i), src.Index(i))
+		}
+	case reflect.Map:
+		keys := src.MapKeys()
+		for _, key := range keys {
+			dst.SetMapIndex(key, src.MapIndex(key))
+		}
+	case reflect.Struct:
+		for i := 0; i < src.NumField(); i++ {
+			h.copyStruct(dst.Field(i), src.Field(i))
+		}
+	default:
+	}
+}
+
 func (h *handlerServer) handleHTTPRequest(ctx *Context) {
 	root := h.trees.get(ctx.Request.Method)
 	if root == nil {
 		ctx.ChildPath = h.getChildPath(ctx.Request.URL.Path)
+		h.handleLogger(ctx)
 		h.notFind(ctx)
 		return
 	}
@@ -920,6 +976,7 @@ func (h *handlerServer) handleHTTPRequest(ctx *Context) {
 		return
 	}
 	ctx.ChildPath = h.getChildPath(ctx.Request.URL.Path)
+	h.handleLogger(ctx)
 	if value.tsr {
 		child := h.handle.childMap[ctx.ChildPath]
 		if child.redirectTrailingSlash {
