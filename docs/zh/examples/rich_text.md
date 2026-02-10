@@ -5,7 +5,7 @@
 ### 定义标签映射
 ~~~go
 func main() {
-	api := goapi.GoAPI(true)
+	api := goapi.Default(true)
 	api.SetStructTagVariableMapping(map[string]string{
 		"prefix":   "test", 
 		"username": "{{prefix}}zs", 

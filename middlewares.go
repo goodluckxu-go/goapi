@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-func setLogger() func(ctx *Context) {
+func LoggerMiddleware() func(ctx *Context) {
 	return func(ctx *Context) {
-		if lg, ok := ctx.log.(*levelHandleLogger); ok && lg.log == nil {
+		if ctx.log == nil {
 			ctx.Next()
 			return
 		}
@@ -18,14 +18,14 @@ func setLogger() func(ctx *Context) {
 		statusText := http.StatusText(ctx.Writer.Status())
 		if isDefaultLogger(ctx.log) && len(status) == 3 {
 			if status[0] == '1' || status[0] == '2' {
-				status = colorInfo(status)
-				statusText = colorInfo(statusText)
+				status = ColorInfo(status)
+				statusText = ColorInfo(statusText)
 			} else if status[0] == '4' || status[0] == '5' {
-				status = colorError(status)
-				statusText = colorError(statusText)
+				status = ColorError(status)
+				statusText = ColorError(statusText)
 			} else if status[0] == '3' {
-				status = colorWarning(status)
-				statusText = colorWarning(statusText)
+				status = ColorWarning(status)
+				statusText = ColorWarning(statusText)
 			}
 		}
 		ctx.Logger().Info("[%.3fms] %v - \"%v %v\" %v %v", float64(elapsed.Nanoseconds())/1e6, ctx.ClientIP(),

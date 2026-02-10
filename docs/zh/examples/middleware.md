@@ -13,7 +13,7 @@ func Middleware() func(ctx *goapi.Context) {
 ~~~
 ### 定义运行程序
 ~~~go
-api := goapi.GoAPI(true)
+api := goapi.Default(true)
 ~~~
 使用中间件
 ~~~go

@@ -5,6 +5,9 @@ import (
 )
 
 func debugPrintRouter(log Logger, paths []*pathInfo) {
+	if log == nil {
+		return
+	}
 	log.Debug("All routes:")
 	headMethod := "METHODS"
 	headPath := "PATH"

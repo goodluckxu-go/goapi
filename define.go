@@ -180,18 +180,6 @@ const (
 	tagTags       = "tags"
 )
 
-type LogLevel uint
-
-var logLevel = LogInfo | LogDebug | LogWarning | LogError | LogFail
-
-const (
-	LogInfo LogLevel = 1 << iota
-	LogDebug
-	LogWarning
-	LogError
-	LogFail
-)
-
 var (
 	securityTypeHTTPBearer    = reflect.TypeOf(new(HTTPBearer)).Elem()
 	securityTypeHTTPBearerJWT = reflect.TypeOf(new(HTTPBearerJWT)).Elem()

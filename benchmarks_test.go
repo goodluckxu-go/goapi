@@ -12,6 +12,29 @@ import (
 	"testing"
 )
 
+type loggerTest struct {
+}
+
+func (*loggerTest) Info(format string, a ...any) {
+
+}
+func (*loggerTest) Debug(format string, a ...any) {
+
+}
+func (*loggerTest) Warning(format string, a ...any) {
+
+}
+func (*loggerTest) Error(format string, a ...any) {
+
+}
+func (*loggerTest) Fatal(format string, a ...any) {
+
+}
+
+func (*loggerTest) SetContext(ctx *Context) {
+
+}
+
 func BenchmarkOneRouter(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/index", nil)
 	if err != nil {
@@ -101,8 +124,8 @@ func BenchmarkPostFileRouter(b *testing.B) {
 }
 
 func testGetApiHandler(middlewares ...HandleFunc) http.Handler {
-	api := GoAPI(false)
-	api.SetLogger(nil)
+	api := New(false)
+	api.SetLogger(&loggerTest{})
 	api.AddMiddleware(middlewares...)
 	api.IncludeRouter(&testRouters{}, "", false)
 	return api.Handler()

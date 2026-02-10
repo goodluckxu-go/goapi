@@ -10,22 +10,28 @@ import (
 	"github.com/goodluckxu-go/goapi/v2/swagger"
 )
 
-// GoAPI It is a newly created API function
-func GoAPI(isDocs bool, docsPath ...string) *API {
+// New It is a newly created API function
+func New(isDocs bool, docsPath ...string) *API {
 	dPath := "/docs"
 	if len(docsPath) > 0 {
 		dPath = docsPath[0]
 	}
 	api := &API{
-		log:                  &levelHandleLogger{log: &defaultLogger{}},
+		log:                  &defaultLogger{},
 		addr:                 ":8080",
 		lang:                 &lang.EnUs{},
 		structTagVariableMap: map[string]any{},
-		defaultMiddlewares:   []HandleFunc{setLogger()},
 	}
 	api.init()
 	api.isDocs = isDocs
 	api.docsPath = dPath
+	return api
+}
+
+// Default returns an API instance with the LoggerMiddleware middleware already attached.
+func Default(isDocs bool, docsPath ...string) *API {
+	api := New(isDocs, docsPath...)
+	api.defaultMiddlewares = append(api.defaultMiddlewares, LoggerMiddleware())
 	api.AddMiddleware(api.defaultMiddlewares...)
 	return api
 }
@@ -48,7 +54,7 @@ func (a *API) SetLang(lang Lang) {
 
 // SetLogger It is a function for setting custom logs
 func (a *API) SetLogger(log Logger) {
-	a.log = &levelHandleLogger{log: log}
+	a.log = log
 }
 
 // Logger It is a method of obtaining logs
@@ -108,7 +114,7 @@ func (a *API) Run(addr ...string) (err error) {
 		a.addr = addr[0]
 	}
 	httpHandler := a.Handler()
-	a.log.Info("GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
+	a.writeLogInfo(a.log, "GoAPI running on http://%v (Press CTRL+C to quit)", a.addr)
 	return http.ListenAndServe(a.addr, httpHandler)
 }
 
@@ -118,7 +124,7 @@ func (a *API) Run(addr ...string) (err error) {
 func (a *API) RunTLS(addr, certFile, keyFile string) (err error) {
 	a.addr = addr
 	httpHandler := a.Handler()
-	a.log.Info("GoAPI running on https://%v (Press CTRL+C to quit)", a.addr)
+	a.writeLogInfo(a.log, "GoAPI running on https://%v (Press CTRL+C to quit)", a.addr)
 	return http.ListenAndServeTLS(a.addr, certFile, keyFile, httpHandler)
 }
 
@@ -126,9 +132,9 @@ func (a *API) RunTLS(addr, certFile, keyFile string) (err error) {
 func (a *API) Handler() http.Handler {
 	pid := strconv.Itoa(os.Getpid())
 	if isDefaultLogger(a.log) {
-		pid = colorDebug(pid)
+		pid = ColorDebug(pid)
 	}
-	a.log.Info("Started server process [%v]", pid)
+	a.writeLogInfo(a.log, "Started server process [%v]", pid)
 	handle := newHandler(a)
 	handle.Handle()
 	serverHandle := newHandlerServer(handle, a.log)
@@ -139,4 +145,11 @@ func (a *API) Handler() http.Handler {
 	}
 	serverHandle.Handle()
 	return serverHandle
+}
+
+func (a *API) writeLogInfo(log Logger, format string, v ...interface{}) {
+	if log == nil {
+		return
+	}
+	log.Info(format, v...)
 }

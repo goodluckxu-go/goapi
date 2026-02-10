@@ -20,7 +20,7 @@ func LoggerConvertGormLogger(log goapi.Logger) logger.Interface {
 	return NewGormLogger(&GormWriter{log: log}, logger.Config{
 		SlowThreshold: time.Second, // 慢 SQL 阈值
 		LogLevel:      logger.Info, // Log level
-		Colorful:      false,       // 禁用彩色打印
+		Colorful:      true,       // 使用彩色打印
 	})
 }
 
@@ -50,10 +50,10 @@ func NewGormLogger(writer logger.Writer, config logger.Config) logger.Interface 
 		infoStr = "GORM-INFO %s\n"
 		warnStr = "GORM-WARNING %s\n"
 		errStr = "GORM-ERROR %s\n"
-		traceStr = "GORM-INFO %s\n" + colorGreen("[%.3fms]") + " " + colorCyan("[rows:%v]") + " %s"
-		traceWarnStr1 = "GORM-WARNING %s " + colorYellow("%s") + "\n" + colorGreen("[%.3fms]") + " " + colorCyan("[rows:%v]") + " %s"
-		traceWarnStr2 = "GORM-WARNING %s " + colorYellow("%s") + "\n" + colorYellow("[%.3fms]") + " " + colorCyan("[rows:%v]") + " %s"
-		traceErrStr = "GORM-ERROR %s " + colorRed("%s") + "\n" + colorRed("[%.3fms]") + " " + colorCyan("[rows:%v]") + " %s"
+		traceStr = "GORM-INFO %s\n" + goapi.ColorInfo("[%.3fms]") + " " + goapi.ColorDebug("[rows:%v]") + " %s"
+		traceWarnStr1 = "GORM-WARNING %s " + goapi.ColorWarning("%s") + "\n" + goapi.ColorInfo("[%.3fms]") + " " + goapi.ColorDebug("[rows:%v]") + " %s"
+		traceWarnStr2 = "GORM-WARNING %s " + goapi.ColorWarning("%s") + "\n" + goapi.ColorWarning("[%.3fms]") + " " + goapi.ColorDebug("[rows:%v]") + " %s"
+		traceErrStr = "GORM-ERROR %s " + goapi.ColorError("%s") + "\n" + goapi.ColorError("[%.3fms]") + " " + goapi.ColorDebug("[rows:%v]") + " %s"
 	}
 	return &GormLogger{
 		writer,
@@ -147,14 +147,10 @@ func (l GormLogger) ParamsFilter(ctx context.Context, sql string, params ...inte
 	return sql, params
 }
 
-var colorGreen = color.New(color.FgGreen).SprintFunc()
-var colorCyan = color.New(color.FgCyan).SprintFunc()
-var colorYellow = color.New(color.FgHiYellow).SprintFunc()
-var colorRed = color.New(color.FgRed).SprintFunc()
 ~~~
 ### 全局使用日志
 ~~~go
-api := goapi.GoAPI(true)
+api := goapi.Default(true)
 // 全局模式
 db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{
 	Logger: LoggerConvertGormLogger(api.Logger()),

@@ -31,6 +31,6 @@ func (*Index) Index(ctx *goapi.Context, input struct{
 ~~~
 ### 引入结构体
 ~~~go
-api := goapi.GoAPI(true)
+api := goapi.Default(true)
 api.IncludeRouter(&PersonController{}, "/v1", true)
 ~~~

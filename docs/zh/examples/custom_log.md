@@ -48,9 +48,7 @@ func (c *CustomLog) SetContext(ctx *Context) {
 ### 使用日志
 ~~~go
 func main() {
-	// 设置日志级别
-	goapi.SetLogLevel(goapi.LogInfo | goapi.LogError | goapi.LogDebug | goapi.LogFail | goapi.LogError)
-	api := goapi.GoAPI(true)
+	api := goapi.Default(true)
 	api.GenerateRequestID = true // 生成每次请求的ID
 	api.SetLogger(&CustomLog{})
 }

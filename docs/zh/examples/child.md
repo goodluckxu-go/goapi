@@ -1,7 +1,7 @@
 ## [<<](examples.md) 如何使用多个程序模块
 ~~~go
 func main() {
-	api := goapi.GoAPI(true)
+	api := goapi.Default(true)
 	api.IsDocs = false // 默认为true，是否展示docs文档
 	admin:=api.Child("/admin", "/admin")
 	{

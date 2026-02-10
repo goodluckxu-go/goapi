@@ -27,7 +27,7 @@ type ChildError struct {
 }
 
 func main() {
-	api := goapi.GoAPI(true)
+	api := goapi.Default(true)
 	api.HTTPException(func(httpCode int, detail string) any {
 		return MainError{
 			Code: httpCode,

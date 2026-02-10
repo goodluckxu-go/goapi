@@ -917,13 +917,15 @@ func (h *handlerServer) generateRequestID(ctx *Context) {
 }
 
 func (h *handlerServer) handleLogger(ctx *Context) {
-	levelLog, _ := ctx.log.(*levelHandleLogger)
-	if _, ok := getFnByCovertInterface[LoggerContext](levelLog.log); ok {
-		newLog := h.copyLogger(levelLog.log)
+	if ctx.log == nil {
+		return
+	}
+	if _, ok := getFnByCovertInterface[LoggerContext](ctx.log); ok {
+		newLog := h.copyLogger(ctx.log)
 		if fn, fnOk := newLog.(LoggerContext); fnOk {
 			fn.SetContext(ctx)
 		}
-		ctx.log = &levelHandleLogger{log: newLog}
+		ctx.log = newLog
 	}
 }
 

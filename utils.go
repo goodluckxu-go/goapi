@@ -101,14 +101,10 @@ func isMethod(methods []string) bool {
 }
 
 func isDefaultLogger(log Logger) (ok bool) {
-	var levelLog *levelHandleLogger
-	if levelLog, ok = log.(*levelHandleLogger); !ok {
+	if log == nil {
 		return
 	}
-	if levelLog.log == nil {
-		return
-	}
-	_, ok = levelLog.log.(*defaultLogger)
+	_, ok = log.(*defaultLogger)
 	return
 }
 

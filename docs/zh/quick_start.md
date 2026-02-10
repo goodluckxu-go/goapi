@@ -50,7 +50,8 @@ import (
 )
 
 func main() {
-	api := goapi.GoAPI(true)
+	//api := goapi.New(true)
+	api := goapi.Default(true)
 	api.SetLang(&lang.ZhCn{})
 	api.SetResponseMediaType("application/json")
 	api.IncludeRouter(&Example{}, "/quick", true)
@@ -63,7 +64,7 @@ func main() {
 type Example struct{}
 
 func (e *Example) Ping(input struct {
-	router goapi.Router `path:"/ping" method:"GET" summery:"首页"`
+	router goapi.Router `paths:"/ping" methods:"GET" summery:"首页"`
 }) ExampleResp {
 	return ExampleResp{
 		Msg: "pong",

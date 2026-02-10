@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	api := goapi.GoAPI(true)
+	api := goapi.Default(true)
 	h2s := &http2.Server{}
 	http.ListenAndServe(":8080", h2c.NewHandler(api.Handler(), h2s))
 }
@@ -30,7 +30,7 @@ import (
 )
 
 func main() {
-	api := goapi.GoAPI(true)
+	api := goapi.Default(true)
 	h3 := &http3.Server{
 		Handler: api.Handler(),
 		Addr:    ":8089",

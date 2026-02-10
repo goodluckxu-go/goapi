@@ -4,7 +4,7 @@
 - 路由前缀路径  /admin
 ~~~go
 func main () {
-	api := goapi.GoAPI(true)
+	api := goapi.Default(true)
 	admin:=api.Group("/admin", true)
 	{
 		admin.AddMiddleware(nil)
@@ -16,7 +16,7 @@ func main () {
 - 路由前缀路径  /v1/user
 ~~~go
 func main () {
-	api := goapi.GoAPI(true)
+	api := goapi.Default(true)
 	admin:=api.Child("/admin", true, "/v1")
 	{
 		admin.OpenAPIInfo.Title = "后台管理接口"
@@ -33,7 +33,7 @@ func main () {
 - 路由前缀路径  /admin/user
 ~~~go
 func main () {
-	api := goapi.GoAPI(true)
+	api := goapi.Default(true)
 	admin:=api.Group("/admin", true)
 	{
 		admin.AddMiddleware(nil)

@@ -14,7 +14,7 @@ func (*index)List (input struct {
 ~~~
 给标签添加注释
 ~~~go
-api := goapi.GoAPI(true)
+api := goapi.Default(true)
 api.OpenAPITags = []*openapi.Tag{
 	{Name: "user", Description: "用户组"},
 	{Name: "admin", Description: "管理员组"},
