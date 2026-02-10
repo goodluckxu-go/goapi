@@ -2,7 +2,7 @@
 ### 使用上下文获取参数
 ~~~go
 func (*Index) Param(ctx *goapi.Context, input struct {
-	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
+	input  goapi.Router `paths:"/param" methods:"POST" summary:"参数请求"`
 }) {
 	// 获取*http.Request参数 
 	request := ctx.Request 
@@ -18,7 +18,7 @@ func (*Index) Param(ctx *goapi.Context, input struct {
 //  /param1/test/          noValid
 //  /param1/test/request   noValid
 func (*Index) Param1(input struct {
-	input  goapi.Router `path:"/param1/{path}" method:"POST" summary:"参数请求"`
+	input  goapi.Router `paths:"/param1/{path}" methods:"POST" summary:"参数请求"`
 	Path   string       `path:"path" desc:"主键定义，必填"` // path不能定义omitempty为非必填
 }) {
 
@@ -30,7 +30,7 @@ func (*Index) Param1(input struct {
 //  /param1/test/          valid        path=test/
 //  /param1/test/request   valid        path=test/request
 func (*Index) Param2(input struct {
-	input  goapi.Router `path:"/param2/{path:*}" method:"POST" summary:"参数请求"`
+	input  goapi.Router `paths:"/param2/{path:*}" methods:"POST" summary:"参数请求"`
 	Path   string       `path:"path" desc:"主键定义，必填"` // path不能定义omitempty为非必填
 }) {
 
@@ -39,7 +39,7 @@ func (*Index) Param2(input struct {
 定义header,cookie,query请求
 ~~~go
 func (*Index) Param(input struct {
-	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
+	input  goapi.Router `paths:"/param" methods:"POST" summary:"参数请求"`
 	Token1 string       `cookie:"Token1" desc:"cookie中Token1定义，必填"`
 	Token2 *http.Cookie `cookie:"token2,omitempty" desc:"cookie中token2定义，非必填"`
 	Token3 int64        `header:"Token3" desc:"header的Token3定义，必填"`
@@ -51,7 +51,7 @@ func (*Index) Param(input struct {
 定义application/x-www-form-urlencoded请求，**可以form和file同时定义，请求类型会变为multipart/form-data**
 ~~~go
 func (*Index) Form(input struct {
-	input    goapi.Router `path:"/form" method:"POST" summary:"form请求"`
+	input    goapi.Router `paths:"/form" methods:"POST" summary:"form请求"`
 	Username string       `form:"username" desc:"用户名，必填"`
 	Password string       `form:"password,omitempty" desc:"密码，非必填"`
 }) {
@@ -61,7 +61,7 @@ func (*Index) Form(input struct {
 定义multipart/form-data请求
 ~~~go
 func (*Index) File(input struct {
-	input goapi.Router            `path:"/file" method:"POST" summary:"file请求"`
+	input goapi.Router            `paths:"/file" methods:"POST" summary:"file请求"`
 	File  *multipart.FileHeader   `form:"file" desc:"文件"`
 	Files []*multipart.FileHeader `file:"files" desc:"文件列表"`
 }) {
@@ -82,7 +82,7 @@ type BodyReq struct {
 }
 
 func (*Index) Post(input struct {
-	input goapi.Router `path:"/post" summary:"请求"`
+	input goapi.Router `paths:"/post" methods:"POST" summary:"请求"`
 	Body  BodyReq      `body:"json,xml" desc:"body信息"`
 }) {
 
@@ -91,19 +91,19 @@ func (*Index) Post(input struct {
 定义其他类型请求，body里面为**Content-Type**类型
 ~~~go
 func (*Index) PostIoReader(input struct {
-	input goapi.Router     `path:"/post/io" method:"POST" summary:"请求"`
+	input goapi.Router     `paths:"/post/io" methods:"POST" summary:"请求"`
 	Body  io.ReadCloser    `body:"text/html" desc:"body信息，接受一个可读取类型"`
 }) {
 
 }
 func (*Index) PostByte(input struct {
-	input goapi.Router     `path:"/post/byte" method:"POST" summary:"请求"`
+	input goapi.Router     `paths:"/post/byte" methods:"POST" summary:"请求"`
 	Body  []byte           `body:"application/octet-stream" desc:"body信息，接受一个[]byte值"`
 }) {
 
 }
 func (*Index) PostString(input struct {
-	input goapi.Router     `path:"/post/string" method:"POST" summary:"请求"`
+	input goapi.Router     `paths:"/post/string" methods:"POST" summary:"请求"`
 	Body  string           `body:"text/plain" desc:"body信息，接受一个string类型值"`
 }) {
 

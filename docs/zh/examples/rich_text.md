@@ -18,7 +18,7 @@ func main() {
 ### 使用标签映射
 ~~~go
 func (*Index) Index(input struct{
-	router goapi.Router `path:"/index" method:"GET" summary:"{{summary}}" desc:"{{indexDocs}}"`
+	router goapi.Router `paths:"/index" methods:"GET" summary:"{{summary}}" desc:"{{indexDocs}}"`
 	Username string `form:"username" desc:"{{username}}"`
 	Password string `form:"password" desc:"{{password}}"`
 }) {

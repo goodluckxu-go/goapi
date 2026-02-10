@@ -142,7 +142,7 @@ func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) {
 鉴权使用
 ~~~go
 func (*index)Index(input struct{
-	router goapi.Router `path:"/index" method:"GET"`
+	router goapi.Router `paths:"/index" methods:"GET"`
 	Auth *Auth   // 添加该行则该路由使用这个鉴权
 })  {
 	

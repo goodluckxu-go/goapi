@@ -163,7 +163,7 @@ db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{
 ### 每次请求当一次会话使用日志
 ~~~go
 func (*Index)Index(ctx *goapi.Context, input struct{
-	router goapi.Router `path:"/index" method:"GET"`
+	router goapi.Router `paths:"/index" methods:"GET"`
 }) {
 	// 新建会话模式 
 	tx := db.Session(&Session{Logger: LoggerConvertGormLogger(ctx.Logger())})

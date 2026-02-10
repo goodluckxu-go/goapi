@@ -3,7 +3,7 @@
 http返回
 ~~~go
 func (*Index) Param(input struct {
-	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
+	input  goapi.Router `paths:"/param" methods:"POST" summary:"参数请求"`
 }) *string {
 	return nil
 }
@@ -11,7 +11,7 @@ func (*Index) Param(input struct {
 文件返回
 ~~~go
 func (*Index) Param(input struct {
-	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
+	input  goapi.Router `paths:"/param" methods:"POST" summary:"参数请求"`
 }) *string {
 	return nil
 }
@@ -19,7 +19,7 @@ func (*Index) Param(input struct {
 SSE返回
 ~~~go
 func (*Index) Param(input struct {
-	input  goapi.Router `path:"/param" method:"POST" summary:"参数请求"`
+	input  goapi.Router `paths:"/param" methods:"POST" summary:"参数请求"`
 }) *response.SSEResponse {
 	return &response.SSEResponse{
 		SSEWriter: func(s *response.SSEvent) {
@@ -46,7 +46,7 @@ type BodyResp struct {
 }
 
 func (*Index) Post(input struct {
-	input goapi.Router `path:"/post" summary:"请求"`
+	input goapi.Router `paths:"/post" methods:"POST" summary:"请求"`
 }) *BodyResp{
 	return nil
 }

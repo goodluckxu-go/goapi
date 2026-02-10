@@ -7,7 +7,7 @@ type Index struct{}
 定义方法标签
 ~~~go
 func (*index)List (input struct {
-	router goapi.Router `path:"/list" method:"GET" tags:"user,admin"`
+	router goapi.Router `paths:"/list" methods:"GET" tags:"user,admin"`
 }) {
 	
 }
