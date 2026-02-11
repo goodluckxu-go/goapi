@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"github.com/fatih/color"
 )
 
 type Logger interface {
@@ -53,8 +51,4 @@ func (d *defaultLogger) Fatal(format string, a ...any) {
 	fmt.Printf("%v", spanFill(ColorFatal("FATAL"), 5, 10)+"["+timeFormat(time.Now())+"] "+format+"\n")
 }
 
-var ColorInfo = color.New(color.FgGreen).SprintFunc()
-var ColorDebug = color.New(color.FgCyan).SprintFunc()
-var ColorWarning = color.New(color.FgHiYellow).SprintFunc()
-var ColorError = color.New(color.FgRed).SprintFunc()
-var ColorFatal = color.New(color.BgRed, color.FgWhite).SprintFunc()
+var Colorful = true

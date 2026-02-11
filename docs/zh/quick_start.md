@@ -16,12 +16,11 @@ import "github.com/goodluckxu-go/goapi/v2"
 ~~~go
 import (
 	"github.com/goodluckxu-go/goapi/v2/lang" //语音包
-	"github.com/goodluckxu-go/goapi/v2/response" // 扩展返回包 
-	"github.com/fatih/color" // 颜色包
+	"github.com/goodluckxu-go/goapi/v2/response" // 扩展返回包
 )
 
 func main() {
-	color.NoColor = true // 关闭默认日志控制台颜色
+	goapi.Colorful = false // 关闭默认日志控制台颜色
 }
 ~~~
 ### 运行示例

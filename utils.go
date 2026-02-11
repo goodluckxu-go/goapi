@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/goodluckxu-go/goapi/v2/openapi"
 )
@@ -380,4 +381,39 @@ func isTextInterface(val any) (ok bool) {
 	default:
 	}
 	return
+}
+
+func ColorInfo(a ...any) string {
+	if Colorful {
+		return color.New(color.FgGreen).SprintFunc()(a...)
+	}
+	return fmt.Sprint(a...)
+}
+
+func ColorDebug(a ...any) string {
+	if Colorful {
+		return color.New(color.FgCyan).SprintFunc()(a...)
+	}
+	return fmt.Sprint(a...)
+}
+
+func ColorWarning(a ...any) string {
+	if Colorful {
+		return color.New(color.FgHiYellow).SprintFunc()(a...)
+	}
+	return fmt.Sprint(a...)
+}
+
+func ColorError(a ...any) string {
+	if Colorful {
+		return color.New(color.FgRed).SprintFunc()(a...)
+	}
+	return fmt.Sprint(a...)
+}
+
+func ColorFatal(a ...any) string {
+	if Colorful {
+		return color.New(color.BgRed, color.FgWhite).SprintFunc()(a...)
+	}
+	return fmt.Sprint(a...)
 }
