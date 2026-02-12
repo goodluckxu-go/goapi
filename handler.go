@@ -598,7 +598,7 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 		}
 
 		if _, ok := h.structs[rs.pkgName]; !ok {
-			h.structTypes[rs.pkgName] = fType
+			h.structTypes[rs.pkgName] = eType
 		}
 	default:
 	}
