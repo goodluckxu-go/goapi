@@ -117,11 +117,6 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 	pathS := h.handleStaticPath(path.paths[0])
 	fileServer := http.StripPrefix(pathS, http.FileServer(path.inFs))
 	return func(ctx *Context) {
-		defer func() {
-			if err := recover(); err != nil {
-				h.handleExcept(ctx, toString(err))
-			}
-		}()
 		ctx.path = path
 		ctx.ChildPath = path.childPath
 		h.handleLogger(ctx)
@@ -138,11 +133,6 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 
 func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 	return func(ctx *Context) {
-		defer func() {
-			if err := recover(); err != nil {
-				h.handleExcept(ctx, toString(err))
-			}
-		}()
 		ctx.path = path
 		ctx.ChildPath = path.childPath
 		h.handleLogger(ctx)
@@ -851,11 +841,6 @@ func (h *handlerServer) getChildPath(path string) (childPath string) {
 }
 
 func (h *handlerServer) notFind(ctx *Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			h.handleExcept(ctx, toString(err))
-		}
-	}()
 	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
 	ctx.handlers = append(ctx.handlers, func(ctx *Context) {
 		child := h.handle.childMap[ctx.ChildPath]
@@ -881,11 +866,6 @@ func (h *handlerServer) notFind(ctx *Context) {
 }
 
 func (h *handlerServer) redirect(ctx *Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			h.handleExcept(ctx, toString(err))
-		}
-	}()
 	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
 	ctx.handlers = append(ctx.handlers, func(ctx *Context) {
 		tsrPath := h.handleTsrPath(ctx.Request.URL.Path)
@@ -904,6 +884,9 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.writermem.reset(w)
 	ctx.reset()
 	ctx.Request = r
+	if ctx.handleExcept == nil {
+		ctx.handleExcept = h.handleExcept
+	}
 	h.generateRequestID(ctx)
 	h.handleHTTPRequest(ctx)
 	h.pool.Put(ctx)

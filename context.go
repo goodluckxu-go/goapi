@@ -10,21 +10,22 @@ import (
 )
 
 type Context struct {
-	Request    *http.Request
-	Writer     ResponseWriter
-	writermem  responseWriter
-	Values     map[string]any
-	log        Logger
-	mux        sync.RWMutex
-	handlers   []HandleFunc
-	Params     Params
-	index      int
-	fullPath   string
-	mediaType  string
-	path       *pathInfo
-	queryCache url.Values
-	ChildPath  string
-	RequestID  string
+	Request      *http.Request
+	Writer       ResponseWriter
+	writermem    responseWriter
+	Values       map[string]any
+	log          Logger
+	mux          sync.RWMutex
+	handlers     []HandleFunc
+	Params       Params
+	index        int
+	fullPath     string
+	mediaType    string
+	path         *pathInfo
+	queryCache   url.Values
+	ChildPath    string
+	RequestID    string
+	handleExcept func(ctx *Context, err string, code ...int)
 }
 
 func (c *Context) reset() {
@@ -98,6 +99,11 @@ func (c *Context) FullPath() string {
 
 // Next It is used in middleware, before Next is before interface request, and after Next is after interface request
 func (c *Context) Next() {
+	defer func() {
+		if err := recover(); err != nil {
+			c.handleExcept(c, toString(err))
+		}
+	}()
 	c.index++
 	if len(c.handlers) <= c.index {
 		return
