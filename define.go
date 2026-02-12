@@ -222,7 +222,7 @@ type defaultError struct {
 	Error   string   `json:"error" xml:",innerxml"`
 }
 
-func (d defaultHttpExcept) GetStatusCode() int {
+func (d defaultHttpExcept) GetStatus() int {
 	return d.code
 }
 

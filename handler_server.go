@@ -163,7 +163,7 @@ func (h *handlerServer) handleExcept(ctx *Context, err string, code ...int) {
 	var resp any
 	if er != nil {
 		resp = exceptFunc(http.StatusInternalServerError, err)
-		h.handle.api.log.Error("panic: %v [recovered]\n%v", er, string(debug.Stack()))
+		h.handle.api.log.Fatal("panic: %v [recovered]\n%v", er, string(debug.Stack()))
 	} else {
 		resp = exceptFunc(res.HttpCode, res.Detail)
 	}
