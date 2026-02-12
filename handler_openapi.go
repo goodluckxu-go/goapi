@@ -13,31 +13,26 @@ import (
 	"github.com/goodluckxu-go/goapi/v2/openapi"
 )
 
-func newHandlerOpenAPI(api *API, handle *handler) *handlerOpenAPI {
+func newHandlerOpenAPI(handle *handler) *handlerOpenAPI {
 	for _, openAPI := range handle.openapiMap {
 		openAPI.OpenAPI = openapi.Version
 	}
 	return &handlerOpenAPI{
-		api:        api,
-		handle:     handle,
-		schemas:    map[string]*openapi.Schema{},
-		schemasMap: make(map[string]map[string]*openapi.Schema),
-		sortRefMap: map[string]string{},
+		handle:            handle,
+		pkgNameMediaTypes: map[string]map[string][]MediaType{},
+		schemasMap:        map[string]map[string]*openapi.Schema{},
 	}
 }
 
 type handlerOpenAPI struct {
-	api        *API
-	handle     *handler
-	schemas    map[string]*openapi.Schema
-	schemasMap map[string]map[string]*openapi.Schema
-	sortRefMap map[string]string
+	handle            *handler
+	pkgNameMediaTypes map[string]map[string][]MediaType
+	schemasMap        map[string]map[string]*openapi.Schema
 }
 
 func (h *handlerOpenAPI) Handle() map[string]*openapi.OpenAPI {
 	h.handleStructs()
 	h.handlePaths()
-	h.handleUsePaths()
 	for docsPath, schemas := range h.schemasMap {
 		if h.handle.openapiMap[docsPath] == nil {
 			continue
@@ -51,31 +46,103 @@ func (h *handlerOpenAPI) Handle() map[string]*openapi.OpenAPI {
 }
 
 func (h *handlerOpenAPI) handleStructs() {
-	for pkgName, stInfo := range h.handle.structs {
-		for mediaType := range h.handle.mediaTypes {
-			h.handleStruct(pkgName, stInfo, mediaType)
+	for _, path := range h.handle.paths {
+		if path.inFs != nil {
+			continue
+		}
+		for _, in := range path.inParams {
+			if in.inType == inTypeBody {
+				var mediaTypes []MediaType
+				for _, value := range in.values {
+					mediaTypes = append(mediaTypes, value.mediaType)
+				}
+				h.handlePkgNameMediaTypes(path.docsPath, in.field, mediaTypes)
+			}
+		}
+		if path.outParam != nil {
+			h.handlePkgNameMediaTypes(path.docsPath, path.outParam.field, h.handle.api.responseMediaTypes)
+		}
+		except := h.handle.exceptMap[path.childPath]
+		if except != nil && except.outParam != nil {
+			h.handlePkgNameMediaTypes(path.docsPath, except.outParam.field, h.handle.api.responseMediaTypes)
+		}
+
+	}
+	for docsPath, pkgNameMediaType := range h.pkgNameMediaTypes {
+		for pkgName, mediaTypes := range pkgNameMediaType {
+			stInfo := h.handle.structs[pkgName]
+			for _, mediaType := range mediaTypes {
+				h.handleStruct(pkgName, stInfo, mediaType, docsPath)
+			}
 		}
 	}
 }
 
-func (h *handlerOpenAPI) handleStruct(pkgName string, stInfo *structInfo, mediaType MediaType) {
-	properties, required := h.handleParamFields(stInfo.fields, mediaType)
+func (h *handlerOpenAPI) handlePkgNameMediaTypes(docsPath string, field *paramField, mediaTypes []MediaType) {
+	if field == nil || len(mediaTypes) == 0 {
+		return
+	}
+	switch field.kind {
+	case reflect.Array, reflect.Slice:
+		h.handlePkgNameMediaTypes(docsPath, field.fields[0], mediaTypes)
+	case reflect.Map:
+		h.handlePkgNameMediaTypes(docsPath, field.fields[1], mediaTypes)
+	case reflect.Struct:
+		if field.pkgName == "" {
+			return
+		}
+		if h.pkgNameMediaTypes[docsPath] == nil {
+			h.pkgNameMediaTypes[docsPath] = map[string][]MediaType{}
+		}
+		totalCount := 0
+		useCount := 0
+		for _, mediaType := range mediaTypes {
+			name := field.names.getFieldName(mediaType)
+			// Not found or the value is -
+			if name.mediaType == "" || name.name == "-" {
+				continue
+			}
+			if field.name == "XMLName" && mediaType == XML {
+				continue
+			}
+			totalCount++
+			if inArray(mediaType, h.pkgNameMediaTypes[docsPath][field.pkgName]) {
+				useCount++
+				continue
+			}
+			h.pkgNameMediaTypes[docsPath][field.pkgName] = append(h.pkgNameMediaTypes[docsPath][field.pkgName], mediaType)
+		}
+		if useCount == totalCount {
+			return
+		}
+		stInfo := h.handle.structs[field.pkgName]
+		for _, childField := range stInfo.fields {
+			h.handlePkgNameMediaTypes(docsPath, childField, mediaTypes)
+		}
+	default:
+	}
+}
+
+func (h *handlerOpenAPI) handleStruct(pkgName string, stInfo *structInfo, mediaType MediaType, docsPath string) {
+	properties, required := h.handleParamFields(stInfo.fields, mediaType, docsPath)
 	schema := &openapi.Schema{
 		Type:       "object",
 		Properties: properties,
 		Required:   required,
 	}
-	refName := h.getOpenapiName(stInfo.openapiName, mediaType)
-	h.sortRefMap[refName] = pkgName
-	h.schemas[refName] = schema
+	if h.schemasMap[docsPath] == nil {
+		h.schemasMap[docsPath] = map[string]*openapi.Schema{}
+	}
+	refName := h.getOpenapiName(stInfo.openapiName, mediaType, len(h.pkgNameMediaTypes[docsPath][pkgName]))
+	h.schemasMap[docsPath][refName] = schema
 }
 
-func (h *handlerOpenAPI) handleParamFields(fields []*paramField, mediaType MediaType) (properties map[string]*openapi.Schema, required []string) {
+func (h *handlerOpenAPI) handleParamFields(fields []*paramField, mediaType MediaType, docsPath string) (properties map[string]*openapi.Schema, required []string) {
 	properties = map[string]*openapi.Schema{}
 	for _, field := range fields {
 		if field.anonymous {
 			childStInfo := h.handle.structs[field.pkgName]
-			childProperties, childRequired := h.handleParamFields(childStInfo.fields, mediaType)
+			childProperties, childRequired := h.handleParamFields(childStInfo.fields, mediaType, docsPath)
 			for k, v := range childProperties {
 				properties[k] = v
 			}
@@ -86,7 +153,7 @@ func (h *handlerOpenAPI) handleParamFields(fields []*paramField, mediaType Media
 			continue
 		}
 		childSchema := &openapi.Schema{}
-		name := h.handleParamField(childSchema, field, mediaType)
+		name := h.handleParamField(childSchema, field, mediaType, docsPath)
 		if name.name == "" {
 			continue
 		}
@@ -98,7 +165,7 @@ func (h *handlerOpenAPI) handleParamFields(fields []*paramField, mediaType Media
 	return
 }
 
-func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramField, mediaType MediaType) (name paramFieldName) {
+func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramField, mediaType MediaType, docsPath string) (name paramFieldName) {
 	name = field.names.getFieldName(mediaType)
 	kind := field.kind
 	schema.Description = field.tag.desc
@@ -191,7 +258,7 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		schema.MinItems = field.tag.min
 		schema.UniqueItems = field.tag.unique
 		childSchema := &openapi.Schema{}
-		h.handleParamField(childSchema, field.fields[0], mediaType)
+		h.handleParamField(childSchema, field.fields[0], mediaType, docsPath)
 		schema.Items = childSchema
 	case reflect.Map:
 		schema.Type = "object"
@@ -200,14 +267,14 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		childSchema := &openapi.Schema{
 			PropertyNames: &openapi.Schema{},
 		}
-		h.handleParamField(childSchema.PropertyNames, field.fields[0], mediaType)
-		h.handleParamField(childSchema, field.fields[1], mediaType)
+		h.handleParamField(childSchema.PropertyNames, field.fields[0], mediaType, docsPath)
+		h.handleParamField(childSchema, field.fields[1], mediaType, docsPath)
 		schema.Properties = map[string]*openapi.Schema{
 			h.getMapKeyExample(field.fields[0]): childSchema,
 		}
 	case reflect.Struct:
 		if field.pkgName == "" {
-			properties, required := h.handleParamFields(field.fields, mediaType)
+			properties, required := h.handleParamFields(field.fields, mediaType, docsPath)
 			schema.Type = "object"
 			schema.MaxProperties = field.tag.max
 			schema.MinProperties = field.tag.min
@@ -216,7 +283,7 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 			return
 		}
 		childStInfo := h.handle.structs[field.pkgName]
-		schema.Ref = "#/components/schemas/" + h.getOpenapiName(childStInfo.openapiName, mediaType)
+		schema.Ref = "#/components/schemas/" + h.getOpenapiName(childStInfo.openapiName, mediaType, len(h.pkgNameMediaTypes[docsPath][field.pkgName]))
 	case reflect.Ptr:
 		if field._type.ConvertibleTo(typeCookie) || field._type.ConvertibleTo(typeFile) {
 			schema.Type = "string"
@@ -298,91 +365,6 @@ func (h *handlerOpenAPI) handleXmlExample(val *any) {
 	*val = xml.Header + string(buf)
 }
 
-func (h *handlerOpenAPI) handleUsePaths() {
-	for _, path := range h.handle.paths {
-		if path.inFs != nil {
-			continue
-		}
-		if h.schemasMap[path.docsPath] == nil {
-			h.schemasMap[path.docsPath] = map[string]*openapi.Schema{}
-		}
-		openAPI := h.handle.openapiMap[path.docsPath]
-		for _, p := range path.paths {
-			if !path.isDocs {
-				continue
-			}
-			setPath, _, _ := h.getMatchAllPath(p)
-			pathItem := openAPI.Paths.Value(setPath)
-			h.handleUseOperation(path, pathItem.Get)
-			h.handleUseOperation(path, pathItem.Put)
-			h.handleUseOperation(path, pathItem.Post)
-			h.handleUseOperation(path, pathItem.Delete)
-			h.handleUseOperation(path, pathItem.Options)
-			h.handleUseOperation(path, pathItem.Head)
-			h.handleUseOperation(path, pathItem.Patch)
-			h.handleUseOperation(path, pathItem.Trace)
-		}
-
-	}
-}
-
-func (h *handlerOpenAPI) handleUseOperation(path *pathInfo, operation *openapi.Operation) {
-	if operation == nil {
-		return
-	}
-	if operation.RequestBody != nil {
-		for _, content := range operation.RequestBody.Content {
-			h.handleUseSchema(path.docsPath, content.Schema)
-		}
-	}
-	if operation.Responses != nil {
-		for _, response := range operation.Responses.Responses() {
-			if response != nil {
-				for _, content := range response.Content {
-					h.handleUseSchema(path.docsPath, content.Schema)
-				}
-			}
-		}
-	}
-}
-
-func (h *handlerOpenAPI) handleUseSchema(docsPath string, scheme *openapi.Schema) {
-	if scheme == nil {
-		return
-	}
-	if scheme.Ref == "" {
-		switch scheme.Type {
-		case "object":
-			for _, childSchema := range scheme.Properties {
-				h.handleUseSchema(docsPath, childSchema)
-			}
-		case "array":
-			h.handleUseSchema(docsPath, scheme.Items)
-		}
-		return
-	}
-	refName, mediaType := h.getMediaTypeByRef(scheme.Ref)
-	h.handleDependsStruct(docsPath, h.sortRefMap[refName], mediaType)
-}
-
-func (h *handlerOpenAPI) getMediaTypeByRef(ref string) (refName string, mediaType MediaType) {
-	refName = strings.TrimPrefix(ref, "#/components/schemas/")
-	lastIdx := strings.LastIndex(refName, ".")
-	for mType := range h.handle.mediaTypes {
-		mediaType = mType
-		break
-	}
-	if lastIdx != -1 && len(h.handle.mediaTypes) > 1 {
-		for mType := range h.handle.mediaTypes {
-			if mType.Tag() == refName[lastIdx+1:] {
-				mediaType = mType
-				break
-			}
-		}
-	}
-	return
-}
-
 func (h *handlerOpenAPI) handlePath(path *pathInfo) {
 	openAPI := h.handle.openapiMap[path.docsPath]
 	for _, p := range path.paths {
@@ -430,7 +412,7 @@ func (h *handlerOpenAPI) handleSecuritySchemes(openAPI *openapi.OpenAPI, path *p
 	if openAPI.Components != nil && openAPI.Components.SecuritySchemes != nil {
 		securitySchemes = openAPI.Components.SecuritySchemes
 	}
-	if len(h.api.responseMediaTypes) > 1 {
+	if len(h.handle.api.responseMediaTypes) > 1 {
 		securitySchemes["mediaType"] = &openapi.SecurityScheme{
 			Type:        "apiKey",
 			Name:        returnMediaTypeField,
@@ -486,7 +468,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 	var bodyMediaType MediaType
 	var bodyRequired []string
 	var securityRequirements []*openapi.SecurityRequirement
-	if len(h.api.responseMediaTypes) > 1 {
+	if len(h.handle.api.responseMediaTypes) > 1 {
 		securityRequirements = append(securityRequirements, &openapi.SecurityRequirement{
 			"mediaType": []string{},
 		})
@@ -506,7 +488,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				continue
 			}
 			schema := &openapi.Schema{}
-			h.handleParamField(schema, in.field, "")
+			h.handleParamField(schema, in.field, "", "")
 			parameter := &openapi.Parameter{
 				Name:        name.name,
 				In:          in.inType.Tag(),
@@ -531,7 +513,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				bodyMediaType = formUrlencoded
 			}
 			schema := &openapi.Schema{}
-			h.handleParamField(schema, in.field, "")
+			h.handleParamField(schema, in.field, "", "")
 			bodyProperties[name.name] = schema
 			if name.required {
 				bodyRequired = append(bodyRequired, name.name)
@@ -540,7 +522,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			name := in.values[0]
 			bodyMediaType = formMultipart
 			schema := &openapi.Schema{}
-			h.handleParamField(schema, in.field, "")
+			h.handleParamField(schema, in.field, "", "")
 			bodyProperties[name.name] = schema
 			if name.required {
 				bodyRequired = append(bodyRequired, name.name)
@@ -549,7 +531,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			bodyDesc = in.field.tag.desc
 			for _, value := range in.values {
 				schema := &openapi.Schema{}
-				h.handleParamField(schema, in.field, value.mediaType)
+				h.handleParamField(schema, in.field, value.mediaType, path.docsPath)
 				if in.example != nil && value.mediaType == XML {
 					example := in.example
 					h.handleXmlExample(&example)
@@ -595,12 +577,12 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 		resContentMap := map[string]*openapi.MediaType{}
 		contentType := path.outParam.httpHeader.Get("Content-Type")
 		if contentType == "" {
-			for _, mediaType := range h.api.responseMediaTypes {
+			for _, mediaType := range h.handle.api.responseMediaTypes {
 				schema := &openapi.Schema{}
 				if mediaType.IsStream() {
 					schema.Type = "string"
 				} else {
-					h.handleParamField(schema, path.outParam.field, mediaType)
+					h.handleParamField(schema, path.outParam.field, mediaType, path.docsPath)
 					if mediaType == XML {
 						xmlName := path.outParam.field.xmlName
 						if stInfo := h.handle.structs[path.outParam.field.pkgName]; stInfo != nil {
@@ -626,7 +608,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			if mediaType.IsStream() {
 				schema.Type = "string"
 			} else {
-				h.handleParamField(schema, path.outParam.field, mediaType)
+				h.handleParamField(schema, path.outParam.field, mediaType, path.docsPath)
 				if mediaType == XML {
 					xmlName := path.outParam.field.xmlName
 					if stInfo := h.handle.structs[path.outParam.field.pkgName]; stInfo != nil {
@@ -666,12 +648,12 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 		resContentMap := map[string]*openapi.MediaType{}
 		contentType := except.outParam.httpHeader.Get("Content-Type")
 		if contentType == "" {
-			for _, mediaType := range h.api.responseMediaTypes {
+			for _, mediaType := range h.handle.api.responseMediaTypes {
 				schema := &openapi.Schema{}
 				if mediaType.IsStream() {
 					schema.Type = "string"
 				} else {
-					h.handleParamField(schema, except.outParam.field, mediaType)
+					h.handleParamField(schema, except.outParam.field, mediaType, path.docsPath)
 					if mediaType == XML {
 						xmlName := except.outParam.field.xmlName
 						if stInfo := h.handle.structs[except.outParam.field.pkgName]; stInfo != nil {
@@ -697,7 +679,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			if mediaType.IsStream() {
 				schema.Type = "string"
 			} else {
-				h.handleParamField(schema, except.outParam.field, mediaType)
+				h.handleParamField(schema, except.outParam.field, mediaType, path.docsPath)
 				if mediaType == XML {
 					xmlName := except.outParam.field.xmlName
 					if stInfo := h.handle.structs[except.outParam.field.pkgName]; stInfo != nil {
@@ -768,27 +750,8 @@ func (h *handlerOpenAPI) getMatchAllPath(fullPath string) (setPath, pathName str
 	return
 }
 
-func (h *handlerOpenAPI) handleDependsStruct(docsPath string, pkgName string, mediaType MediaType) {
-	if h.schemasMap[docsPath] == nil {
-		h.schemasMap[docsPath] = make(map[string]*openapi.Schema)
-	}
-	openapiName := h.getOpenapiNameByPkgName(pkgName, mediaType)
-	if _, ok := h.schemasMap[docsPath][openapiName]; ok {
-		return
-	}
-	h.schemasMap[docsPath][openapiName] = h.schemas[openapiName]
-	list := h.handle.structDepends[pkgName]
-	for _, val := range list {
-		h.handleDependsStruct(docsPath, val, mediaType)
-	}
-}
-
-func (h *handlerOpenAPI) getOpenapiNameByPkgName(pkgName string, mediaType MediaType) string {
-	return h.getOpenapiName(h.handle.structs[pkgName].openapiName, mediaType)
-}
-
-func (h *handlerOpenAPI) getOpenapiName(openapiName string, mediaType MediaType) string {
-	if len(h.handle.mediaTypes) < 2 {
+func (h *handlerOpenAPI) getOpenapiName(openapiName string, mediaType MediaType, mediaTypeCount int) string {
+	if mediaTypeCount < 2 {
 		return openapiName
 	}
 	return fmt.Sprintf("%v.%v", openapiName, mediaType.Tag())

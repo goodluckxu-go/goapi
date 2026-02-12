@@ -139,7 +139,7 @@ func (a *API) Handler() http.Handler {
 	handle.Handle()
 	serverHandle := newHandlerServer(handle, a.log)
 	if a.isDocs {
-		openapiHandle := newHandlerOpenAPI(a, handle)
+		openapiHandle := newHandlerOpenAPI(handle)
 		openapiMap := openapiHandle.Handle()
 		serverHandle.HandleSwagger(swagger.GetSwagger, openapiMap)
 	}

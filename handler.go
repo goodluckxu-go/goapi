@@ -639,7 +639,7 @@ func (h *handler) handleStruct() (err error) {
 		for pkgName, structType := range h.structTypes {
 			stInfo := &structInfo{
 				_type:   structType,
-				xmlName: structType.Name(),
+				xmlName: h.typeByXmlName(structType),
 			}
 			for i := 0; i < structType.NumField(); i++ {
 				field := structType.Field(i)
@@ -664,6 +664,14 @@ func (h *handler) handleStruct() (err error) {
 			h.structs[pkgName] = stInfo
 			delete(h.structTypes, pkgName)
 		}
+	}
+	return
+}
+
+func (h *handler) typeByXmlName(_type reflect.Type) (xmlName string) {
+	xmlName = _type.Name()
+	if before, _, ok := strings.Cut(xmlName, "["); ok {
+		xmlName = before
 	}
 	return
 }
