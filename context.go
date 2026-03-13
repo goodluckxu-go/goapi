@@ -31,7 +31,12 @@ type Context struct {
 func (c *Context) reset() {
 	c.Writer = &c.writermem
 	c.Params = c.Params[:0]
-	c.Values = nil
+	// Reusing the map reduces the GC pressure and only clears without setting nil
+	if c.Values != nil {
+		for k := range c.Values {
+			delete(c.Values, k)
+		}
+	}
 	c.handlers = c.handlers[0:0]
 	c.index = -1
 	c.fullPath = ""

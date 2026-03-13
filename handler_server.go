@@ -34,10 +34,11 @@ func newHandlerServer(handle *handler, log Logger) *handlerServer {
 }
 
 type handlerServer struct {
-	log    Logger
-	handle *handler
-	trees  methodTrees
-	pool   sync.Pool
+	log         Logger
+	handle      *handler
+	trees       methodTrees
+	pool        sync.Pool
+	regexpCache sync.Map // map[string]*regexp.Regexp, Cache compiled regular expressions to avoid repeated compilation
 }
 
 func (h *handlerServer) Handle() {
@@ -132,15 +133,19 @@ func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 }
 
 func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
+	// Pre-build handlers slices to avoid making +copy for each request
+	if path.handlersWithExec == nil {
+		path.handlersWithExec = make([]HandleFunc, len(path.middlewares)+1)
+		copy(path.handlersWithExec, path.middlewares)
+		path.handlersWithExec[len(path.middlewares)] = func(ctx *Context) {
+			h.execRouter(ctx)
+		}
+	}
 	return func(ctx *Context) {
 		ctx.path = path
 		ctx.ChildPath = path.childPath
 		h.handleLogger(ctx)
-		ctx.handlers = make([]HandleFunc, len(path.middlewares)+1)
-		n := copy(ctx.handlers, path.middlewares)
-		ctx.handlers[n] = func(ctx *Context) {
-			h.execRouter(ctx)
-		}
+		ctx.handlers = path.handlersWithExec
 		ctx.Next()
 	}
 }
@@ -488,8 +493,10 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 		if uint64(len(valStr)) < field.tag.min {
 			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
 		}
-		if field.tag.regexp != "" && !regexp.MustCompile(field.tag.regexp).MatchString(valStr) {
-			return errors.New(h.handle.api.lang.Regexp(desc, field.tag.regexp))
+		if field.tag.regexp != "" {
+			if re := h.getCompiledRegexp(field.tag.regexp); re != nil && !re.MatchString(valStr) {
+				return errors.New(h.handle.api.lang.Regexp(desc, field.tag.regexp))
+			}
 		}
 		if field.tag.enum != nil && !inArrayAny(any(valStr), field.tag.enum) {
 			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
@@ -512,6 +519,22 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 	default:
 	}
 	return
+}
+
+// getCompiledRegexp Return the compiled regular expression and use caching to avoid repeated compilation for each request
+func (h *handlerServer) getCompiledRegexp(expr string) *regexp.Regexp {
+	if expr == "" {
+		return nil
+	}
+	if v, ok := h.regexpCache.Load(expr); ok {
+		return v.(*regexp.Regexp)
+	}
+	re, err := regexp.Compile(expr)
+	if err != nil {
+		return nil
+	}
+	h.regexpCache.Store(expr, re)
+	return re
 }
 
 func (h *handlerServer) getParamStringSlice(fType reflect.Type, value string) (values []string) {
@@ -646,8 +669,10 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 		if uint64(len(valStr)) < field.tag.min {
 			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
 		}
-		if field.tag.regexp != "" && !regexp.MustCompile(field.tag.regexp).MatchString(valStr) {
-			return errors.New(h.handle.api.lang.Regexp(desc, field.tag.regexp))
+		if field.tag.regexp != "" {
+			if re := h.getCompiledRegexp(field.tag.regexp); re != nil && !re.MatchString(valStr) {
+				return errors.New(h.handle.api.lang.Regexp(desc, field.tag.regexp))
+			}
 		}
 		if field.tag.enum != nil && !inArrayAny(any(valStr), field.tag.enum) {
 			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))

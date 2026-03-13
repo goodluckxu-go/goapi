@@ -99,13 +99,14 @@ type pathInfo struct {
 	pos     string
 	handle  HandleFunc
 	// call
-	value       reflect.Value
-	inFs        http.FileSystem // file
-	isFile      bool            // file
-	inTypes     []reflect.Type  // func in types
-	inParams    []*inParam
-	outParam    *outParam
-	middlewares []HandleFunc
+	value            reflect.Value
+	inFs             http.FileSystem // file
+	isFile           bool            // file
+	inTypes          []reflect.Type  // func in types
+	inParams         []*inParam
+	outParam         *outParam
+	middlewares      []HandleFunc
+	handlersWithExec []HandleFunc // Pre-built: middlewares + execRouter, reducing allocation for each request
 	// openapi
 	summary     string
 	desc        string
