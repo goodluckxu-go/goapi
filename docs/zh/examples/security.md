@@ -2,12 +2,18 @@
 - 鉴权在openapi中的 **securitySchemes** 判断以结构体名称和参数字段名称为key
 - 相同的名称会覆盖，相同的用法定义的key需一致
 - 所有的鉴权接口实现中都可以使用参数 **header**,**cookie**, **query**鉴权
+### SecurityOmitempty非必填认证
+~~~go
+// 目前只支持HTTPBearer, HTTPBasic, and HTTPBearerJWT三个接口中使用
+type SecurityOmitempty interface {
+	Omitempty() bool
+}
+~~~
 ### HTTPBearer鉴权定义
 ~~~go
 // 需要实现接口
 type HTTPBearer interface {
 	HTTPBearer(token string)
-	Omitempty() bool
 }
 
 type Auth struct {
@@ -21,8 +27,9 @@ func (a *Auth)HTTPBearer(token string)  {
 	}
 }
 
+// 是否非必填，返回true后表示传空可通过
 func (a *Auth)Omitempty() bool  {
-	return false
+	return true
 }
 ~~~
 ### HTTPBasic鉴权定义
@@ -30,7 +37,6 @@ func (a *Auth)Omitempty() bool  {
 // 需要实现接口
 type HTTPBasic interface {
 	HTTPBasic(username, password string)
-	Omitempty() bool
 }
 
 type Auth struct {
@@ -44,8 +50,9 @@ func (a *Auth)HTTPBasic(username, password string)  {
 	}
 }
 
+// 是否非必填，返回true后表示传空可通过
 func (a *Auth)Omitempty() bool  {
-	return false
+	return true
 }
 ~~~
 ### ApiKey鉴权定义
@@ -85,9 +92,6 @@ type HTTPBearerJWT interface {
 
 	// HTTPBearerJWT jwt logical
 	HTTPBearerJWT(jwt *JWT)
-
-	// Omitempty omit empty 
-	Omitempty() bool
 }
 
 var privateKey, _ = os.ReadFile("private.pem")
@@ -114,8 +118,9 @@ func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) {
 	}
 }
 
+// 是否非必填，返回true后表示传空可通过
 func (a *Auth)Omitempty() bool  {
-	return false
+	return true
 }
 ~~~
 其他模式
@@ -133,9 +138,6 @@ type HTTPBearerJWT interface {
 
 	// HTTPBearerJWT jwt logical
 	HTTPBearerJWT(jwt *JWT)
-
-	// Omitempty omit empty 
-	Omitempty() bool
 }
 
 var key []byte("1234568547854525")
@@ -159,8 +161,9 @@ func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) {
 	}
 }
 
+// 是否非必填，返回true后表示传空可通过
 func (a *Auth)Omitempty() bool  {
-	return false
+	return true
 }
 ~~~
 鉴权使用
