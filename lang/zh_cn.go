@@ -109,3 +109,7 @@ func (z *ZhCn) JwtTranslate(msg string) string {
 	}
 	return msg
 }
+
+func (z *ZhCn) NotAuthenticated() string {
+	return "未认证"
+}

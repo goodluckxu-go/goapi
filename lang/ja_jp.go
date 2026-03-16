@@ -90,3 +90,7 @@ func (j *JaJp) JwtTranslate(msg string) string {
 	}
 	return msg
 }
+
+func (j *JaJp) NotAuthenticated() string {
+	return "認証されていません"
+}

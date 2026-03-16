@@ -46,6 +46,9 @@ type HTTPBearerJWT interface {
 
 	// HTTPBearerJWT jwt logical
 	HTTPBearerJWT(jwt *JWT)
+
+	// Omitempty omit empty
+	Omitempty() bool
 }
 
 type JWT struct {

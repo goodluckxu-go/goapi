@@ -364,6 +364,9 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				token = authList[1]
 			}
 			security := inValue.Interface().(HTTPBearer)
+			if !security.Omitempty() && token == "" {
+				HTTPException(authErrorCode, h.handle.api.lang.NotAuthenticated())
+			}
 			security.HTTPBearer(token)
 		case inTypeSecurityHTTPBearerJWT:
 			initPtr(inValue)
@@ -375,6 +378,13 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			}
 			security := inValue.Interface().(HTTPBearerJWT)
 			jwt := &JWT{}
+			if token == "" {
+				if security.Omitempty() {
+					security.HTTPBearerJWT(jwt)
+					continue
+				}
+				HTTPException(authErrorCode, h.handle.api.lang.NotAuthenticated())
+			}
 			if err = decryptJWT(jwt, token, security); err != nil {
 				HTTPException(authErrorCode, h.handle.api.lang.JwtTranslate(err.Error()))
 			}
@@ -383,6 +393,9 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			initPtr(inValue)
 			username, password, _ := ctx.Request.BasicAuth()
 			security := inValue.Interface().(HTTPBasic)
+			if !security.Omitempty() && username == "" {
+				HTTPException(authErrorCode, h.handle.api.lang.NotAuthenticated())
+			}
 			security.HTTPBasic(username, password)
 		case inTypeSecurityApiKey:
 			initPtr(inValue)

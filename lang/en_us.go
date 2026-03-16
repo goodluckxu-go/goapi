@@ -69,3 +69,7 @@ func (e *EnUs) JwtTranslate(msg string) string {
 	}
 	return msg
 }
+
+func (e *EnUs) NotAuthenticated() string {
+	return "Not authenticated"
+}

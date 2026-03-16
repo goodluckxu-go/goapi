@@ -7,6 +7,7 @@
 // 需要实现接口
 type HTTPBearer interface {
 	HTTPBearer(token string)
+	Omitempty() bool
 }
 
 type Auth struct {
@@ -19,12 +20,17 @@ func (a *Auth)HTTPBearer(token string)  {
 		response.HTTPException(401,"验证失败")
 	}
 }
+
+func (a *Auth)Omitempty() bool  {
+	return false
+}
 ~~~
 ### HTTPBasic鉴权定义
 ~~~go
 // 需要实现接口
 type HTTPBasic interface {
 	HTTPBasic(username, password string)
+	Omitempty() bool
 }
 
 type Auth struct {
@@ -36,6 +42,10 @@ func (a *Auth)HTTPBasic(username, password string)  {
 	if username != "admin" && password != "123456" {
 		goapi.HTTPException(401,"验证失败")
 	}
+}
+
+func (a *Auth)Omitempty() bool  {
+	return false
 }
 ~~~
 ### ApiKey鉴权定义
@@ -75,6 +85,9 @@ type HTTPBearerJWT interface {
 
 	// HTTPBearerJWT jwt logical
 	HTTPBearerJWT(jwt *JWT)
+
+	// Omitempty omit empty 
+	Omitempty() bool
 }
 
 var privateKey, _ = os.ReadFile("private.pem")
@@ -100,6 +113,10 @@ func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) {
 		goapi.HTTPException(401,"验证失败")
 	}
 }
+
+func (a *Auth)Omitempty() bool  {
+	return false
+}
 ~~~
 其他模式
 ~~~go
@@ -116,6 +133,9 @@ type HTTPBearerJWT interface {
 
 	// HTTPBearerJWT jwt logical
 	HTTPBearerJWT(jwt *JWT)
+
+	// Omitempty omit empty 
+	Omitempty() bool
 }
 
 var key []byte("1234568547854525")
@@ -137,6 +157,10 @@ func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) {
 	if jwt.ID!="147258" {
 		goapi.HTTPException(401,"验证失败")
 	}
+}
+
+func (a *Auth)Omitempty() bool  {
+	return false
 }
 ~~~
 鉴权使用
