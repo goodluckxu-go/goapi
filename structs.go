@@ -142,6 +142,7 @@ type returnObjChild struct {
 	noRoute                func(ctx *Context)
 	noMethod               func(ctx *Context)
 	exceptFunc             func(httpCode int, detail string) any
+	responseMediaTypes     []MediaType
 }
 
 type returnObjResult struct {

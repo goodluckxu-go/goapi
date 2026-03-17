@@ -59,12 +59,13 @@ func (h *handlerOpenAPI) handleStructs() {
 				h.handlePkgNameMediaTypes(path.docsPath, in.field, mediaTypes)
 			}
 		}
+		responseMediaTypes := h.handle.childMap[path.childPath].responseMediaTypes
 		if path.outParam != nil {
-			h.handlePkgNameMediaTypes(path.docsPath, path.outParam.field, h.handle.api.responseMediaTypes)
+			h.handlePkgNameMediaTypes(path.docsPath, path.outParam.field, responseMediaTypes)
 		}
 		except := h.handle.exceptMap[path.childPath]
 		if except != nil && except.outParam != nil {
-			h.handlePkgNameMediaTypes(path.docsPath, except.outParam.field, h.handle.api.responseMediaTypes)
+			h.handlePkgNameMediaTypes(path.docsPath, except.outParam.field, responseMediaTypes)
 		}
 
 	}
@@ -412,7 +413,8 @@ func (h *handlerOpenAPI) handleSecuritySchemes(openAPI *openapi.OpenAPI, path *p
 	if openAPI.Components != nil && openAPI.Components.SecuritySchemes != nil {
 		securitySchemes = openAPI.Components.SecuritySchemes
 	}
-	if len(h.handle.api.responseMediaTypes) > 1 {
+	responseMediaTypes := h.handle.childMap[path.childPath].responseMediaTypes
+	if len(responseMediaTypes) > 1 {
 		securitySchemes["mediaType"] = &openapi.SecurityScheme{
 			Type:        "apiKey",
 			Name:        returnMediaTypeField,
@@ -468,7 +470,8 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 	var bodyMediaType MediaType
 	var bodyRequired []string
 	var securityRequirements []*openapi.SecurityRequirement
-	if len(h.handle.api.responseMediaTypes) > 1 {
+	responseMediaTypes := h.handle.childMap[path.childPath].responseMediaTypes
+	if len(responseMediaTypes) > 1 {
 		securityRequirements = append(securityRequirements, &openapi.SecurityRequirement{
 			"mediaType": []string{},
 		})
@@ -577,7 +580,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 		resContentMap := map[string]*openapi.MediaType{}
 		contentType := path.outParam.httpHeader.Get("Content-Type")
 		if contentType == "" {
-			for _, mediaType := range h.handle.api.responseMediaTypes {
+			for _, mediaType := range responseMediaTypes {
 				schema := &openapi.Schema{}
 				if mediaType.IsStream() {
 					schema.Type = "string"
@@ -648,7 +651,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 		resContentMap := map[string]*openapi.MediaType{}
 		contentType := except.outParam.httpHeader.Get("Content-Type")
 		if contentType == "" {
-			for _, mediaType := range h.handle.api.responseMediaTypes {
+			for _, mediaType := range responseMediaTypes {
 				schema := &openapi.Schema{}
 				if mediaType.IsStream() {
 					schema.Type = "string"

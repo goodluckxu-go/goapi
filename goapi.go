@@ -39,7 +39,6 @@ func Default(isDocs bool, docsPath ...string) *API {
 type API struct {
 	IRouters
 	defaultMiddlewares   []HandleFunc
-	responseMediaTypes   []MediaType
 	lang                 Lang
 	log                  Logger
 	addr                 string
@@ -60,21 +59,6 @@ func (a *API) SetLogger(log Logger) {
 // Logger It is a method of obtaining logs
 func (a *API) Logger() Logger {
 	return a.log
-}
-
-// SetResponseMediaType It is a function that sets the return value type
-func (a *API) SetResponseMediaType(mediaTypes ...MediaType) {
-	m := map[MediaType]struct{}{}
-	for _, v := range a.responseMediaTypes {
-		m[v] = struct{}{}
-	}
-	for _, v := range mediaTypes {
-		if _, ok := m[v]; ok {
-			continue
-		}
-		m[v] = struct{}{}
-		a.responseMediaTypes = append(a.responseMediaTypes, v)
-	}
 }
 
 // SetStructTagVariableMapping It is set struct tag variable mapping

@@ -1047,12 +1047,13 @@ func (h *handlerServer) getRequestMediaType(ctx *Context) MediaType {
 }
 
 func (h *handlerServer) getResponseMediaType(ctx *Context) MediaType {
-	if len(h.handle.api.responseMediaTypes) == 1 {
-		return h.handle.api.responseMediaTypes[0]
+	responseMediaTypes := h.handle.childMap[ctx.ChildPath].responseMediaTypes
+	if len(responseMediaTypes) == 1 {
+		return responseMediaTypes[0]
 	}
 	mediaType := MediaType(ctx.Request.URL.Query().Get(returnMediaTypeField))
-	if mediaType == "" || mediaType.Tag() == "" || !inArray(mediaType.MediaType(), h.handle.api.responseMediaTypes) {
-		return h.handle.api.responseMediaTypes[0]
+	if mediaType == "" || mediaType.Tag() == "" || !inArray(mediaType.MediaType(), responseMediaTypes) {
+		return responseMediaTypes[0]
 	}
 	return mediaType.MediaType()
 }

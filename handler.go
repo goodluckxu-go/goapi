@@ -45,9 +45,6 @@ type handler struct {
 }
 
 func (h *handler) Handle() {
-	if len(h.api.responseMediaTypes) == 0 {
-		h.api.responseMediaTypes = []MediaType{JSON}
-	}
 	obj, err := h.api.returnObj()
 	if err != nil {
 		log.Fatal(err)
@@ -75,9 +72,6 @@ func (h *handler) Handle() {
 			Tags:    v.tags,
 		}
 		h.swaggerMap[k] = v.swagger
-	}
-	for _, v := range h.api.responseMediaTypes {
-		h.mediaTypes[v] = struct{}{}
 	}
 	for k, v := range obj.mediaTypes {
 		h.mediaTypes[k] = v
