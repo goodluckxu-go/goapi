@@ -436,19 +436,22 @@ func (h *handlerOpenAPI) handleSecuritySchemes(openAPI *openapi.OpenAPI, path *p
 			}
 		case inTypeSecurityHTTPBearer:
 			securitySchemes[in.structField.Name] = &openapi.SecurityScheme{
-				Type:   "http",
-				Scheme: "bearer",
+				Type:        "http",
+				Scheme:      "bearer",
+				Description: in.field.tag.desc,
 			}
 		case inTypeSecurityHTTPBearerJWT:
 			securitySchemes[in.structField.Name] = &openapi.SecurityScheme{
 				Type:         "http",
 				Scheme:       "bearer",
 				BearerFormat: "JWT",
+				Description:  in.field.tag.desc,
 			}
 		case inTypeSecurityHTTPBasic:
 			securitySchemes[in.structField.Name] = &openapi.SecurityScheme{
-				Type:   "http",
-				Scheme: "basic",
+				Type:        "http",
+				Scheme:      "basic",
+				Description: in.field.tag.desc,
 			}
 		}
 	}

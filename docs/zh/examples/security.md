@@ -2,9 +2,10 @@
 - 鉴权在openapi中的 **securitySchemes** 判断以结构体名称和参数字段名称为key
 - 相同的名称会覆盖，相同的用法定义的key需一致
 - 所有的鉴权接口实现中都可以使用参数 **header**,**cookie**, **query**鉴权
+- HTTPBearer, HTTPBasic, 和 HTTPBearerJWT 三个可以沿用标签desc和接口 TagDesc 写注释
 ### SecurityOmitempty非必填认证
 ~~~go
-// 目前只支持HTTPBearer, HTTPBasic, and HTTPBearerJWT三个接口中使用
+// 目前只支持HTTPBearer, HTTPBasic, 和 HTTPBearerJWT三个接口中使用
 type SecurityOmitempty interface {
 	Omitempty() bool
 }
@@ -53,6 +54,10 @@ func (a *Auth)HTTPBasic(username, password string)  {
 // 是否非必填，返回true后表示传空可通过
 func (a *Auth)Omitempty() bool  {
 	return true
+}
+
+func (a *Auth)Desc() string  {
+	return "HTTP基础验证"
 }
 ~~~
 ### ApiKey鉴权定义
