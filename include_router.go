@@ -293,6 +293,9 @@ func (i *includeRouter) parseIn(field reflect.StructField, deeps []int, security
 		if childParams, err = i.parseIn(fType.Field(j), append(deeps, j), securityInType); err != nil {
 			return
 		}
+		for _, item := range childParams {
+			item.parentName = field.Name
+		}
 		params = append(childParams, params...)
 	}
 	return

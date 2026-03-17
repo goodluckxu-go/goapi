@@ -24,6 +24,8 @@ type paramTag struct {
 	max      *uint64
 	min      uint64
 	unique   bool
+	// extensions
+	extensions map[string]any
 }
 
 type paramField struct {
@@ -78,6 +80,7 @@ type structInfo struct {
 type inParam struct {
 	inType       InType
 	parentInType InType
+	parentName   string
 	values       paramFieldNames
 	deeps        []int
 	structField  reflect.StructField
@@ -107,6 +110,7 @@ type pathInfo struct {
 	outParam         *outParam
 	middlewares      []HandleFunc
 	handlersWithExec []HandleFunc // Pre-built: middlewares + execRouter, reducing allocation for each request
+	extensions       *Extensions
 	// openapi
 	summary     string
 	desc        string

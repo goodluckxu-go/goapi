@@ -26,6 +26,8 @@ type Context struct {
 	ChildPath    string
 	RequestID    string
 	handleExcept func(ctx *Context, err string, code ...int)
+	// prefix has 'x-'
+	Extensions *Extensions
 }
 
 func (c *Context) reset() {

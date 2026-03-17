@@ -117,8 +117,10 @@ func (h *handlerServer) handleStaticPath(path string) string {
 func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 	pathS := h.handleStaticPath(path.paths[0])
 	fileServer := http.StripPrefix(pathS, http.FileServer(path.inFs))
+	path.extensions = &Extensions{ins: path.inParams, structs: h.handle.structs}
 	return func(ctx *Context) {
 		ctx.path = path
+		ctx.Extensions = path.extensions
 		ctx.ChildPath = path.childPath
 		h.handleLogger(ctx)
 		ctx.handlers = append(path.middlewares, func(ctx *Context) {
@@ -141,8 +143,10 @@ func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 			h.execRouter(ctx)
 		}
 	}
+	path.extensions = &Extensions{ins: path.inParams, structs: h.handle.structs}
 	return func(ctx *Context) {
 		ctx.path = path
+		ctx.Extensions = path.extensions
 		ctx.ChildPath = path.childPath
 		h.handleLogger(ctx)
 		ctx.handlers = path.handlersWithExec
@@ -373,6 +377,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			}
 			security := inValueAny.(HTTPBearer)
 			security.HTTPBearer(token)
+			ctx.Extensions.param = nil
 		case inTypeSecurityHTTPBearerJWT:
 			initPtr(inValue)
 			authorization := ctx.Request.Header.Get("Authorization")
@@ -391,6 +396,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if token == "" {
 				if valOmitempty {
 					security.HTTPBearerJWT(jwt)
+					ctx.Extensions.param = nil
 					continue
 				}
 				HTTPException(authErrorCode, h.handle.api.lang.NotAuthenticated())
@@ -399,6 +405,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				HTTPException(authErrorCode, h.handle.api.lang.JwtTranslate(err.Error()))
 			}
 			security.HTTPBearerJWT(jwt)
+			ctx.Extensions.param = nil
 		case inTypeSecurityHTTPBasic:
 			initPtr(inValue)
 			username, password, _ := ctx.Request.BasicAuth()
@@ -412,11 +419,14 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			}
 			security := inValueAny.(HTTPBasic)
 			security.HTTPBasic(username, password)
+			ctx.Extensions.param = nil
 		case inTypeSecurityApiKey:
 			initPtr(inValue)
 			security := inValue.Interface().(ApiKey)
 			security.ApiKey()
+			ctx.Extensions.param = nil
 		case inTypeOther:
+			ctx.Extensions = ctx.Extensions.Struct(in.parentName)
 			h.handleParamByOther(ctx, inValue)
 		}
 	}

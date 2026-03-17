@@ -171,6 +171,7 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 	kind := field.kind
 	schema.Description = field.tag.desc
 	schema.Deprecated = field.tag.deprecated
+	schema.Extensions = field.tag.extensions
 	if mediaType == XML {
 		schema.XML = &openapi.XML{
 			Extensions: map[string]any{},
@@ -503,6 +504,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				Deprecated:  in.field.tag.deprecated,
 				Schema:      schema,
 				Example:     in.field.tag.example,
+				Extensions:  in.field.tag.extensions,
 			}
 			if in.inType == inTypePath && pathName == name.name && isMatchAll {
 				parameter.Extensions = map[string]any{
