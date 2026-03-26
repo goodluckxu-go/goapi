@@ -7,7 +7,7 @@ const index = `<!-- HTML for static distribution bundle build -->
     <meta charset="UTF-8">
     <title>%s - Swagger UI</title>
     <link rel="stylesheet" type="text/css" href="%s` + cssSwaggerUiPath + `" />
-    <link rel="stylesheet" type="text/css" href="%s` + cssIndexPath + `" />
+    <link rel="stylesheet" type="text/css" href="%s` + cssIndexPath + `" />%s
     <link rel="icon" type="image/png" href="%s" sizes="32x32" />
   </head>
 

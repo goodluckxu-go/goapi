@@ -18,6 +18,9 @@ type Config struct {
 
 	// whether to enable deep linking
 	DeepLinking bool
+
+	// whether to enable dark mode
+	DarkMode bool
 }
 
 type Swagger struct {
@@ -38,16 +41,22 @@ type Router struct {
 
 func GetSwagger(path, title string, openapiJsonBody []byte, config Config) (routers []Router) {
 	path = handlePath(path)
+	paths := []string{
+		path + "/",
+		path + cssIndexPath,
+		path + cssSwaggerUiPath,
+		path + jsSwaggerInitializerPath,
+		path + jsSwaggerUiBundlePath,
+		path + jsSwaggerUiStandalonePresetPath,
+		path + openapiPath,
+	}
+	var darkHtml string
+	if config.DarkMode {
+		paths = append(paths, path+cssSwaggerDarkPath)
+		darkHtml = `<link rel="stylesheet" type="text/css" href="` + path + cssSwaggerDarkPath + `" />`
+	}
 	routers = append(routers, Router{
-		Paths: []string{
-			path + "/",
-			path + cssIndexPath,
-			path + cssSwaggerUiPath,
-			path + jsSwaggerInitializerPath,
-			path + jsSwaggerUiBundlePath,
-			path + jsSwaggerUiStandalonePresetPath,
-			path + openapiPath,
-		},
+		Paths: paths,
 		Handler: func(writer http.ResponseWriter, request *http.Request) {
 			switch strings.TrimPrefix(request.URL.Path, path) {
 			case "/":
@@ -55,7 +64,7 @@ func GetSwagger(path, title string, openapiJsonBody []byte, config Config) (rout
 				if handleCache(writer, request) {
 					return
 				}
-				_, _ = writer.Write([]byte(fmt.Sprintf(index, title, path, path, favicon, path, path, path)))
+				_, _ = writer.Write([]byte(fmt.Sprintf(index, title, path, path, darkHtml, favicon, path, path, path)))
 			case cssIndexPath:
 				writer.Header().Set("Content-Type", "text/css; charset=utf-8")
 				if handleCache(writer, request) {
@@ -68,6 +77,12 @@ func GetSwagger(path, title string, openapiJsonBody []byte, config Config) (rout
 					return
 				}
 				_, _ = writer.Write([]byte(cssSwaggerUi))
+			case cssSwaggerDarkPath:
+				writer.Header().Set("Content-Type", "text/css; charset=utf-8")
+				if handleCache(writer, request) {
+					return
+				}
+				_, _ = writer.Write([]byte(cssSwaggerDark))
 			case jsSwaggerInitializerPath:
 				writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 				if handleCache(writer, request) {

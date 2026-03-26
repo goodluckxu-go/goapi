@@ -1,3 +1,3 @@
 package swagger
 
-const Version = "5.17.14"
+const Version = "5.32.1"
