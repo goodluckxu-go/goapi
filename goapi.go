@@ -114,10 +114,7 @@ func (a *API) RunTLS(addr, certFile, keyFile string) (err error) {
 
 // Handler Return to http.Handler interface
 func (a *API) Handler() http.Handler {
-	pid := strconv.Itoa(os.Getpid())
-	if isDefaultLogger(a.log) {
-		pid = ColorDebug(pid)
-	}
+	pid := ColorDebug(strconv.Itoa(os.Getpid()))
 	a.writeLogInfo(a.log, "Started server process [%v]", pid)
 	handle := newHandler(a)
 	handle.Handle()

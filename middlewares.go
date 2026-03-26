@@ -16,7 +16,7 @@ func LoggerMiddleware() func(ctx *Context) {
 		elapsed := time.Since(begin)
 		status := toString(ctx.Writer.Status())
 		statusText := http.StatusText(ctx.Writer.Status())
-		if isDefaultLogger(ctx.log) && len(status) == 3 {
+		if len(status) == 3 {
 			if status[0] == '1' || status[0] == '2' {
 				status = ColorInfo(status)
 				statusText = ColorInfo(statusText)

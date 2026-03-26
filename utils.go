@@ -101,14 +101,6 @@ func isMethod(methods []string) bool {
 	return true
 }
 
-func isDefaultLogger(log Logger) (ok bool) {
-	if log == nil {
-		return
-	}
-	_, ok = log.(*DefaultLogger)
-	return
-}
-
 func pathJoin(val string, args ...string) string {
 	for _, arg := range args {
 		val = path.Join(val, arg)
