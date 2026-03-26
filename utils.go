@@ -105,7 +105,7 @@ func isDefaultLogger(log Logger) (ok bool) {
 	if log == nil {
 		return
 	}
-	_, ok = log.(*defaultLogger)
+	_, ok = log.(*DefaultLogger)
 	return
 }
 

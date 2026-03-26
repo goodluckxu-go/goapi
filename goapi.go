@@ -17,7 +17,7 @@ func New(isDocs bool, docsPath ...string) *API {
 		dPath = docsPath[0]
 	}
 	api := &API{
-		log:                  &defaultLogger{},
+		log:                  &DefaultLogger{},
 		addr:                 ":8080",
 		lang:                 &lang.EnUs{},
 		structTagVariableMap: map[string]any{},
