@@ -12,29 +12,6 @@ import (
 	"testing"
 )
 
-type loggerTest struct {
-}
-
-func (*loggerTest) Info(format string, a ...any) {
-
-}
-func (*loggerTest) Debug(format string, a ...any) {
-
-}
-func (*loggerTest) Warning(format string, a ...any) {
-
-}
-func (*loggerTest) Error(format string, a ...any) {
-
-}
-func (*loggerTest) Fatal(format string, a ...any) {
-
-}
-
-func (*loggerTest) SetContext(ctx *Context) {
-
-}
-
 func BenchmarkOneRouter(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/index", nil)
 	if err != nil {
@@ -52,6 +29,45 @@ func BenchmarkOneReturnRouter(b *testing.B) {
 	if err != nil {
 		panic(err)
 	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandler()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkSecurityHTTPBearer(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/security/http_bearer", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Authorization", "Bearer token")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandler()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkSecurityHTTPBasic(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/security/http_basic", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Authorization", "Basic dGVzdDoxMjM0NTY=")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandler()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkSecurityApiKey(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/security/api_key", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Token", "123456")
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
@@ -91,7 +107,7 @@ func BenchmarkParamRouter(b *testing.B) {
 }
 
 func BenchmarkPostDataRouter(b *testing.B) {
-	req, err := http.NewRequest(http.MethodPost, "/post?type=125", nil)
+	req, err := http.NewRequest(http.MethodPost, "/post", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -125,7 +141,7 @@ func BenchmarkPostFileRouter(b *testing.B) {
 
 func testGetApiHandler(middlewares ...HandleFunc) http.Handler {
 	api := New(false)
-	api.SetLogger(&loggerTest{})
+	api.SetLogger(nil)
 	api.AddMiddleware(middlewares...)
 	api.IncludeRouter(&testRouters{}, "", false)
 	return api.Handler()
@@ -181,6 +197,26 @@ func (t *testRouters) IndexReturn(input struct {
 	}
 }
 
+func (t *testRouters) HTTPBearer(input struct {
+	router Router `paths:"/security/http_bearer" methods:"get"`
+	Auth   *testHTTPBearer
+}) {
+}
+
+func (t *testRouters) HTTPBasic(input struct {
+	router Router `paths:"/security/http_basic" methods:"get"`
+	Auth   *testHTTPBasic
+}) {
+
+}
+
+func (t *testRouters) ApiKey(input struct {
+	router Router `paths:"/security/api_key" methods:"get"`
+	Auth   *testApiKey
+}) {
+
+}
+
 func (t *testRouters) Middleware(input struct {
 	router Router `paths:"/middleware" methods:"get"`
 }) {
@@ -200,8 +236,7 @@ func (t *testRouters) Param(input struct {
 }
 
 func (t *testRouters) PostData(input struct {
-	router Router `paths:"/post" methods:"post"`
-	Auth   *testAuth
+	router Router   `paths:"/post" methods:"post"`
 	Body   testBody `body:"json"`
 }) {
 }
@@ -218,9 +253,21 @@ type testBody struct {
 	Name string
 }
 
-type testAuth struct {
-	ProjectID string `cookie:"Projectid"`
+type testHTTPBearer struct {
 }
 
-func (a *testAuth) ApiKey() {
+func (t *testHTTPBearer) HTTPBearer(token string) {
+}
+
+type testHTTPBasic struct {
+}
+
+func (t *testHTTPBasic) HTTPBasic(username, password string) {
+}
+
+type testApiKey struct {
+	Token string `header:"Token"`
+}
+
+func (t *testApiKey) ApiKey() {
 }

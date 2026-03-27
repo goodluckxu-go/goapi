@@ -364,7 +364,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			authorization := ctx.Request.Header.Get("Authorization")
 			authList := strings.Split(authorization, " ")
 			token := ""
-			if len(authList) == 2 && authList[0] == "Bearer" {
+			if len(authList) == 2 && toFirstUpper(authList[0]) == "Bearer" {
 				token = authList[1]
 			}
 			inValueAny := inValue.Interface()
@@ -383,7 +383,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			authorization := ctx.Request.Header.Get("Authorization")
 			authList := strings.Split(authorization, " ")
 			token := ""
-			if len(authList) == 2 && authList[0] == "Bearer" {
+			if len(authList) == 2 && toFirstUpper(authList[0]) == "Bearer" {
 				token = authList[1]
 			}
 			jwt := &JWT{}

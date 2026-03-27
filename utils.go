@@ -375,6 +375,18 @@ func isTextInterface(val any) (ok bool) {
 	return
 }
 
+func toFirstUpper(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	runes := []rune(s)
+	runes[0] &= -33
+	for i := 1; i < len(runes); i++ {
+		runes[i] |= 32
+	}
+	return string(runes)
+}
+
 func ColorInfo(a ...any) string {
 	if Colorful {
 		return color.New(color.FgGreen).SprintFunc()(a...)
