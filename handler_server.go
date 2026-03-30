@@ -460,6 +460,10 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 			}
 		}
 	}
+	for value.Kind() == reflect.Ptr {
+		initPtr(value)
+		value = value.Elem()
+	}
 	switch field.kind {
 	case reflect.Struct:
 		fields := field.fields
@@ -855,15 +859,12 @@ func (h *handlerServer) getParamValue(value reflect.Value, deeps []int) reflect.
 
 func (h *handlerServer) setBody(value reflect.Value, reader io.ReadCloser, mediaType MediaType) (err error) {
 	value = h.removeMorPtrValue(value)
-	newValue := value
-	if newValue.Kind() != reflect.Ptr {
-		newValue = reflect.New(value.Type())
+	if value.Kind() == reflect.Ptr {
+		return mediaType.Unmarshaler(reader, value)
 	}
+	newValue := reflect.New(value.Type())
 	if err = mediaType.Unmarshaler(reader, newValue); err != nil {
 		return
-	}
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
 	}
 	value.Set(newValue.Elem())
 	return
@@ -1047,8 +1048,8 @@ func (h *handlerServer) handleTsrPath(path string) string {
 }
 
 func (h *handlerServer) getRequestMediaType(ctx *Context) MediaType {
-	contentTypeList := strings.Split(ctx.Request.Header.Get("Content-Type"), ";")
-	return MediaType(contentTypeList[0])
+	contentType, _, _ := strings.Cut(ctx.Request.Header.Get("Content-Type"), ";")
+	return MediaType(contentType)
 }
 
 func (h *handlerServer) getResponseMediaType(ctx *Context) MediaType {
@@ -1056,9 +1057,13 @@ func (h *handlerServer) getResponseMediaType(ctx *Context) MediaType {
 	if len(responseMediaTypes) == 1 {
 		return responseMediaTypes[0]
 	}
-	mediaType := MediaType(ctx.Request.URL.Query().Get(returnMediaTypeField))
-	if mediaType == "" || mediaType.Tag() == "" || !inArray(mediaType.MediaType(), responseMediaTypes) {
+	mediaTypeStr := ctx.Request.URL.Query().Get(returnMediaTypeField)
+	if mediaTypeStr == "" {
 		return responseMediaTypes[0]
 	}
-	return mediaType.MediaType()
+	mediaType := MediaType(mediaTypeStr).MediaType()
+	if mediaType.Tag() == "" || !inArray(mediaType, responseMediaTypes) {
+		return responseMediaTypes[0]
+	}
+	return mediaType
 }

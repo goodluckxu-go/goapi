@@ -78,11 +78,13 @@ func (m MediaType) Tag() string {
 }
 
 func (m MediaType) MediaType() MediaType {
-	mediaType := mediaTypeTagMap[string(m)]
+	mediaTypeStr := string(m)
+	mediaType := mediaTypeTagMap[mediaTypeStr]
 	if mediaType != "" {
 		return mediaType
 	}
-	return MediaType(strings.Split(string(m), ";")[0])
+	mediaTypeStr, _, _ = strings.Cut(mediaTypeStr, ";")
+	return MediaType(mediaTypeStr)
 }
 
 func (m MediaType) DefaultName(name string) string {

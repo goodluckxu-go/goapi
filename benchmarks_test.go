@@ -116,6 +116,7 @@ func BenchmarkPostDataRouter(b *testing.B) {
 		"Id":   15,
 		"Name": "zs",
 	})
+	req.ContentLength = int64(len(buf))
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
