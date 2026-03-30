@@ -89,16 +89,11 @@ func zeroFill(input string, num int) string {
 	return rs + input
 }
 
-func isMethod(methods []string) bool {
-	for _, method := range methods {
-		switch method {
-		case http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete, http.MethodOptions, http.MethodHead,
-			http.MethodPatch, http.MethodTrace:
-		default:
-			return false
-		}
+func allMethods() []string {
+	return []string{
+		http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete, http.MethodOptions, http.MethodHead,
+		http.MethodPatch, http.MethodTrace,
 	}
-	return true
 }
 
 func pathJoin(val string, args ...string) string {

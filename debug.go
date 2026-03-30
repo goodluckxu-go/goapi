@@ -1,6 +1,7 @@
 package goapi
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -27,7 +28,7 @@ func debugPrintRouter(log Logger, paths []*pathInfo) {
 		if pathLen > maxPathLen {
 			maxPathLen = pathLen
 		}
-		posLen := len(path.pos)
+		posLen := len(debugPos(path))
 		if posLen > maxPosLen {
 			maxPosLen = posLen
 		}
@@ -41,8 +42,37 @@ func debugPrintRouter(log Logger, paths []*pathInfo) {
 		if path.isSwagger {
 			p = path.paths[0]
 		}
+		pos := debugPos(path)
 		log.Debug("| %v | %v | %v |", spanFill(method, len(method), maxMethodLen),
-			spanFill(p, len(p), maxPathLen), spanFill(path.pos, len(path.pos), maxPosLen))
+			spanFill(p, len(p), maxPathLen), spanFill(pos, len(pos), maxPosLen))
 	}
 	log.Debug(strings.Repeat("-", maxMethodLen+maxPathLen+maxPosLen+10))
+}
+
+func debugPos(path *pathInfo) string {
+	pos := path.pos
+	if path.isSwagger {
+		pos += " (docs)"
+	}
+	if path.inFs != nil {
+		pos += " (fs)"
+	}
+	if len(path.middlewares) > 0 {
+		pos += fmt.Sprintf(" (%v Middleware)", len(path.middlewares))
+	}
+	securityCount := 0
+	for _, item := range path.inParams {
+		if inArray(item.inType, []InType{
+			inTypeSecurityHTTPBearer,
+			inTypeSecurityHTTPBearerJWT,
+			inTypeSecurityHTTPBasic,
+			inTypeSecurityApiKey,
+		}) {
+			securityCount++
+		}
+	}
+	if securityCount > 0 {
+		pos += fmt.Sprintf(" (%v Security)", securityCount)
+	}
+	return pos
 }

@@ -1,9 +1,10 @@
 ## [<<](examples.md) 如何定义一个请求
-### 定义一个结构体
+### 定义结构体模式
+#### 定义一个结构体
 ~~~go
 type Index struct {}
 ~~~
-### 给结构体定义一个方法
+#### 给结构体定义一个方法
 - **paths** 访问路径，可以多个，以 **,** 分割，如：**paths:"/index,/page"** 表示请求路径可以是 **/index** 和 **/page**
 - **methods** 请求方法，可以多个，以 **,** 分割，如 **methods:"GET,POST"** 表示可以以 **GET** 和 **POST** 请求
 - **summary** 概要，在 **swagger** 路由同行展示
@@ -18,7 +19,7 @@ func (*Index) Index(input struct{
 
 }
 ~~~
-### 结构体方法中使用上下文
+#### 结构体方法中使用上下文
 ~~~go
 // 上下文必须在匿名结构体前面
 // 定义一个类型为 goapi.Router 的字段
@@ -29,8 +30,24 @@ func (*Index) Index(ctx *goapi.Context, input struct{
 
 }
 ~~~
-### 引入结构体
+#### 引入结构体
 ~~~go
 api := goapi.Default(true)
 api.IncludeRouter(&PersonController{}, "/v1", true)
+~~~
+### 定义方法模式
+#### 定义一个方法，类似于结构体中方法
+~~~go
+// 定义一个类型为 goapi.Router 的字段
+// 定义必要标签 paths 和 methods
+func Ping(input struct{
+	router goapi.Router `paths:"/ping" methods:"GET" summary:"测试" desc:"测试" tags:"user,admin"`
+}) {
+    
+}
+~~~
+#### 引入方法
+~~~go
+api := goapi.Default(true)
+api.IncludeRouter(Ping, "/v1", true)
 ~~~

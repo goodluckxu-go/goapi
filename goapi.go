@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/goodluckxu-go/goapi/v2/lang"
-	"github.com/goodluckxu-go/goapi/v2/swagger"
 )
 
 // New It is a newly created API function
@@ -122,7 +121,7 @@ func (a *API) Handler() http.Handler {
 	if a.isDocs {
 		openapiHandle := newHandlerOpenAPI(handle)
 		openapiMap := openapiHandle.Handle()
-		serverHandle.HandleSwagger(swagger.GetSwagger, openapiMap)
+		serverHandle.HandleSwagger(openapiMap)
 	}
 	serverHandle.Handle()
 	return serverHandle

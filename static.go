@@ -22,13 +22,10 @@ func (h *staticInfo) returnObj() (obj returnObjResult, err error) {
 		}
 	}
 	fsType := reflect.TypeOf(h.fs)
-	pos := fmt.Sprintf("%v.%v (fs)", fsType.PkgPath(), fsType.Name())
+	pos := fmt.Sprintf("%v.%v", fsType.PkgPath(), fsType.Name())
 	if fsType.Kind() == reflect.Ptr {
 		fsType = fsType.Elem()
-		pos = fmt.Sprintf("%v.(*%v) (fs)", fsType.PkgPath(), fsType.Name())
-	}
-	if len(h.middlewares) > 0 {
-		pos += fmt.Sprintf(" (%v Middleware)", len(h.middlewares))
+		pos = fmt.Sprintf("%v.(*%v)", fsType.PkgPath(), fsType.Name())
 	}
 	paths := []string{h.path}
 	if !h.isFile {

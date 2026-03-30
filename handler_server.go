@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -48,28 +49,22 @@ func (h *handlerServer) Handle() {
 	debugPrintRouter(h.log, h.handle.paths)
 }
 
-func (h *handlerServer) HandleSwagger(
-	fn func(path, title string, openapiJsonBody []byte, config swagger.Config) (routers []swagger.Router),
-	openapiMap map[string]*openapi.OpenAPI,
-) {
+func (h *handlerServer) HandleSwagger(openapiMap map[string]*openapi.OpenAPI) {
+	pos := runtime.FuncForPC(reflect.ValueOf(swagger.GetSwagger).Pointer()).Name()
 	for docsPath, openAPI := range openapiMap {
 		if err := openAPI.Validate(); err != nil {
 			log.Fatal(err)
 		}
 		openapiBody, _ := json.Marshal(openAPI)
-		routers := fn(docsPath, openAPI.Info.Title, openapiBody, h.handle.swaggerMap[docsPath])
+		routers := swagger.GetSwagger(docsPath, openAPI.Info.Title, openapiBody, h.handle.swaggerMap[docsPath])
 		for _, router := range routers {
-			h.handleSwagger(router)
+			h.handleSwagger(router, pos)
 		}
 	}
 }
 
-func (h *handlerServer) handleSwagger(router swagger.Router) {
-	pos := "github.com/goodluckxu-go/goapi/v2/swagger.GetSwagger (docs)"
+func (h *handlerServer) handleSwagger(router swagger.Router, pos string) {
 	middlewares := h.getMiddlewares(router.Paths[0])
-	if len(middlewares) > 0 {
-		pos += fmt.Sprintf(" (%v Middleware)", len(middlewares))
-	}
 	h.handle.paths = append(h.handle.paths, &pathInfo{
 		paths:       router.Paths,
 		methods:     []string{http.MethodGet},
@@ -101,7 +96,7 @@ func (h *handlerServer) handlePath(path *pathInfo) {
 		for _, p := range path.paths {
 			err := root.addRoute(p, handleFunc)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatal(fmt.Errorf("%v, pos: %v", err, path.pos))
 			}
 		}
 	}

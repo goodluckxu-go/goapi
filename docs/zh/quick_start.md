@@ -38,11 +38,13 @@ go run main.go
 ~~~
 ### 开始
 首先创建一个`main.go`文件，代码如下：
+
 ~~~go
 package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/goodluckxu-go/goapi/v2"
 	"github.com/goodluckxu-go/goapi/v2/lang"
@@ -53,7 +55,10 @@ func main() {
 	api := goapi.Default(true)
 	api.SetLang(&lang.ZhCn{})
 	api.SetResponseMediaType("application/json")
+	// 引入结构体
 	api.IncludeRouter(&Example{}, "/quick", true)
+	// 引入方法
+	api.IncludeRouter(Health, "/quick", true)
 	// listen and serve on 0.0.0.0:8080
 	if err := api.Run(); err != nil {
 		log.Fatal(err)
@@ -67,11 +72,27 @@ func (e *Example) Ping(input struct {
 }) ExampleResp {
 	return ExampleResp{
 		Msg: "pong",
-    }
+	}
 }
 
 type ExampleResp struct {
 	Msg string
+}
+
+
+
+func Health(input struct{
+	router goapi.Router `paths:"/health" methods:"GET" summery:"健康检查"`
+}) HealthResp {
+    return "ok"
+}
+
+type HealthResp string
+
+func (*HealthResp) GetHeader() http.Header {
+	return http.Header{
+		"Content-Type": {"text/plain"},
+	}
 }
 ~~~
 然后，执行 `go run main.go` 命令来运行代码：
