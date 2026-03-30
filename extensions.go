@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"reflect"
+	"strconv"
 )
 
 type Extensions struct {
@@ -86,8 +87,46 @@ func (l *Extensions) GetString(key string) string {
 	return valStr
 }
 
-// GetConvert the extended content
+// GetInt the extended content
 // key prefix has 'x-'
-func (l *Extensions) GetConvert(key string) Convert {
-	return Convert(l.GetString(key))
+func (l *Extensions) GetInt(key string) int64 {
+	valStr, ok := l.GetValue(key).(string)
+	if !ok {
+		return 0
+	}
+	val, _ := strconv.ParseInt(valStr, 10, 64)
+	return val
+}
+
+// GetUint the extended content
+// key prefix has 'x-'
+func (l *Extensions) GetUint(key string) uint64 {
+	valStr, ok := l.GetValue(key).(string)
+	if !ok {
+		return 0
+	}
+	val, _ := strconv.ParseUint(valStr, 10, 64)
+	return val
+}
+
+// GetFloat the extended content
+// key prefix has 'x-'
+func (l *Extensions) GetFloat(key string) float64 {
+	valStr, ok := l.GetValue(key).(string)
+	if !ok {
+		return 0
+	}
+	val, _ := strconv.ParseFloat(valStr, 64)
+	return val
+}
+
+// GetBool the extended content
+// key prefix has 'x-'
+func (l *Extensions) GetBool(key string) bool {
+	valStr, ok := l.GetValue(key).(string)
+	if !ok {
+		return false
+	}
+	val, _ := strconv.ParseBool(valStr)
+	return val
 }

@@ -13,7 +13,7 @@ func (*Index) Index(ctx *goapi.Context, input struct{
 	valAny,ok:=ctx.Extensions.Struct("Body").Get("x-test1")
 	// 获取x-test2扩展值
 	valString:=ctx.Extensions.Struct("Body").Struct("Friends").Slice().Struct("Name").GetString("x-test2")
-	valString:=ctx.Extensions.Struct("Body").Struct("FriendMaps").Map().Struct("Name").GetConvert("x-test2").String()
+	valString:=ctx.Extensions.Struct("Body").Struct("FriendMaps").Map().Struct("Name").GetString("x-test2")
     // 获取x-auth
 	valString:=ctx.Extensions.Struct("Auth").GetString("x-auth")
 }
