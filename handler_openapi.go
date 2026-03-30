@@ -507,9 +507,10 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				Extensions:  in.field.tag.extensions,
 			}
 			if in.inType == inTypePath && pathName == name.name && isMatchAll {
-				parameter.Extensions = map[string]any{
-					"x-match": "*",
+				if parameter.Extensions == nil {
+					parameter.Extensions = map[string]any{}
 				}
+				parameter.Extensions["x-match"] = "*"
 			}
 			if in.inType == inTypeCookie {
 				parameter.Example = "document.cookie"

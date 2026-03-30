@@ -2,6 +2,7 @@
 - 添加 **x-** 扩展参数用于swagger展示
 - 可以用上下文 ***goapi.Context** 读取参数的扩展
 - 参数类型为 **path** , **query** , **header** , **cookie** , **form** , **file** , **body**
+- 不能定义 **x-match** 扩展，此为系统扩展，用于标注 **{path:*}** 路由参数匹配
 ~~~go
 func (*Index) Index(ctx *goapi.Context, input struct{
 	router goapi.Router `paths:"/post" methods:"POST"`

@@ -856,6 +856,10 @@ func (h *handler) getExtensionsTags(tag string) (extensions map[string]any) {
 			if err != nil {
 				break
 			}
+			if name == "x-match" {
+				log.Fatal("'x-match' is system defined and cannot be customized")
+				return
+			}
 			extensions[name] = value
 		}
 	}
