@@ -357,10 +357,9 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 		case inTypeSecurityHTTPBearer:
 			initPtr(inValue)
 			authorization := ctx.Request.Header.Get("Authorization")
-			authList := strings.Split(authorization, " ")
-			token := ""
-			if len(authList) == 2 && toFirstUpper(authList[0]) == "Bearer" {
-				token = authList[1]
+			authType, token, _ := strings.Cut(authorization, " ")
+			if toFirstUpper(authType) != "Bearer" {
+				token = ""
 			}
 			inValueAny := inValue.Interface()
 			valOmitempty := false
@@ -376,10 +375,9 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 		case inTypeSecurityHTTPBearerJWT:
 			initPtr(inValue)
 			authorization := ctx.Request.Header.Get("Authorization")
-			authList := strings.Split(authorization, " ")
-			token := ""
-			if len(authList) == 2 && toFirstUpper(authList[0]) == "Bearer" {
-				token = authList[1]
+			authType, token, _ := strings.Cut(authorization, " ")
+			if toFirstUpper(authType) != "Bearer" {
+				token = ""
 			}
 			jwt := &JWT{}
 			inValueAny := inValue.Interface()
