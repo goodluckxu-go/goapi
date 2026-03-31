@@ -146,13 +146,15 @@ func (c *Context) ClientIP() string {
 		return ""
 	}
 	if xForwardedFor := c.Request.Header.Get("X-Forwarded-For"); xForwardedFor != "" {
-		ip := net.ParseIP(strings.Split(xForwardedFor, ",")[0])
+		xForwardedFor, _, _ = strings.Cut(xForwardedFor, ",")
+		ip := net.ParseIP(xForwardedFor)
 		if ip != nil && ip.To4() != nil {
 			return ip.String()
 		}
 	}
 	if xRealIP := c.Request.Header.Get("X-Real-IP"); xRealIP != "" {
-		ip := net.ParseIP(strings.Split(xRealIP, ",")[0])
+		xRealIP, _, _ = strings.Cut(xRealIP, ",")
+		ip := net.ParseIP(xRealIP)
 		if ip != nil && ip.To4() != nil {
 			return ip.String()
 		}
