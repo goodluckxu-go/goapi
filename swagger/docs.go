@@ -21,6 +21,9 @@ type Config struct {
 
 	// whether to enable dark mode
 	DarkMode bool
+
+	// whether to display the extension
+	ShowExtensions bool
 }
 
 type Swagger struct {

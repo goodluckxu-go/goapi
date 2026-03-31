@@ -171,7 +171,10 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 	kind := field.kind
 	schema.Description = field.tag.desc
 	schema.Deprecated = field.tag.deprecated
-	schema.Extensions = field.tag.extensions
+	swagger := h.handle.swaggerMap[docsPath]
+	if swagger.ShowExtensions {
+		schema.Extensions = field.tag.extensions
+	}
 	if mediaType == XML {
 		schema.XML = &openapi.XML{
 			Extensions: map[string]any{},
@@ -480,6 +483,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			"mediaType": []string{},
 		})
 	}
+	swagger := h.handle.swaggerMap[path.docsPath]
 	bodyDesc := ""
 	for _, in := range path.inParams {
 		switch in.inType {
@@ -496,6 +500,10 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			}
 			schema := &openapi.Schema{}
 			h.handleParamField(schema, in.field, "", "")
+			var extensions map[string]any
+			if swagger.ShowExtensions {
+				extensions = in.field.tag.extensions
+			}
 			parameter := &openapi.Parameter{
 				Name:        name.name,
 				In:          in.inType.Tag(),
@@ -504,7 +512,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				Deprecated:  in.field.tag.deprecated,
 				Schema:      schema,
 				Example:     in.field.tag.example,
-				Extensions:  in.field.tag.extensions,
+				Extensions:  extensions,
 			}
 			if in.inType == inTypePath && pathName == name.name && isMatchAll {
 				if parameter.Extensions == nil {
