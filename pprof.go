@@ -4,10 +4,7 @@ import (
 	"net/http/pprof"
 )
 
-type pprofInfo struct {
-}
-
-func (p *pprofInfo) Pprof(ctx *Context, input struct {
+func debugPprof(ctx *Context, input struct {
 	router Router `paths:"/pprof/,/pprof/{path}" methods:"get" tags:"pprof"`
 	Path   string `path:"path"`
 }) {

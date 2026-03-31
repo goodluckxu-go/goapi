@@ -86,7 +86,7 @@ func (a *API) SetStructTagVariableMapping(m map[string]string) {
 
 // DebugPprof Open the system's built-in pprof
 func (a *API) DebugPprof() {
-	a.IncludeRouter(&pprofInfo{}, "/debug", false)
+	a.IncludeRouter(debugPprof, "/debug", false)
 }
 
 // Run attaches the router to a http.Server and starts listening and serving HTTP requests.
