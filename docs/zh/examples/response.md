@@ -1,39 +1,30 @@
 ## [<<](examples.md) 如何定义返回值
 ### 系统提供返回
-http返回
+html返回
 ~~~go
 func (*Index) Param(input struct {
-	input  goapi.Router `paths:"/param" methods:"POST" summary:"参数请求"`
-}) *string {
-	return nil
-}
-~~~
-文件返回
-~~~go
-func (*Index) Param(input struct {
-	input  goapi.Router `paths:"/param" methods:"POST" summary:"参数请求"`
-}) *string {
-	return nil
+	input  goapi.Router `paths:"/param" methods:"GET" summary:"html返回"`
+}) *response.Html {
+	params := map[string]any{
+		"name": "张三",
+	}
+	//return response.ReturnHtmlByFile("1.html", params) 
+	return response.ReturnHtml("<div>{{.name}}</div>", nil)
 }
 ~~~
 SSE返回
 ~~~go
 func (*Index) Param(input struct {
 	input  goapi.Router `paths:"/param" methods:"POST" summary:"参数请求"`
-}) *response.SSEResponse {
-	return &response.SSEResponse{
-		SSEWriter: func(s *response.SSEvent) {
-			for {
-				s.Write(response.SSEventData{
-					Event: "message", 
-					Data:  "测试数据", 
-					Id:    "", 
-					Retry: 0,
-				})
-				time.Sleep(1 * time.Second)
-			}
-		},
-	}
+}) *response.SSE {
+	return response.ReturnSSE(func(w *response.SSEWriter) {
+		_ = w.Write(response.SSEData{
+			Event: "message", 
+			Data:  "数据", 
+			Id:    "", 
+			Retry: 0,
+		})
+	})
 }
 ~~~
 ### 最基本的返回值
