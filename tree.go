@@ -112,7 +112,8 @@ func (n *node) longestCommonPrefix(a, b string) int {
 func (n *node) findWildcard(path string) (wildcard string, i int, valid bool) {
 	i = -1
 	valid = true
-	for j, c := range []byte(path) {
+	for j := 0; j < len(path); j++ {
+		c := path[j]
 		switch c {
 		case '{':
 			i = j
