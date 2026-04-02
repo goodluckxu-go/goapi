@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/golang-jwt/jwt/v5"
@@ -39,54 +38,26 @@ func toPtr[T any](val T) *T {
 
 func spanFill(input string, inputLen, num int) string {
 	zeroNum := num - inputLen
+	var sb strings.Builder
+	sb.Grow(zeroNum + len(input)) // Allocate sufficient capacity at one time
+	sb.WriteString(input)
 	for i := 0; i < zeroNum; i++ {
-		input += " "
+		sb.WriteString(" ")
 	}
-	return input
+	return sb.String()
 }
 
-func timeFormat(date time.Time, format ...string) string {
-	if date.IsZero() {
-		return ""
+func addStrings(vals ...string) string {
+	total := 0
+	for _, s := range vals {
+		total += len(s)
 	}
-	str := "Y-m-d H:i:s"
-	if len(format) > 0 {
-		str = format[0]
+	var sb strings.Builder
+	sb.Grow(total) // Allocate sufficient capacity at one time
+	for _, s := range vals {
+		sb.WriteString(s)
 	}
-	year := strconv.Itoa(date.Year())
-	month := fmt.Sprintf("%d", date.Month())
-	day := strconv.Itoa(date.Day())
-	hour := strconv.Itoa(date.Hour())
-	minute := strconv.Itoa(date.Minute())
-	second := strconv.Itoa(date.Second())
-	week := date.Weekday().String()
-	weekMap := map[string]string{
-		"Monday":    "1",
-		"Tuesday":   "2",
-		"Wednesday": "3",
-		"Thursday":  "4",
-		"Friday":    "5",
-		"Saturday":  "6",
-		"Sunday":    "7",
-	}
-	str = strings.ReplaceAll(str, "Y", year)
-	str = strings.ReplaceAll(str, "m", zeroFill(month, 2))
-	str = strings.ReplaceAll(str, "d", zeroFill(day, 2))
-	str = strings.ReplaceAll(str, "H", zeroFill(hour, 2))
-	str = strings.ReplaceAll(str, "i", zeroFill(minute, 2))
-	str = strings.ReplaceAll(str, "s", zeroFill(second, 2))
-	str = strings.ReplaceAll(str, "w", weekMap[week])
-	str = strings.ReplaceAll(str, "W", week)
-	return str
-}
-
-func zeroFill(input string, num int) string {
-	zeroNum := num - len(input)
-	rs := ""
-	for i := 0; i < zeroNum; i++ {
-		rs += "0"
-	}
-	return rs + input
+	return sb.String()
 }
 
 func allMethods() []string {
