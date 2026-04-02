@@ -4,6 +4,16 @@ import (
 	"testing"
 )
 
+var params *Params
+var skippedNodes *[]skippedNode
+
+func init() {
+	params = &Params{}
+	*params = make(Params, 0, 8)
+	skippedNodes = &[]skippedNode{}
+	*skippedNodes = make([]skippedNode, 0, 8)
+}
+
 func fakeHandler(ctx *Context) {}
 
 func TestParams_Get(t *testing.T) {
@@ -93,10 +103,10 @@ func TestNode_FindWildcard(t *testing.T) {
 	n := &node{}
 
 	tests := []struct {
-		path      string
-		wildcard  string
-		index     int
-		valid     bool
+		path     string
+		wildcard string
+		index    int
+		valid    bool
 	}{
 		{"/static/path", "", -1, true},
 		{"/{id}", "{id}", 1, true},
@@ -156,22 +166,30 @@ func TestNode_AddRoute_StaticPaths(t *testing.T) {
 		t.Fatalf("unexpected error adding /world: %v", err)
 	}
 
-	val := n.getValue("/hello")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/hello", params, skippedNodes)
 	if val.handler == nil || val.fullPath != "/hello" {
 		t.Errorf("expected handler for /hello, got fullPath=%q handler=%v", val.fullPath, val.handler)
 	}
 
-	val = n.getValue("/help")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val = n.getValue("/help", params, skippedNodes)
 	if val.handler == nil || val.fullPath != "/help" {
 		t.Errorf("expected handler for /help, got fullPath=%q handler=%v", val.fullPath, val.handler)
 	}
 
-	val = n.getValue("/world")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val = n.getValue("/world", params, skippedNodes)
 	if val.handler == nil || val.fullPath != "/world" {
 		t.Errorf("expected handler for /world, got fullPath=%q handler=%v", val.fullPath, val.handler)
 	}
 
-	val = n.getValue("/notfound")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val = n.getValue("/notfound", params, skippedNodes)
 	if val.handler != nil {
 		t.Errorf("expected nil handler for /notfound")
 	}
@@ -197,25 +215,29 @@ func TestNode_AddRoute_ParamWildcard(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	val := n.getValue("/users/42")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/users/42", params, skippedNodes)
 	if val.handler == nil {
 		t.Fatal("expected handler for /users/42")
 	}
 	if val.fullPath != "/users/{id}" {
 		t.Errorf("expected fullPath /users/{id}, got %q", val.fullPath)
 	}
-	if v := val.params.ByName("id"); v != "42" {
+	if v := params.ByName("id"); v != "42" {
 		t.Errorf("expected param id=42, got %q", v)
 	}
 
-	val = n.getValue("/users/100/profile")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val = n.getValue("/users/100/profile", params, skippedNodes)
 	if val.handler == nil {
 		t.Fatal("expected handler for /users/100/profile")
 	}
 	if val.fullPath != "/users/{id}/profile" {
 		t.Errorf("expected fullPath /users/{id}/profile, got %q", val.fullPath)
 	}
-	if v := val.params.ByName("id"); v != "100" {
+	if v := params.ByName("id"); v != "100" {
 		t.Errorf("expected param id=100, got %q", v)
 	}
 }
@@ -227,11 +249,13 @@ func TestNode_AddRoute_CatchAll(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	val := n.getValue("/files/a/b/c")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/files/a/b/c", params, skippedNodes)
 	if val.handler == nil {
 		t.Fatal("expected handler for /files/a/b/c")
 	}
-	if v := val.params.ByName("path"); v != "a/b/c" {
+	if v := params.ByName("path"); v != "a/b/c" {
 		t.Errorf("expected param path=a/b/c, got %q", v)
 	}
 }
@@ -269,17 +293,19 @@ func TestNode_AddRoute_MultipleParams(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	val := n.getValue("/api/v1/users/42")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/api/v1/users/42", params, skippedNodes)
 	if val.handler == nil {
 		t.Fatal("expected handler for /api/v1/users/42")
 	}
-	if v := val.params.ByName("version"); v != "v1" {
+	if v := params.ByName("version"); v != "v1" {
 		t.Errorf("expected param version=v1, got %q", v)
 	}
-	if v := val.params.ByName("resource"); v != "users" {
+	if v := params.ByName("resource"); v != "users" {
 		t.Errorf("expected param resource=users, got %q", v)
 	}
-	if v := val.params.ByName("id"); v != "42" {
+	if v := params.ByName("id"); v != "42" {
 		t.Errorf("expected param id=42, got %q", v)
 	}
 }
@@ -294,12 +320,16 @@ func TestNode_AddRoute_StaticAndParamCoexist(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	val := n.getValue("/users/list")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/users/list", params, skippedNodes)
 	if val.handler == nil || val.fullPath != "/users/list" {
 		t.Errorf("expected /users/list handler, got fullPath=%q", val.fullPath)
 	}
 
-	val = n.getValue("/users/99")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val = n.getValue("/users/99", params, skippedNodes)
 	if val.handler == nil || val.fullPath != "/users/{id}" {
 		t.Errorf("expected /users/{id} handler, got fullPath=%q", val.fullPath)
 	}
@@ -312,7 +342,9 @@ func TestNode_GetValue_TSR(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	val := n.getValue("/foo")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/foo", params, skippedNodes)
 	if !val.tsr {
 		t.Error("expected tsr=true for /foo when /foo/ is registered")
 	}
@@ -321,7 +353,9 @@ func TestNode_GetValue_TSR(t *testing.T) {
 	if err := n2.addRoute("/bar", fakeHandler); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	val = n2.getValue("/bar/")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val = n2.getValue("/bar/", params, skippedNodes)
 	if !val.tsr {
 		t.Error("expected tsr=true for /bar/ when /bar is registered")
 	}
@@ -333,7 +367,9 @@ func TestNode_GetValue_NotFound(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	val := n.getValue("/nope")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/nope", params, skippedNodes)
 	if val.handler != nil {
 		t.Error("expected nil handler for unregistered path")
 	}
@@ -341,7 +377,9 @@ func TestNode_GetValue_NotFound(t *testing.T) {
 
 func TestNode_GetValue_EmptyTree(t *testing.T) {
 	n := &node{}
-	val := n.getValue("/anything")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/anything", params, skippedNodes)
 	if val.handler != nil {
 		t.Error("expected nil handler on empty tree")
 	}
@@ -383,7 +421,9 @@ func TestNode_AddRoute_ComplexTree(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		val := n.getValue(tt.path)
+		*params = (*params)[:0]
+		*skippedNodes = (*skippedNodes)[:0]
+		val := n.getValue(tt.path, params, skippedNodes)
 		if tt.found && val.handler == nil {
 			t.Errorf("expected handler for %q, got nil", tt.path)
 		} else if !tt.found && val.handler != nil {
@@ -463,7 +503,9 @@ func TestNode_GetValue_SkippedNodes_Backtrack(t *testing.T) {
 	}
 
 	// "special" should match the static route, not the param route
-	val := n.getValue("/a/special")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/a/special", params, skippedNodes)
 	if val.handler == nil {
 		t.Fatal("expected handler for /a/special")
 	}
@@ -471,7 +513,9 @@ func TestNode_GetValue_SkippedNodes_Backtrack(t *testing.T) {
 		t.Errorf("expected fullPath /a/special, got %q", val.fullPath)
 	}
 
-	val = n.getValue("/a/something")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val = n.getValue("/a/something", params, skippedNodes)
 	if val.handler == nil {
 		t.Fatal("expected handler for /a/something")
 	}
@@ -486,7 +530,9 @@ func TestNode_GetValue_ParamWithTrailingSlash(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	val := n.getValue("/items/5/")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/items/5/", params, skippedNodes)
 	// Should suggest trailing slash redirect
 	if !val.tsr {
 		t.Error("expected tsr=true for /items/5/ when /items/{id} is registered")
@@ -506,7 +552,9 @@ func TestNode_AddRoute_EmptyTree(t *testing.T) {
 	if err := n.addRoute("/", fakeHandler); err != nil {
 		t.Fatalf("unexpected error adding root path: %v", err)
 	}
-	val := n.getValue("/")
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
+	val := n.getValue("/", params, skippedNodes)
 	if val.handler == nil {
 		t.Error("expected handler for root path")
 	}
@@ -519,8 +567,10 @@ func TestNode_ReturnValue_ParamCountMismatch(t *testing.T) {
 		params:   []string{"a", "b"},
 	}
 	var value nodeValue
+	*params = (*params)[:0]
+	*skippedNodes = (*skippedNodes)[:0]
 	// Only pass one param when two are expected
-	n.returnValue([]string{"val1"}, &value)
+	n.returnValue(params, &value)
 	if value.handler != nil {
 		t.Error("expected nil handler when param count mismatches")
 	}

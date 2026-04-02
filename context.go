@@ -17,7 +17,8 @@ type Context struct {
 	log          Logger
 	mux          sync.RWMutex
 	handlers     []HandleFunc
-	Params       Params
+	Params       *Params
+	skippedNodes *[]skippedNode
 	index        int
 	fullPath     string
 	mediaType    string
@@ -32,7 +33,8 @@ type Context struct {
 
 func (c *Context) reset() {
 	c.Writer = &c.writermem
-	c.Params = c.Params[:0]
+	*c.Params = (*c.Params)[:0]
+	*c.skippedNodes = (*c.skippedNodes)[:0]
 	// Reusing the map reduces the GC pressure and only clears without setting nil
 	if c.Values != nil {
 		for k := range c.Values {

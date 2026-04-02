@@ -29,17 +29,24 @@ func newHandlerServer(handle *handler, log Logger) *handlerServer {
 		handle: handle,
 	}
 	hs.pool.New = func() any {
-		return &Context{}
+		params := make(Params, 0, hs.maxParams)
+		skippedNodes := make([]skippedNode, 0, hs.maxSkippedNodes)
+		return &Context{
+			Params:       &params,
+			skippedNodes: &skippedNodes,
+		}
 	}
 	return hs
 }
 
 type handlerServer struct {
-	log         Logger
-	handle      *handler
-	trees       methodTrees
-	pool        sync.Pool
-	regexpCache sync.Map // map[string]*regexp.Regexp, Cache compiled regular expressions to avoid repeated compilation
+	log             Logger
+	handle          *handler
+	trees           methodTrees
+	pool            sync.Pool
+	regexpCache     sync.Map // map[string]*regexp.Regexp, Cache compiled regular expressions to avoid repeated compilation
+	maxParams       uint16
+	maxSkippedNodes uint16
 }
 
 func (h *handlerServer) Handle() {
@@ -94,6 +101,14 @@ func (h *handlerServer) handlePath(path *pathInfo) {
 			})
 		}
 		for _, p := range path.paths {
+			maxParams := countParams(p)
+			if h.maxParams < maxParams {
+				h.maxParams = maxParams
+			}
+			maxSkippedNodes := countSlash(p)
+			if h.maxSkippedNodes < maxSkippedNodes {
+				h.maxSkippedNodes = maxSkippedNodes
+			}
 			err := root.addRoute(p, handleFunc)
 			if err != nil {
 				log.Fatal(fmt.Errorf("%v, pos: %v", err, path.pos))
@@ -907,7 +922,7 @@ func (h *handlerServer) notFind(ctx *Context) {
 				if tree.method == ctx.Request.Method {
 					continue
 				}
-				if val := tree.root.getValue(ctx.Request.URL.Path); val.handler != nil {
+				if val := tree.root.getValue(ctx.Request.URL.Path, ctx.Params, ctx.skippedNodes); val.handler != nil {
 					allowed = append(allowed, tree.method)
 				}
 			}
@@ -1017,9 +1032,8 @@ func (h *handlerServer) handleHTTPRequest(ctx *Context) {
 		h.notFind(ctx)
 		return
 	}
-	value := root.getValue(ctx.Request.URL.Path)
+	value := root.getValue(ctx.Request.URL.Path, ctx.Params, ctx.skippedNodes)
 	if value.handler != nil {
-		ctx.Params = value.params
 		ctx.fullPath = value.fullPath
 		value.handler(ctx)
 		return

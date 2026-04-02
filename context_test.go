@@ -85,7 +85,8 @@ func TestContext_reset(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/p?q=1", nil)
 	ctx := newTestContext(t, req)
 	ctx.Request = req
-	ctx.Params = Params{{Key: "id", Value: "1"}}
+	ctx.Params = &Params{{Key: "id", Value: "1"}}
+	ctx.skippedNodes = skippedNodes
 	ctx.Set("x", 1)
 	ctx.handlers = []HandleFunc{fakeHandler}
 	ctx.index = 3
@@ -99,8 +100,8 @@ func TestContext_reset(t *testing.T) {
 	if ctx.Writer != &ctx.writermem {
 		t.Fatal("reset: Writer should point to writermem")
 	}
-	if len(ctx.Params) != 0 {
-		t.Fatalf("reset: Params should be empty, got %v", ctx.Params)
+	if len(*ctx.Params) != 0 {
+		t.Fatalf("reset: Params should be empty, got %v", *ctx.Params)
 	}
 	if _, ok := ctx.Get("x"); ok {
 		t.Fatal("reset: Values should be cleared")

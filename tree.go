@@ -91,6 +91,14 @@ type node struct {
 	params []string
 }
 
+func countParams(path string) uint16 {
+	return uint16(strings.Count(path, "{"))
+}
+
+func countSlash(path string) uint16 {
+	return uint16(strings.Count(path, "/"))
+}
+
 func (n *node) min(a, b int) int {
 	if a <= b {
 		return a
@@ -153,7 +161,7 @@ func (n *node) addChild(child *node) {
 // addRoute adds a node with the given handle to the path.
 func (n *node) addRoute(path string, handler HandleFunc) (err error) {
 	fullPath := path
-	var params []string
+	params := make([]string, 0, countParams(path))
 	n.priority++
 
 	// Empty tree
@@ -373,7 +381,6 @@ func (n *node) addBytes(vals ...[]byte) (rs []byte) {
 // nodeValue holds return values of (*Node).getValue method
 type nodeValue struct {
 	handler  HandleFunc
-	params   Params
 	fullPath string
 	tsr      bool
 }
@@ -381,17 +388,15 @@ type nodeValue struct {
 type skippedNode struct {
 	path   string
 	node   *node
-	params []string
+	params *Params
 }
 
-func (n *node) getValue(path string) (value nodeValue) {
-	var skippedNodes []skippedNode
-	var params []string
+func (n *node) getValue(path string, params *Params, skippedNodes *[]skippedNode) (value nodeValue) {
 walk:
 	for {
 		// When matching ‘cache-all’, it will be returned directly
 		if n.nType == catchAll {
-			params = append(params, path)
+			*params = append(*params, Param{Value: path})
 			n.returnValue(params, &value)
 			return
 		}
@@ -402,7 +407,7 @@ walk:
 			i := 0
 			for ; i < len(path) && path[i] != '/'; i++ {
 			}
-			params = append(params, path[:i])
+			*params = append(*params, Param{Value: path[:i]})
 			path = path[i:]
 			isMatch = true
 		} else if n.nType == static && len(path) >= len(n.path) && path[:len(n.path)] == n.path {
@@ -443,10 +448,12 @@ walk:
 			for i, c := range n.indices {
 				if c == path[0] {
 					if n.isWildcard {
-						skippedNodes = append(skippedNodes, skippedNode{
+						skippedParam := make(Params, len(*params))
+						copy(skippedParam, *params)
+						*skippedNodes = append(*skippedNodes, skippedNode{
 							path:   path,
 							node:   n.children[len(n.children)-1],
-							params: params,
+							params: &skippedParam,
 						})
 					}
 					n = n.children[i]
@@ -468,30 +475,28 @@ walk:
 		}
 		// Handle the matching of the rollback
 		// If the rollback fails, return
-		if len(skippedNodes) == 0 {
+		if len(*skippedNodes) == 0 {
 			return
 		}
-		skipped := skippedNodes[0]
-		skippedNodes = skippedNodes[1:]
+		skipped := (*skippedNodes)[0]
+		*skippedNodes = (*skippedNodes)[1:]
 		n = skipped.node
 		path = skipped.path
-		params = skipped.params
+		*params = make(Params, len(*skipped.params))
+		copy(*params, *skipped.params)
 	}
 }
 
-func (n *node) returnValue(params []string, valuePtr *nodeValue) {
+func (n *node) returnValue(params *Params, valuePtr *nodeValue) {
 	// The number of matching wildcards is incorrect
-	if len(n.params) != len(params) {
+	if len(n.params) != len(*params) {
 		return
 	}
 	valuePtr.handler = n.handler
 	valuePtr.fullPath = n.fullPath
 	valuePtr.tsr = valuePtr.tsr && n.handler == nil
-	for i, key := range n.params {
-		valuePtr.params = append(valuePtr.params, Param{
-			Key:   key,
-			Value: params[i],
-		})
+	for key := range *params {
+		(*params)[key].Key = n.params[key]
 	}
 	return
 }
