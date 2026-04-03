@@ -36,6 +36,22 @@ func BenchmarkOneReturnRouter(b *testing.B) {
 	}
 }
 
+func BenchmarkMiddlewareRouter(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/middleware", nil)
+	if err != nil {
+		panic(err)
+	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandler(func(ctx *Context) {
+		ctx.Next()
+	}, func(ctx *Context) {
+		ctx.Next()
+	})
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
 func BenchmarkSecurityHTTPBearer(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/security/http_bearer", nil)
 	if err != nil {
@@ -75,30 +91,74 @@ func BenchmarkSecurityApiKey(b *testing.B) {
 	}
 }
 
-func BenchmarkMiddlewareRouter(b *testing.B) {
-	req, err := http.NewRequest(http.MethodGet, "/middleware", nil)
+func BenchmarkParamPath(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/path/15", nil)
 	if err != nil {
 		panic(err)
 	}
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler(func(ctx *Context) {
-		ctx.Next()
-	}, func(ctx *Context) {
-		ctx.Next()
-	})
+	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkParamRouter(b *testing.B) {
-	req, err := http.NewRequest(http.MethodGet, "/param/1/zs/li?query1=1&query2=1&query2=2", nil)
+func BenchmarkParamPathAll(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/pathAll/img/1.png", nil)
+	if err != nil {
+		panic(err)
+	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandler()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamQuery(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/query?query=1", nil)
+	if err != nil {
+		panic(err)
+	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandler()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamHeader(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/header", nil)
 	if err != nil {
 		panic(err)
 	}
 	req.Header.Set("Header", "10")
-	req.Header.Add("Cookie", "cookie1=125")
-	req.Header.Add("Cookie", "cookie2=346")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandler()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamCookieTypeString(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/cookie/string", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("Cookie", "cookie=125")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandler()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamCookieTypeHttpCookie(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/cookie/httpCookie", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("Cookie", "cookie=125")
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
 	hd := testGetApiHandler()
 	for i := 0; i < b.N; i++ {
@@ -224,15 +284,39 @@ func (t *testRouters) Middleware(input struct {
 
 }
 
-func (t *testRouters) Param(input struct {
-	router  Router       `paths:"/param/{id}/{name:*}" methods:"get"`
-	Id      string       `path:"id"`
-	Name    string       `path:"name"`
-	Query1  string       `query:"query1"`
-	Query2  []string     `query:"query2"`
-	Header  string       `header:"Header"`
-	Cookie1 string       `cookie:"cookie1"`
-	Cookie2 *http.Cookie `cookie:"cookie2"`
+func (t *testRouters) ParamPath(input struct {
+	router Router `paths:"/param/path/{path}" methods:"get"`
+	Path   string `path:"path"`
+}) {
+}
+
+func (t *testRouters) ParamPathAll(input struct {
+	router Router `paths:"/param/pathAll/{path:*}" methods:"get"`
+	Path   string `path:"path"`
+}) {
+}
+
+func (t *testRouters) ParamQuery(input struct {
+	router Router `paths:"/param/query" methods:"get"`
+	Query  string `query:"query"`
+}) {
+}
+
+func (t *testRouters) ParamHeader(input struct {
+	router Router `paths:"/param/header" methods:"get"`
+	Header string `header:"Header"`
+}) {
+}
+
+func (t *testRouters) ParamCookieTypeString(input struct {
+	router Router `paths:"/param/cookie/string" methods:"get"`
+	Cookie string `cookie:"cookie"`
+}) {
+}
+
+func (t *testRouters) ParamCookieTypeHttpCookie(input struct {
+	router Router       `paths:"/param/cookie/httpCookie" methods:"get"`
+	Cookie *http.Cookie `cookie:"cookie"`
 }) {
 }
 
