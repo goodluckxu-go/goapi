@@ -301,8 +301,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 		switch in.inType {
 		case inTypePath:
 			if val, ok := ctx.Params.Get(in.values[0].name); ok {
-				values := h.getParamStringSlice(in.field._type, val)
-				if err = h.handleParamByStringSlice(inValue, in.field, values); err != nil {
+				if err = h.handleParamByString(inValue, in.field, val); err != nil {
 					return
 				}
 			}
@@ -312,8 +311,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				return
 			}
 		case inTypeHeader:
-			values := h.getParamStringSlice(in.field._type, ctx.Request.Header.Get(in.values[0].name))
-			if err = h.handleParamByStringSlice(inValue, in.field, values); err != nil {
+			if err = h.handleParamByString(inValue, in.field, ctx.Request.Header.Get(in.values[0].name)); err != nil {
 				return
 			}
 		case inTypeCookie:
@@ -328,8 +326,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if cookie != nil {
 				val = cookie.Value
 			}
-			values := h.getParamStringSlice(in.field._type, val)
-			if err = h.handleParamByStringSlice(inValue, in.field, values); err != nil {
+			if err = h.handleParamByString(inValue, in.field, val); err != nil {
 				return
 			}
 		case inTypeForm:
@@ -342,8 +339,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 					val = ctx.Request.MultipartForm.Value[in.values[0].name][0]
 				}
 			}
-			values := h.getParamStringSlice(in.field._type, val)
-			if err = h.handleParamByStringSlice(inValue, in.field, values); err != nil {
+			if err = h.handleParamByString(inValue, in.field, val); err != nil {
 				return
 			}
 		case inTypeFile:
@@ -661,6 +657,121 @@ func (h *handlerServer) handleParamByCookie(value reflect.Value, field *paramFie
 	return
 }
 
+func (h *handlerServer) handleParamByString(value reflect.Value, field *paramField, val string) (err error) {
+	name := field.names.getFieldName("")
+	desc := name.name
+	if field.tag.desc != "" {
+		desc = field.tag.desc
+	}
+	if val == "" {
+		if name.required {
+			return errors.New(h.handle.api.lang.Required(desc))
+		}
+		return
+	}
+	for value.Kind() == reflect.Ptr {
+		if value.Type().ConvertibleTo(typeFile) || value.Type().ConvertibleTo(typeCookie) {
+			break
+		}
+		initPtr(value)
+		if _, ok := getTypeByCovertInterface[TextInterface](value); ok {
+			break
+		}
+		value = value.Elem()
+	}
+	switch field.kind {
+	case reflect.Slice, reflect.Array:
+		values := h.getParamStringSlice(field._type, val)
+		if err = h.handleParamByStringSlice(value, field, values); err != nil {
+			return
+		}
+	case reflect.String:
+		if field.tag.max != nil && uint64(len(val)) > *field.tag.max {
+			return errors.New(h.handle.api.lang.Max(desc, *field.tag.max))
+		}
+		if uint64(len(val)) < field.tag.min {
+			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
+		}
+		if field.tag.regexp != "" {
+			if re := h.getCompiledRegexp(field.tag.regexp); re != nil && !re.MatchString(val) {
+				return errors.New(h.handle.api.lang.Regexp(desc, field.tag.regexp))
+			}
+		}
+		if field.tag.enum != nil && !inArrayAny(any(val), field.tag.enum) {
+			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
+		}
+		if field.isTextType {
+			if err = coverInterfaceByValue[TextInterface](value, func(fn TextInterface) error {
+				return fn.UnmarshalText([]byte(val))
+			}, true); err != nil {
+				return
+			}
+		} else {
+			value.SetString(val)
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		var valInt int64
+		valInt, err = strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return
+		}
+		if valInt == 0 {
+			if name.required {
+				return errors.New(h.handle.api.lang.Required(desc))
+			}
+			return
+		}
+		if err = h.validFloat64(float64(valInt), desc, field); err != nil {
+			return
+		}
+		value.SetInt(valInt)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		var valUint uint64
+		valUint, err = strconv.ParseUint(val, 10, 64)
+		if err != nil {
+			return
+		}
+		if valUint == 0 {
+			if name.required {
+				return errors.New(h.handle.api.lang.Required(desc))
+			}
+			return
+		}
+		if err = h.validFloat64(float64(valUint), desc, field); err != nil {
+			return
+		}
+		value.SetUint(valUint)
+	case reflect.Float32, reflect.Float64:
+		var valFloat float64
+		valFloat, err = strconv.ParseFloat(val, 64)
+		if err != nil {
+			return
+		}
+		if valFloat == 0 {
+			if name.required {
+				return errors.New(h.handle.api.lang.Required(desc))
+			}
+			return
+		}
+		if err = h.validFloat64(valFloat, desc, field); err != nil {
+			return
+		}
+		value.SetFloat(valFloat)
+	case reflect.Bool:
+		var valBool bool
+		valBool, err = strconv.ParseBool(val)
+		if err != nil {
+			return
+		}
+		if field.tag.enum != nil && !inArrayAny(any(valBool), field.tag.enum) {
+			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
+		}
+		value.SetBool(valBool)
+	default:
+	}
+	return
+}
+
 func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *paramField, values []string) (err error) {
 	name := field.names.getFieldName("")
 	desc := name.name
@@ -708,101 +819,10 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 			}
 		}
 		value.Set(newValue.Convert(value.Type()))
-	case reflect.String:
-		var valStr string
-		if len(values) > 0 {
-			valStr = values[0]
-		}
-		if field.tag.max != nil && uint64(len(valStr)) > *field.tag.max {
-			return errors.New(h.handle.api.lang.Max(desc, *field.tag.max))
-		}
-		if uint64(len(valStr)) < field.tag.min {
-			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
-		}
-		if field.tag.regexp != "" {
-			if re := h.getCompiledRegexp(field.tag.regexp); re != nil && !re.MatchString(valStr) {
-				return errors.New(h.handle.api.lang.Regexp(desc, field.tag.regexp))
-			}
-		}
-		if field.tag.enum != nil && !inArrayAny(any(valStr), field.tag.enum) {
-			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
-		}
-		if field.isTextType {
-			if err = coverInterfaceByValue[TextInterface](value, func(fn TextInterface) error {
-				return fn.UnmarshalText([]byte(values[0]))
-			}, true); err != nil {
-				return
-			}
-		} else {
-			value.Set(reflect.ValueOf(valStr).Convert(value.Type()))
-		}
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		var valInt int64
-		if len(values) > 0 {
-			valInt, err = strconv.ParseInt(values[0], 10, 64)
-			if err != nil {
-				return
-			}
-		}
-		if valInt == 0 {
-			if name.required {
-				return errors.New(h.handle.api.lang.Required(desc))
-			}
-			return
-		}
-		if err = h.validFloat64(float64(valInt), desc, field); err != nil {
-			return
-		}
-		value.Set(reflect.ValueOf(valInt).Convert(value.Type()))
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		var valUint uint64
-		if len(values) > 0 {
-			valUint, err = strconv.ParseUint(values[0], 10, 64)
-			if err != nil {
-				return
-			}
-		}
-		if valUint == 0 {
-			if name.required {
-				return errors.New(h.handle.api.lang.Required(desc))
-			}
-			return
-		}
-		if err = h.validFloat64(float64(valUint), desc, field); err != nil {
-			return
-		}
-		value.Set(reflect.ValueOf(valUint).Convert(value.Type()))
-	case reflect.Float32, reflect.Float64:
-		var valFloat float64
-		if len(values) > 0 {
-			valFloat, err = strconv.ParseFloat(values[0], 64)
-			if err != nil {
-				return
-			}
-		}
-		if valFloat == 0 {
-			if name.required {
-				return errors.New(h.handle.api.lang.Required(desc))
-			}
-			return
-		}
-		if err = h.validFloat64(valFloat, desc, field); err != nil {
-			return
-		}
-		value.Set(reflect.ValueOf(valFloat).Convert(value.Type()))
-	case reflect.Bool:
-		var valBool bool
-		if len(values) > 0 {
-			valBool, err = strconv.ParseBool(values[0])
-			if err != nil {
-				return
-			}
-		}
-		if field.tag.enum != nil && !inArrayAny(any(valBool), field.tag.enum) {
-			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
-		}
-		value.Set(reflect.ValueOf(valBool).Convert(value.Type()))
 	default:
+		if err = h.handleParamByString(value, field, values[0]); err != nil {
+			return
+		}
 	}
 	return
 }
