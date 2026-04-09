@@ -614,8 +614,8 @@ func (h *handlerServer) handleParamByFields(value reflect.Value, field *paramFie
 	}
 	for value.Kind() == reflect.Ptr {
 		if value.Type().ConvertibleTo(typeFile) {
-			value.Set(reflect.ValueOf(fields[0]).Convert(value.Type()))
-			break
+			valueSet(value, reflect.ValueOf(fields[0]))
+			return
 		}
 		initPtr(value)
 		value = value.Elem()
@@ -648,7 +648,7 @@ func (h *handlerServer) handleParamByCookie(value reflect.Value, field *paramFie
 	}
 	for value.Kind() == reflect.Ptr {
 		if value.Type().ConvertibleTo(typeCookie) {
-			value.Set(reflect.ValueOf(cookie).Convert(value.Type()))
+			valueSet(value, reflect.ValueOf(cookie))
 			return
 		}
 		initPtr(value)
@@ -818,7 +818,7 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 				return
 			}
 		}
-		value.Set(newValue.Convert(value.Type()))
+		valueSet(value, newValue)
 	default:
 		if err = h.handleParamByString(value, field, values[0]); err != nil {
 			return
@@ -830,7 +830,7 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 func (h *handlerServer) handleParamByOther(ctx *Context, value reflect.Value) {
 	for value.Kind() == reflect.Ptr {
 		if value.Type().ConvertibleTo(typeContext) {
-			value.Set(reflect.ValueOf(ctx).Convert(value.Type()))
+			valueSet(value, reflect.ValueOf(ctx))
 			return
 		}
 		initPtr(value)

@@ -353,6 +353,21 @@ func toFirstUpper(s string) string {
 	return string(runes)
 }
 
+func valueSet(dst, src reflect.Value) {
+	if !dst.CanSet() {
+		return
+	}
+	dstType := dst.Type()
+	srcType := src.Type()
+	if dstType == srcType {
+		dst.Set(src)
+		return
+	}
+	if dstType.ConvertibleTo(srcType) {
+		dst.Set(src.Convert(dstType))
+	}
+}
+
 func ColorInfo(a ...any) string {
 	if Colorful {
 		return color.New(color.FgGreen).SprintFunc()(a...)
