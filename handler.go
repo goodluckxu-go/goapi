@@ -740,50 +740,50 @@ func (h *handler) handleTagByField(field reflect.StructField, pField *paramField
 		pField.tag.regexp = tagVal
 	}
 	if tagVal := field.Tag.Get(tagEnum); tagVal != "" && (isNormalType(fType) || kind == reflect.String) {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.enum, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.enum, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagLt); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.lt, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.lt, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagLte); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.lte, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.lte, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagGt); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.gt, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.gt, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagGte); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.gte, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.gte, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagMultiple); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.multiple, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.multiple, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagMax); tagVal != "" && inArray(kind, []reflect.Kind{reflect.Array,
 		reflect.Slice, reflect.Map, reflect.String}) {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.max, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.max, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagMin); tagVal != "" && inArray(kind, []reflect.Kind{reflect.Array,
 		reflect.Slice, reflect.Map, reflect.String}) {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.min, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.min, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagUnique); tagVal != "" && inArray(kind, []reflect.Kind{reflect.Array,
 		reflect.Slice}) {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.unique, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.unique, pField); err != nil {
 			return
 		}
 	}
@@ -791,17 +791,17 @@ func (h *handler) handleTagByField(field reflect.StructField, pField *paramField
 		pField.tag.desc = h.getMappingTag(tagVal)
 	}
 	if tagVal := field.Tag.Get(tagDefault); tagVal != "" {
-		if err = h.parseTagValByKind(tagVal, &pField.tag._default, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag._default, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagExample); tagVal != "" {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.example, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.example, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagDeprecated); tagVal != "" {
-		if err = h.parseTagValByKind(tagVal, &pField.tag.deprecated, kind); err != nil {
+		if err = h.parseTagValByField(tagVal, &pField.tag.deprecated, pField); err != nil {
 			return
 		}
 	}
@@ -940,16 +940,10 @@ func (h *handler) handleTagEnumToFloat64(enum []any, fType reflect.Type) (err er
 	return
 }
 
-func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind) error {
+func (h *handler) parseTagValByField(inVal string, outVal any, pField *paramField) error {
 	switch val := outVal.(type) {
 	case *string:
 		*val = inVal
-	case *float64:
-		if v, err := strconv.ParseFloat(inVal, 64); err == nil {
-			*val = v
-		} else {
-			return err
-		}
 	case **float64:
 		if v, err := strconv.ParseFloat(inVal, 64); err == nil {
 			*val = toPtr(v)
@@ -975,7 +969,7 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 			return err
 		}
 	case *any:
-		switch kind {
+		switch pField.kind {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8,
 			reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
 			if v, err := strconv.ParseFloat(inVal, 64); err == nil {
@@ -991,35 +985,57 @@ func (h *handler) parseTagValByKind(inVal string, outVal any, kind reflect.Kind)
 			}
 		case reflect.String:
 			*val = inVal
+		case reflect.Slice:
+			list := strings.Split(inVal, ",")
+			var rs []any
+			cType := pField._type.Elem()
+			for cType.Kind() == reflect.Ptr {
+				cType = cType.Elem()
+			}
+			cKind := cType.Kind()
+			if isTextInterface(cType) {
+				cKind = reflect.String
+			}
+			if err := h.setSliceStringByKind(&rs, list, cKind); err != nil {
+				return err
+			}
+			*val = rs
 		default:
 			return fmt.Errorf("structure tag value type error")
 		}
 	case *[]any:
 		list := strings.Split(inVal, ",")
 		var rs []any
-		for _, str := range list {
-			str = strings.TrimSpace(str)
-			switch kind {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8,
-				reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
-				if v, err := strconv.ParseFloat(str, 64); err == nil {
-					rs = append(rs, v)
-				} else {
-					return err
-				}
-			case reflect.Bool:
-				if v, err := strconv.ParseBool(str); err == nil {
-					rs = append(rs, v)
-				} else {
-					return err
-				}
-			case reflect.String:
-				rs = append(rs, str)
-			default:
-				return fmt.Errorf("structure tag value type error")
-			}
+		if err := h.setSliceStringByKind(&rs, list, pField.kind); err != nil {
+			return err
 		}
 		*val = rs
+	}
+	return nil
+}
+
+func (h *handler) setSliceStringByKind(dst *[]any, src []string, kind reflect.Kind) error {
+	for _, str := range src {
+		str = strings.TrimSpace(str)
+		switch kind {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8,
+			reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
+			if v, err := strconv.ParseFloat(str, 64); err == nil {
+				*dst = append(*dst, v)
+			} else {
+				return err
+			}
+		case reflect.Bool:
+			if v, err := strconv.ParseBool(str); err == nil {
+				*dst = append(*dst, v)
+			} else {
+				return err
+			}
+		case reflect.String:
+			*dst = append(*dst, str)
+		default:
+			return fmt.Errorf("structure tag value type error")
+		}
 	}
 	return nil
 }
