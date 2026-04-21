@@ -811,11 +811,19 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 				m[val] = struct{}{}
 			}
 		}
-		newValue := reflect.MakeSlice(value.Type(), len(values), len(values))
+		var newValue reflect.Value
+		if field.kind == reflect.Slice {
+			newValue = reflect.MakeSlice(value.Type(), len(values), len(values))
+		} else {
+			newValue = reflect.New(value.Type()).Elem()
+		}
+		valLen := newValue.Len()
 		for i := 0; i < len(values); i++ {
-			childVal := newValue.Index(i)
-			if err = h.handleParamByStringSlice(childVal, field.fields[0], []string{values[i]}); err != nil {
-				return
+			if i < valLen {
+				childVal := newValue.Index(i)
+				if err = h.handleParamByStringSlice(childVal, field.fields[0], []string{values[i]}); err != nil {
+					return
+				}
 			}
 		}
 		valueSet(value, newValue)

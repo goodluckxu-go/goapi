@@ -985,7 +985,7 @@ func (h *handler) parseTagValByField(inVal string, outVal any, pField *paramFiel
 			}
 		case reflect.String:
 			*val = inVal
-		case reflect.Slice:
+		case reflect.Slice, reflect.Array:
 			list := strings.Split(inVal, ",")
 			var rs []any
 			cType := pField._type.Elem()
