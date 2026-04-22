@@ -2227,10 +2227,10 @@ func (t *Tag) Validate() error {
 type Schema struct {
 	Ref string `json:"$ref"`
 	// json schema
-	Type   string `json:"type"` // Value MUST be a string. Multiple types via an array are not supported.
-	Format string `json:"format"`
-	Enum   []any  `json:"enum"`
-	Const  any    `json:"const"` // Use of this keyword is functionally equivalent to an "enum"
+	Type   []string `json:"type"` // Value MUST be a string. Multiple types via an array are not supported.
+	Format string   `json:"format"`
+	Enum   []any    `json:"enum"`
+	Const  any      `json:"const"` // Use of this keyword is functionally equivalent to an "enum"
 	// basic
 	Title       string `json:"title"`
 	Description string `json:"description"`
@@ -2307,7 +2307,7 @@ func (s *Schema) marshalField() []marshalField {
 		}
 	}
 	return []marshalField{
-		{"type", s.Type, s.Type == ""},
+		{"type", s.Type, s.Type == nil},
 		{"format", s.Format, s.Format == ""},
 		{"enum", s.Enum, s.Enum == nil},
 		{"const", s.Const, s.Const == nil},
@@ -2416,19 +2416,18 @@ func (s *Schema) Validate(openapi *OpenAPI) error {
 		}
 		return nil
 	}
-	if s.Type == "" {
-		return verifyError("type", fmt.Errorf("type must be a non empty string"))
-	}
 
-	switch s.Type {
-	case "integer", "number":
-	case "string":
-	case "boolean":
-	case "array":
-	case "object":
-	default:
-		return verifyError("type", fmt.Errorf("must be within "+
-			"\"integer\", \"number\", \"string\", \"boolean\", \"array\", \"object\""))
+	for _, _type := range s.Type {
+		switch _type {
+		case "integer", "number":
+		case "string":
+		case "boolean":
+		case "array":
+		case "object":
+		default:
+			return verifyError("type", fmt.Errorf("must be within "+
+				"\"integer\", \"number\", \"string\", \"boolean\", \"array\", \"object\""))
+		}
 	}
 
 	if s.Items != nil {

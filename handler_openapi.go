@@ -127,7 +127,7 @@ func (h *handlerOpenAPI) handlePkgNameMediaTypes(docsPath string, field *paramFi
 func (h *handlerOpenAPI) handleStruct(pkgName string, stInfo *structInfo, mediaType MediaType, docsPath string) {
 	properties, required := h.handleParamFields(stInfo.fields, mediaType, docsPath)
 	schema := &openapi.Schema{
-		Type:       "object",
+		Type:       []string{"object"},
 		Properties: properties,
 		Required:   required,
 	}
@@ -203,20 +203,20 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 	switch name.inType {
 	case inTypeFile:
 		if field._type.ConvertibleTo(typeFile) {
-			schema.Type = "string"
+			schema.Type = []string{"string"}
 			schema.Format = "binary"
 			return
 		}
 	case inTypeCookie:
 		if field._type.ConvertibleTo(typeCookie) {
-			schema.Type = "string"
+			schema.Type = []string{"string"}
 			return
 		}
 	}
 	switch kind {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16,
 		reflect.Uint32, reflect.Uint64:
-		schema.Type = "integer"
+		schema.Type = []string{"integer"}
 		if kind != reflect.Int {
 			schema.Format = kind.String()
 		}
@@ -227,7 +227,7 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		schema.MultipleOf = field.tag.multiple
 		schema.Enum = field.tag.enum
 	case reflect.Float32:
-		schema.Type = "number"
+		schema.Type = []string{"number"}
 		schema.Format = "float"
 		schema.Maximum = field.tag.lte
 		schema.ExclusiveMaximum = field.tag.lt
@@ -236,7 +236,7 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		schema.MultipleOf = field.tag.multiple
 		schema.Enum = field.tag.enum
 	case reflect.Float64:
-		schema.Type = "number"
+		schema.Type = []string{"number"}
 		schema.Format = "double"
 		schema.Maximum = field.tag.lte
 		schema.ExclusiveMaximum = field.tag.lt
@@ -245,20 +245,20 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		schema.MultipleOf = field.tag.multiple
 		schema.Enum = field.tag.enum
 	case reflect.String:
-		schema.Type = "string"
+		schema.Type = []string{"string"}
 		schema.MaxLength = field.tag.max
 		schema.MinLength = field.tag.min
 		schema.Pattern = field.tag.regexp
 		schema.Enum = field.tag.enum
 	case reflect.Bool:
-		schema.Type = "boolean"
+		schema.Type = []string{"boolean"}
 		schema.Enum = field.tag.enum
 	case reflect.Array, reflect.Slice:
 		if mediaType != "" && mediaType.IsStream() && field._type.ConvertibleTo(typeBytes) {
-			schema.Type = "string"
+			schema.Type = []string{"string"}
 			return
 		}
-		schema.Type = "array"
+		schema.Type = []string{"array"}
 		schema.MaxItems = field.tag.max
 		schema.MinItems = field.tag.min
 		schema.UniqueItems = field.tag.unique
@@ -266,7 +266,7 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		h.handleParamField(childSchema, field.fields[0], mediaType, docsPath)
 		schema.Items = childSchema
 	case reflect.Map:
-		schema.Type = "object"
+		schema.Type = []string{"object"}
 		schema.MaxProperties = field.tag.max
 		schema.MinProperties = field.tag.min
 		childSchema := &openapi.Schema{
@@ -280,7 +280,7 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 	case reflect.Struct:
 		if field.pkgName == "" {
 			properties, required := h.handleParamFields(field.fields, mediaType, docsPath)
-			schema.Type = "object"
+			schema.Type = []string{"object"}
 			schema.MaxProperties = field.tag.max
 			schema.MinProperties = field.tag.min
 			schema.Properties = properties
@@ -291,10 +291,12 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		schema.Ref = "#/components/schemas/" + h.getOpenapiName(childStInfo.openapiName, mediaType, len(h.pkgNameMediaTypes[docsPath][field.pkgName]))
 	case reflect.Ptr:
 		if field._type.ConvertibleTo(typeCookie) || field._type.ConvertibleTo(typeFile) {
-			schema.Type = "string"
+			schema.Type = []string{"string"}
 		}
+	case reflect.Interface:
+		// If type is not explicitly specified, any is the default
 	default:
-		schema.Type = "string"
+		schema.Type = []string{"string"}
 	}
 	return
 }
@@ -577,7 +579,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 	if len(bodyProperties) > 0 {
 		bodyContentMap[string(bodyMediaType)] = &openapi.MediaType{
 			Schema: &openapi.Schema{
-				Type:       "object",
+				Type:       []string{"object"},
 				Properties: bodyProperties,
 				Required:   bodyRequired,
 			},
@@ -597,7 +599,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			for _, mediaType := range responseMediaTypes {
 				schema := &openapi.Schema{}
 				if mediaType.IsStream() {
-					schema.Type = "string"
+					schema.Type = []string{"string"}
 				} else {
 					h.handleParamField(schema, path.outParam.field, mediaType, path.docsPath)
 					if mediaType == XML {
@@ -623,7 +625,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			mediaType := MediaType(contentType)
 			schema := &openapi.Schema{}
 			if mediaType.IsStream() {
-				schema.Type = "string"
+				schema.Type = []string{"string"}
 			} else {
 				h.handleParamField(schema, path.outParam.field, mediaType, path.docsPath)
 				if mediaType == XML {
@@ -668,7 +670,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			for _, mediaType := range responseMediaTypes {
 				schema := &openapi.Schema{}
 				if mediaType.IsStream() {
-					schema.Type = "string"
+					schema.Type = []string{"string"}
 				} else {
 					h.handleParamField(schema, except.outParam.field, mediaType, path.docsPath)
 					if mediaType == XML {
@@ -694,7 +696,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			mediaType := MediaType(contentType)
 			schema := &openapi.Schema{}
 			if mediaType.IsStream() {
-				schema.Type = "string"
+				schema.Type = []string{"string"}
 			} else {
 				h.handleParamField(schema, except.outParam.field, mediaType, path.docsPath)
 				if mediaType == XML {
