@@ -196,6 +196,7 @@ func (h *handlerServer) execRouter(ctx *Context) {
 		return
 	}
 	var err error
+	var code int
 	var inputs []reflect.Value
 	lastInputIdx := 0
 	if len(path.inTypes) == 2 {
@@ -206,9 +207,9 @@ func (h *handlerServer) execRouter(ctx *Context) {
 		inputs = make([]reflect.Value, 1)
 		lastInputIdx = 0
 	}
-	inputs[lastInputIdx], err = h.handleInParamToValue(ctx, path.inTypes[lastInputIdx], path.inParams)
+	inputs[lastInputIdx], code, err = h.handleInParamToValue(ctx, path.inTypes[lastInputIdx], path.inParams)
 	if err != nil {
-		h.handleExcept(ctx, err.Error(), validErrorCode)
+		h.handleExcept(ctx, err.Error(), code)
 		return
 	}
 	rs := path.value.Call(inputs)
@@ -272,7 +273,8 @@ func (h *handlerServer) copyReader(w ResponseWriter, r io.ReadCloser) error {
 	}
 }
 
-func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, ins []*inParam) (value reflect.Value, err error) {
+func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, ins []*inParam) (value reflect.Value, code int, err error) {
+	code = validErrorCode
 	value = reflect.New(inType).Elem()
 	for value.Kind() == reflect.Ptr {
 		initPtr(value)
@@ -378,7 +380,9 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				valOmitempty = fn.Omitempty()
 			}
 			if !valOmitempty && token == "" {
-				HTTPException(authErrorCode, h.handle.api.lang.NotAuthenticated())
+				code = authErrorCode
+				err = errors.New(h.handle.api.lang.NotAuthenticated())
+				return
 			}
 			security := inValueAny.(HTTPBearer)
 			security.HTTPBearer(token)
@@ -403,10 +407,14 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 					ctx.Extensions.param = nil
 					continue
 				}
-				HTTPException(authErrorCode, h.handle.api.lang.NotAuthenticated())
+				code = authErrorCode
+				err = errors.New(h.handle.api.lang.NotAuthenticated())
+				return
 			}
 			if err = decryptJWT(jwt, token, security); err != nil {
-				HTTPException(authErrorCode, h.handle.api.lang.JwtTranslate(err.Error()))
+				code = authErrorCode
+				err = errors.New(h.handle.api.lang.JwtTranslate(err.Error()))
+				return
 			}
 			security.HTTPBearerJWT(jwt)
 			ctx.Extensions.param = nil
@@ -419,7 +427,9 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				valOmitempty = fn.Omitempty()
 			}
 			if !valOmitempty && username == "" {
-				HTTPException(authErrorCode, h.handle.api.lang.NotAuthenticated())
+				code = authErrorCode
+				err = errors.New(h.handle.api.lang.NotAuthenticated())
+				return
 			}
 			security := inValueAny.(HTTPBasic)
 			security.HTTPBasic(username, password)
