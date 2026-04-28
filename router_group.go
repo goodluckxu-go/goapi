@@ -84,9 +84,6 @@ func (r *RouterChild) init() *RouterChild {
 	r.noRoute = defaultNoRoute
 	r.noMethod = defaultNoMethod
 	r.exceptFunc = defaultExceptFunc
-	if len(r.responseMediaTypes) == 0 {
-		r.responseMediaTypes = []MediaType{JSON}
-	}
 	return r
 }
 
@@ -113,6 +110,9 @@ func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
 	child.noRoute = r.noRoute
 	child.noMethod = r.noMethod
 	child.exceptFunc = r.exceptFunc
+	if len(r.responseMediaTypes) == 0 {
+		r.responseMediaTypes = []MediaType{JSON}
+	}
 	child.responseMediaTypes = r.responseMediaTypes
 	obj.childMap[r.childPath] = child
 	for _, mediaType := range r.responseMediaTypes {
