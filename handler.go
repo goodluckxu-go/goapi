@@ -241,7 +241,11 @@ func (h *handler) Handle() {
 					}
 				}
 				if isBody {
-
+					val := reflect.New(in.structField.Type).Elem()
+					isNoSupport := h.setExample(val, in.field, false)
+					if isNoSupport {
+						in.example = val.Interface()
+					}
 				}
 				continue
 			}
