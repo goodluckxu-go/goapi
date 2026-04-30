@@ -63,9 +63,9 @@ func (h *handlerOpenAPI) handleStructs() {
 		if path.outParam != nil {
 			h.handlePkgNameMediaTypes(path.docsPath, path.outParam.field, responseMediaTypes)
 		}
-		except := h.handle.exceptMap[path.childPath]
-		if except != nil && except.outParam != nil {
-			h.handlePkgNameMediaTypes(path.docsPath, except.outParam.field, responseMediaTypes)
+		er := h.handle.errorMap[path.childPath]
+		if er != nil && er.outParam != nil {
+			h.handlePkgNameMediaTypes(path.docsPath, er.outParam.field, responseMediaTypes)
 		}
 
 	}
@@ -662,28 +662,28 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			Headers:     header,
 		}
 	}
-	except := h.handle.exceptMap[path.childPath]
-	if except != nil && except.outParam != nil {
+	er := h.handle.errorMap[path.childPath]
+	if er != nil && er.outParam != nil {
 		resContentMap := map[string]*openapi.MediaType{}
-		contentType := except.outParam.httpHeader.Get("Content-Type")
+		contentType := er.outParam.httpHeader.Get("Content-Type")
 		if contentType == "" {
 			for _, mediaType := range responseMediaTypes {
 				schema := &openapi.Schema{}
 				if mediaType.IsStream() {
 					schema.Type = "string"
 				} else {
-					h.handleParamField(schema, except.outParam.field, mediaType, path.docsPath)
+					h.handleParamField(schema, er.outParam.field, mediaType, path.docsPath)
 					if mediaType == XML {
-						xmlName := except.outParam.field.xmlName
-						if stInfo := h.handle.structs[except.outParam.field.pkgName]; stInfo != nil {
+						xmlName := er.outParam.field.xmlName
+						if stInfo := h.handle.structs[er.outParam.field.pkgName]; stInfo != nil {
 							xmlName = stInfo.xmlName
 						}
 						schema.XML = &openapi.XML{
 							Name: xmlName,
 						}
 					}
-					if except.outParam.example != nil && mediaType == XML {
-						example := except.outParam.example
+					if er.outParam.example != nil && mediaType == XML {
+						example := er.outParam.example
 						h.handleXmlExample(&example)
 						schema.Examples = []any{example}
 					}
@@ -698,18 +698,18 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			if mediaType.IsStream() {
 				schema.Type = "string"
 			} else {
-				h.handleParamField(schema, except.outParam.field, mediaType, path.docsPath)
+				h.handleParamField(schema, er.outParam.field, mediaType, path.docsPath)
 				if mediaType == XML {
-					xmlName := except.outParam.field.xmlName
-					if stInfo := h.handle.structs[except.outParam.field.pkgName]; stInfo != nil {
+					xmlName := er.outParam.field.xmlName
+					if stInfo := h.handle.structs[er.outParam.field.pkgName]; stInfo != nil {
 						xmlName = stInfo.xmlName
 					}
 					schema.XML = &openapi.XML{
 						Name: xmlName,
 					}
 				}
-				if except.outParam.example != nil && mediaType == XML {
-					example := except.outParam.example
+				if er.outParam.example != nil && mediaType == XML {
+					example := er.outParam.example
 					h.handleXmlExample(&example)
 					schema.Examples = []any{example}
 				}
@@ -719,7 +719,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			}
 		}
 		header := map[string]*openapi.Header{}
-		for key, head := range except.outParam.httpHeader {
+		for key, head := range er.outParam.httpHeader {
 			if key == "Content-Type" {
 				continue
 			}

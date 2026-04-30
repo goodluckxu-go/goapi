@@ -26,7 +26,7 @@ func newHandler(api *API) *handler {
 		publicGroupMiddlewares: make(map[string][]HandleFunc),
 		openapiMap:             map[string]*openapi.OpenAPI{},
 		swaggerMap:             map[string]swagger.Config{},
-		exceptMap:              map[string]*exceptInfo{},
+		errorMap:               map[string]*errorInfo{},
 	}
 }
 
@@ -41,7 +41,7 @@ type handler struct {
 	openapiMap             map[string]*openapi.OpenAPI
 	swaggerMap             map[string]swagger.Config
 	childMap               map[string]returnObjChild
-	exceptMap              map[string]*exceptInfo
+	errorMap               map[string]*errorInfo
 }
 
 func (h *handler) Handle() {
@@ -56,8 +56,8 @@ func (h *handler) Handle() {
 	}
 	h.childMap = obj.childMap
 	for k, v := range h.childMap {
-		h.exceptMap[k] = &exceptInfo{
-			exceptFunc: v.exceptFunc,
+		h.errorMap[k] = &errorInfo{
+			errorFunc: v.errorFunc,
 		}
 	}
 	for k, v := range obj.docsMap {
@@ -199,28 +199,28 @@ func (h *handler) Handle() {
 			path.outParam.field = field
 		}
 	}
-	for _, except := range h.exceptMap {
-		if except.exceptFunc != nil {
-			except.outParam = &outParam{
+	for _, item := range h.errorMap {
+		if item.errorFunc != nil {
+			item.outParam = &outParam{
 				httpStatus: http.StatusOK,
 			}
-			exceptResponse := except.exceptFunc(validErrorCode, "")
-			if fn, ok := exceptResponse.(ResponseHeader); ok {
-				except.outParam.httpHeader = h.handleHeader(fn.GetHeader())
+			errorResponse := item.errorFunc(NewHTTPError(validErrorCode, ""))
+			if fn, ok := errorResponse.(ResponseHeader); ok {
+				item.outParam.httpHeader = h.handleHeader(fn.GetHeader())
 			}
-			if fn, ok := exceptResponse.(ResponseStatus); ok {
-				except.outParam.httpStatus = fn.GetStatus()
+			if fn, ok := errorResponse.(ResponseStatus); ok {
+				item.outParam.httpStatus = fn.GetStatus()
 			}
-			if fn, ok := exceptResponse.(ResponseBody); ok {
-				exceptResponse = fn.GetBody()
+			if fn, ok := errorResponse.(ResponseBody); ok {
+				errorResponse = fn.GetBody()
 			}
-			fType := reflect.TypeOf(exceptResponse)
-			except.outParam.structField = reflect.StructField{Type: fType}
-			field, err = h.handleField(except.outParam.structField, -1)
+			fType := reflect.TypeOf(errorResponse)
+			item.outParam.structField = reflect.StructField{Type: fType}
+			field, err = h.handleField(item.outParam.structField, -1)
 			if err != nil {
 				log.Fatal(err)
 			}
-			except.outParam.field = field
+			item.outParam.field = field
 		}
 	}
 	err = h.handleStruct()
@@ -261,14 +261,14 @@ func (h *handler) Handle() {
 			}
 		}
 	}
-	for _, except := range h.exceptMap {
-		if except.exceptFunc != nil {
-			if _, ok := getTypeByCovertInterface[io.ReadCloser](except.outParam.structField.Type); !ok &&
-				except.outParam.structField.Type != nil && !except.outParam.field.isTextType {
-				val := reflect.New(except.outParam.structField.Type).Elem()
-				isNoSupport := h.setExample(val, except.outParam.field, false)
+	for _, item := range h.errorMap {
+		if item.errorFunc != nil {
+			if _, ok := getTypeByCovertInterface[io.ReadCloser](item.outParam.structField.Type); !ok &&
+				item.outParam.structField.Type != nil && !item.outParam.field.isTextType {
+				val := reflect.New(item.outParam.structField.Type).Elem()
+				isNoSupport := h.setExample(val, item.outParam.field, false)
 				if isNoSupport {
-					except.outParam.example = val.Interface()
+					item.outParam.example = val.Interface()
 				}
 			}
 		}

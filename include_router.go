@@ -200,15 +200,26 @@ func (i *includeRouter) handleRouter(routerMethod reflect.Value) (pInfo *pathInf
 	}
 	// handle out param
 	numOut := routerMethod.Type().NumOut()
-	if numOut > 1 {
-		err = fmt.Errorf("returns at most one result, and there are %v results", numOut)
+	switch numOut {
+	case 0:
 		return
-	}
-	if numOut == 1 {
+	case 1:
 		outType := routerMethod.Type().Out(0)
 		pInfo.outParam = &outParam{
 			structField: reflect.StructField{Type: outType},
 		}
+	case 2:
+		outType := routerMethod.Type().Out(0)
+		pInfo.outParam = &outParam{
+			structField: reflect.StructField{Type: outType},
+		}
+		errType := routerMethod.Type().Out(1)
+		if errType != typeError {
+			// 返回的第二个结果必须是error
+			err = fmt.Errorf("the second result returned must be an 'error'")
+		}
+	default:
+		err = fmt.Errorf("at most two results will be returned, and there are %v results", numOut)
 	}
 	return
 }

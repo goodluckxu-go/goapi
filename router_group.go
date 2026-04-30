@@ -9,7 +9,7 @@ import (
 
 type RouterChildInterface interface {
 	RouterGroupInterface
-	HTTPException(handler func(httpCode int, detail string) any)
+	HTTPError(handler func(err error) any)
 	NoRoute(handler func(ctx *Context))
 	NoMethod(handler func(ctx *Context))
 	SetResponseMediaType(mediaTypes ...MediaType)
@@ -36,13 +36,13 @@ type RouterChild struct {
 	// func set
 	noRoute            func(ctx *Context)
 	noMethod           func(ctx *Context)
-	exceptFunc         func(httpCode int, detail string) any
+	errorFunc          func(err error) any
 	responseMediaTypes []MediaType
 }
 
-// HTTPException adds handlers for http exception
-func (r *RouterChild) HTTPException(handler func(httpCode int, detail string) any) {
-	r.exceptFunc = handler
+// HTTPError adds handlers for http error
+func (r *RouterChild) HTTPError(handler func(err error) any) {
+	r.errorFunc = handler
 }
 
 // NoRoute adds handlers for NoRoute. It returns a 404 code by default.
@@ -83,7 +83,7 @@ func (r *RouterChild) init() *RouterChild {
 	r.RedirectTrailingSlash = true
 	r.noRoute = defaultNoRoute
 	r.noMethod = defaultNoMethod
-	r.exceptFunc = defaultExceptFunc
+	r.errorFunc = defaultErrorFunc
 	return r
 }
 
@@ -109,7 +109,7 @@ func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
 	child.handleMethodNotAllowed = r.HandleMethodNotAllowed
 	child.noRoute = r.noRoute
 	child.noMethod = r.noMethod
-	child.exceptFunc = r.exceptFunc
+	child.errorFunc = r.errorFunc
 	if len(r.responseMediaTypes) == 0 {
 		r.responseMediaTypes = []MediaType{JSON}
 	}

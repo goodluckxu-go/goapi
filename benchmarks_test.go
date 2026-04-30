@@ -341,18 +341,21 @@ type testBody struct {
 type testHTTPBearer struct {
 }
 
-func (t *testHTTPBearer) HTTPBearer(token string) {
+func (t *testHTTPBearer) HTTPBearer(token string) error {
+	return nil
 }
 
 type testHTTPBasic struct {
 }
 
-func (t *testHTTPBasic) HTTPBasic(username, password string) {
+func (t *testHTTPBasic) HTTPBasic(username, password string) error {
+	return nil
 }
 
 type testApiKey struct {
 	Token string `header:"Token"`
 }
 
-func (t *testApiKey) ApiKey() {
+func (t *testApiKey) ApiKey() error {
+	return nil
 }

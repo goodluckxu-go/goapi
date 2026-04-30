@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -26,7 +27,7 @@ type Context struct {
 	queryCache   url.Values
 	ChildPath    string
 	RequestID    string
-	handleExcept func(ctx *Context, err string, code ...int)
+	handleError  func(ctx *Context, err error)
 	// prefix has 'x-'
 	Extensions *Extensions
 }
@@ -110,7 +111,8 @@ func (c *Context) FullPath() string {
 func (c *Context) Next() {
 	defer func() {
 		if err := recover(); err != nil {
-			c.handleExcept(c, toString(err))
+			c.Logger().Fatal("panic: %v [recovered]\n%v", err, string(debug.Stack()))
+			c.handleError(c, NewHTTPError(http.StatusInternalServerError, toString(err)))
 		}
 	}()
 	c.index++

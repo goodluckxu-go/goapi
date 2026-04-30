@@ -368,6 +368,14 @@ func valueSet(dst, src reflect.Value) {
 	}
 }
 
+func getHTTPError(err error, defaultCode int) error {
+	switch val := err.(type) {
+	case *HTTPError:
+		return val
+	}
+	return NewHTTPError(defaultCode, err.Error())
+}
+
 func ColorInfo(a ...any) string {
 	if Colorful {
 		return color.New(color.FgGreen).SprintFunc()(a...)

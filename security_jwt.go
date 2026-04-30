@@ -45,7 +45,7 @@ type HTTPBearerJWT interface {
 	SigningMethod() SigningMethod
 
 	// HTTPBearerJWT jwt logical
-	HTTPBearerJWT(jwt *JWT)
+	HTTPBearerJWT(jwt *JWT) error
 }
 
 type JWT struct {

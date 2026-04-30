@@ -1,7 +1,6 @@
 package goapi
 
 import (
-	"encoding/json"
 	"net/http"
 )
 
@@ -17,11 +16,7 @@ type ResponseBody interface {
 	GetBody() any
 }
 
-func HTTPException(httpCode int, detail string) {
-	res := exceptJson{
-		HttpCode: httpCode,
-		Detail:   detail,
-	}
-	buf, _ := json.Marshal(&res)
-	panic(string(buf))
+// NewHTTPError create HTTP error
+func NewHTTPError(code int, message string) *HTTPError {
+	return &HTTPError{Code: code, Message: message}
 }

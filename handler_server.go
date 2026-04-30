@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -164,28 +163,15 @@ func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 	}
 }
 
-func (h *handlerServer) handleExcept(ctx *Context, err string, code ...int) {
-	var exceptFunc func(httpCode int, detail string) any
-	if h.handle.exceptMap[ctx.ChildPath] != nil {
-		exceptFunc = h.handle.exceptMap[ctx.ChildPath].exceptFunc
+func (h *handlerServer) handleError(ctx *Context, err error) {
+	var errorFunc func(err error) any
+	if h.handle.errorMap[ctx.ChildPath] != nil {
+		errorFunc = h.handle.errorMap[ctx.ChildPath].errorFunc
 	}
-	if exceptFunc == nil {
+	if errorFunc == nil {
 		return
 	}
-	if len(code) > 0 {
-		resp := exceptFunc(code[0], err)
-		h.handleResponse(ctx, resp)
-		return
-	}
-	var res exceptJson
-	er := json.Unmarshal([]byte(err), &res)
-	var resp any
-	if er != nil {
-		resp = exceptFunc(http.StatusInternalServerError, err)
-		h.handle.api.log.Fatal("panic: %v [recovered]\n%v", er, string(debug.Stack()))
-	} else {
-		resp = exceptFunc(res.HttpCode, res.Detail)
-	}
+	resp := errorFunc(err)
 	h.handleResponse(ctx, resp)
 }
 
@@ -196,7 +182,6 @@ func (h *handlerServer) execRouter(ctx *Context) {
 		return
 	}
 	var err error
-	var code int
 	var inputs []reflect.Value
 	lastInputIdx := 0
 	if len(path.inTypes) == 2 {
@@ -207,14 +192,21 @@ func (h *handlerServer) execRouter(ctx *Context) {
 		inputs = make([]reflect.Value, 1)
 		lastInputIdx = 0
 	}
-	inputs[lastInputIdx], code, err = h.handleInParamToValue(ctx, path.inTypes[lastInputIdx], path.inParams)
+	inputs[lastInputIdx], err = h.handleInParamToValue(ctx, path.inTypes[lastInputIdx], path.inParams)
 	if err != nil {
-		h.handleExcept(ctx, err.Error(), code)
+		h.handleError(ctx, getHTTPError(err, validErrorCode))
 		return
 	}
 	rs := path.value.Call(inputs)
 	if len(rs) == 0 {
 		return
+	}
+	if len(rs) > 1 {
+		respErr, _ := rs[1].Interface().(error)
+		if respErr != nil {
+			h.handleError(ctx, respErr)
+			return
+		}
 	}
 	h.handleResponse(ctx, rs[0].Interface())
 }
@@ -252,7 +244,7 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	var body []byte
 	var err error
 	if body, err = mediaType.Marshaler(resp); err != nil {
-		h.handleExcept(ctx, err.Error(), validErrorCode)
+		h.handleError(ctx, NewHTTPError(validErrorCode, err.Error()))
 		return
 	}
 	_, _ = ctx.Writer.Write(body)
@@ -273,8 +265,7 @@ func (h *handlerServer) copyReader(w ResponseWriter, r io.ReadCloser) error {
 	}
 }
 
-func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, ins []*inParam) (value reflect.Value, code int, err error) {
-	code = validErrorCode
+func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, ins []*inParam) (value reflect.Value, err error) {
 	value = reflect.New(inType).Elem()
 	for value.Kind() == reflect.Ptr {
 		initPtr(value)
@@ -380,12 +371,13 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				valOmitempty = fn.Omitempty()
 			}
 			if !valOmitempty && token == "" {
-				code = authErrorCode
-				err = errors.New(h.handle.api.lang.NotAuthenticated())
+				err = NewHTTPError(authErrorCode, h.handle.api.lang.NotAuthenticated())
 				return
 			}
 			security := inValueAny.(HTTPBearer)
-			security.HTTPBearer(token)
+			if err = security.HTTPBearer(token); err != nil {
+				return
+			}
 			ctx.Extensions.param = nil
 		case inTypeSecurityHTTPBearerJWT:
 			initPtr(inValue)
@@ -403,20 +395,22 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			}
 			if token == "" {
 				if valOmitempty {
-					security.HTTPBearerJWT(jwt)
+					if err = security.HTTPBearerJWT(jwt); err != nil {
+						return
+					}
 					ctx.Extensions.param = nil
 					continue
 				}
-				code = authErrorCode
-				err = errors.New(h.handle.api.lang.NotAuthenticated())
+				err = NewHTTPError(authErrorCode, h.handle.api.lang.NotAuthenticated())
 				return
 			}
 			if err = decryptJWT(jwt, token, security); err != nil {
-				code = authErrorCode
-				err = errors.New(h.handle.api.lang.JwtTranslate(err.Error()))
+				err = NewHTTPError(authErrorCode, h.handle.api.lang.JwtTranslate(err.Error()))
 				return
 			}
-			security.HTTPBearerJWT(jwt)
+			if err = security.HTTPBearerJWT(jwt); err != nil {
+				return
+			}
 			ctx.Extensions.param = nil
 		case inTypeSecurityHTTPBasic:
 			initPtr(inValue)
@@ -427,17 +421,20 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				valOmitempty = fn.Omitempty()
 			}
 			if !valOmitempty && username == "" {
-				code = authErrorCode
-				err = errors.New(h.handle.api.lang.NotAuthenticated())
+				err = NewHTTPError(authErrorCode, h.handle.api.lang.NotAuthenticated())
 				return
 			}
 			security := inValueAny.(HTTPBasic)
-			security.HTTPBasic(username, password)
+			if err = security.HTTPBasic(username, password); err != nil {
+				return
+			}
 			ctx.Extensions.param = nil
 		case inTypeSecurityApiKey:
 			initPtr(inValue)
 			security := inValue.Interface().(ApiKey)
-			security.ApiKey()
+			if err = security.ApiKey(); err != nil {
+				return
+			}
 			ctx.Extensions.param = nil
 		case inTypeOther:
 			ctx.Extensions = ctx.Extensions.Struct(in.parentName)
@@ -994,8 +991,8 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.writermem.reset(w)
 	ctx.reset()
 	ctx.Request = r
-	if ctx.handleExcept == nil {
-		ctx.handleExcept = h.handleExcept
+	if ctx.handleError == nil {
+		ctx.handleError = h.handleError
 	}
 	h.generateRequestID(ctx)
 	h.handleHTTPRequest(ctx)

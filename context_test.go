@@ -127,7 +127,7 @@ func TestContext_Next(t *testing.T) {
 	t.Run("runs handlers in order", func(t *testing.T) {
 		ctx := newTestContext(t, httptest.NewRequest(http.MethodGet, "/", nil))
 		var order []int
-		ctx.handleExcept = func(*Context, string, ...int) { t.Fatal("handleExcept should not run") }
+		ctx.handleError = func(*Context, error) { t.Fatal("handleError should not run") }
 		ctx.handlers = []HandleFunc{
 			func(c *Context) {
 				order = append(order, 1)
@@ -145,7 +145,7 @@ func TestContext_Next(t *testing.T) {
 	t.Run("nil handler is skipped", func(t *testing.T) {
 		ctx := newTestContext(t, httptest.NewRequest(http.MethodGet, "/", nil))
 		var ran bool
-		ctx.handleExcept = func(*Context, string, ...int) { t.Fatal("handleExcept should not run") }
+		ctx.handleError = func(*Context, error) { t.Fatal("handleError should not run") }
 		ctx.handlers = []HandleFunc{
 			nil,
 			func(c *Context) { ran = true },
@@ -159,14 +159,14 @@ func TestContext_Next(t *testing.T) {
 
 	t.Run("panic invokes handleExcept", func(t *testing.T) {
 		ctx := newTestContext(t, httptest.NewRequest(http.MethodGet, "/", nil))
-		var got string
-		ctx.handleExcept = func(_ *Context, err string, _ ...int) { got = err }
+		var got error
+		ctx.handleError = func(_ *Context, err error) { got = err }
 		ctx.handlers = []HandleFunc{
 			func(c *Context) { panic("boom") },
 		}
 		ctx.index = -1
 		ctx.Next()
-		if got != "boom" {
+		if got.Error() != "boom" {
 			t.Fatalf("handleExcept err: want boom, got %q", got)
 		}
 	})

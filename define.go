@@ -197,6 +197,7 @@ var typeContext = reflect.TypeOf(&Context{})
 var typeFile = reflect.TypeOf(&multipart.FileHeader{})
 var typeBytes = reflect.TypeOf([]byte{})
 var typeReadCloser = reflect.TypeOf((*io.ReadCloser)(nil)).Elem()
+var typeError = reflect.TypeOf((*error)(nil)).Elem()
 
 // inTypeCookie
 var typeCookie = reflect.TypeOf(&http.Cookie{})
@@ -206,6 +207,8 @@ const (
 	authErrorCode  = 401
 )
 
+const defaultErrorCode = 400
+
 var defaultNoRoute = func(ctx *Context) {
 	http.Error(ctx.Writer, "404 page not found", http.StatusNotFound)
 }
@@ -214,7 +217,7 @@ var defaultNoMethod = func(ctx *Context) {
 	http.Error(ctx.Writer, "405 method not allowed", http.StatusMethodNotAllowed)
 }
 
-type defaultHttpExcept struct {
+type defaultHTTPError struct {
 	code int
 	msg  string
 }
@@ -224,14 +227,21 @@ type defaultError struct {
 	Error   string   `json:"error" xml:",innerxml"`
 }
 
-func (d defaultHttpExcept) GetStatus() int {
+func (d defaultHTTPError) GetStatus() int {
 	return d.code
 }
 
-func (d defaultHttpExcept) GetBody() any {
+func (d defaultHTTPError) GetBody() any {
 	return defaultError{Error: d.msg}
 }
 
-var defaultExceptFunc = func(httpCode int, msg string) any {
-	return defaultHttpExcept{code: httpCode, msg: msg}
+var defaultErrorFunc = func(err error) any {
+	if err == nil {
+		return nil
+	}
+	switch val := err.(type) {
+	case *HTTPError:
+		return defaultHTTPError{code: val.Code, msg: val.Message}
+	}
+	return defaultHTTPError{code: defaultErrorCode, msg: err.Error()}
 }
