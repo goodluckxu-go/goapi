@@ -459,6 +459,9 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 				if name.required {
 					return errors.New(h.handle.api.lang.Required(desc))
 				}
+				if defaultSet(value, field.tag._default) {
+					return h.validParamField(value, field, mediaType)
+				}
 				return
 			}
 		} else {
@@ -466,6 +469,9 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 				if value.IsNil() {
 					if name.required {
 						return errors.New(h.handle.api.lang.Required(desc))
+					}
+					if defaultSet(value, field.tag._default) {
+						return h.validParamField(value, field, mediaType)
 					}
 					return
 				}
@@ -674,6 +680,9 @@ func (h *handlerServer) handleParamByString(value reflect.Value, field *paramFie
 		if name.required {
 			return errors.New(h.handle.api.lang.Required(desc))
 		}
+		if field.tag._defaultParamString != "" {
+			return h.handleParamByString(value, field, field.tag._defaultParamString)
+		}
 		return
 	}
 	for value.Kind() == reflect.Ptr {
@@ -788,6 +797,9 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 	if len(values) == 0 || values[0] == "" {
 		if name.required {
 			return errors.New(h.handle.api.lang.Required(desc))
+		}
+		if field.tag._defaultParamString != "" {
+			return h.handleParamByString(value, field, field.tag._defaultParamString)
 		}
 		return
 	}

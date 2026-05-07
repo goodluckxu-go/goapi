@@ -675,6 +675,41 @@ func (h *handler) typeByXmlName(_type reflect.Type) (xmlName string) {
 	return
 }
 
+func (h *handler) setTagByDefaultParamString(val any) string {
+	switch v := val.(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, bool, string:
+		return toString(v)
+	default:
+		value := reflect.ValueOf(val)
+		for value.Kind() == reflect.Ptr {
+			if value.IsNil() {
+				return ""
+			}
+			value = value.Elem()
+		}
+		switch value.Kind() {
+		case reflect.Slice, reflect.Array:
+			var vals []string
+			for i := 0; i < value.Len(); i++ {
+				vals = append(vals, h.setTagByDefaultParamString(value.Index(i).Interface()))
+			}
+			return strings.Join(vals, ",")
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return h.setTagByDefaultParamString(value.Int())
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			return h.setTagByDefaultParamString(value.Uint())
+		case reflect.Float32, reflect.Float64:
+			return h.setTagByDefaultParamString(value.Float())
+		case reflect.Bool:
+			return h.setTagByDefaultParamString(value.Bool())
+		case reflect.String:
+			return value.String()
+		default:
+		}
+	}
+	return ""
+}
+
 func (h *handler) handleTagByInterface(fType reflect.Type, field *paramField, valPtr reflect.Value) (err error) {
 	var val any
 	if fType.Kind() == reflect.Ptr {
@@ -723,7 +758,13 @@ func (h *handler) handleTagByInterface(fType reflect.Type, field *paramField, va
 		field.tag.desc = h.getMappingTag(iTag.Desc())
 	}
 	if iTag, ok := val.(TagDefault); ok {
-		field.tag._default = iTag.Default()
+		fVal := reflect.New(field._type)
+		if !defaultSet(fVal, iTag.Default()) {
+			err = fmt.Errorf("the type returned by the 'Default' method must be consistent with the defined type")
+			return
+		}
+		field.tag._default = fVal.Interface()
+		field.tag._defaultParamString = h.setTagByDefaultParamString(field.tag._default)
 	}
 	if iTag, ok := val.(TagExample); ok {
 		field.tag.example = iTag.Example()
@@ -798,6 +839,7 @@ func (h *handler) handleTagByField(field reflect.StructField, pField *paramField
 		if err = h.parseTagValByField(tagVal, &pField.tag._default, pField); err != nil {
 			return
 		}
+		pField.tag._defaultParamString = h.setTagByDefaultParamString(tagVal)
 	}
 	if tagVal := field.Tag.Get(tagExample); tagVal != "" {
 		if err = h.parseTagValByField(tagVal, &pField.tag.example, pField); err != nil {

@@ -9,10 +9,11 @@ import (
 )
 
 type paramTag struct {
-	desc       string
-	_default   any
-	example    any
-	deprecated bool
+	desc                string
+	_default            any
+	_defaultParamString string // Used for assigning default values to parameters
+	example             any
+	deprecated          bool
 	// valid
 	regexp   string
 	enum     []any

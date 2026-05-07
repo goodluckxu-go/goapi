@@ -353,19 +353,84 @@ func toFirstUpper(s string) string {
 	return string(runes)
 }
 
-func valueSet(dst, src reflect.Value) {
+func valueSet(dst, src reflect.Value) (isSet bool) {
 	if !dst.CanSet() {
 		return
+	}
+	if src.Kind() == reflect.Interface {
+		src = src.Elem()
 	}
 	dstType := dst.Type()
 	srcType := src.Type()
 	if dstType == srcType {
 		dst.Set(src)
+		isSet = true
 		return
 	}
-	if dstType.ConvertibleTo(srcType) {
+	if srcType.ConvertibleTo(dstType) {
 		dst.Set(src.Convert(dstType))
+		isSet = true
+		return
 	}
+	if dst.Kind() != reflect.Ptr && src.Kind() != reflect.Ptr {
+		return
+	}
+	for src.Kind() == reflect.Ptr {
+		if src.IsNil() {
+			return
+		}
+		src = src.Elem()
+	}
+	for dst.Kind() == reflect.Ptr {
+		initPtr(dst)
+		dst = dst.Elem()
+	}
+	return valueSet(dst, src)
+}
+
+func defaultSet(dst reflect.Value, _default any) (isSet bool) {
+	if _default == nil {
+		return
+	}
+	dVal := reflect.ValueOf(_default)
+	if dVal.IsZero() {
+		return
+	}
+	for dVal.Kind() == reflect.Ptr {
+		if dVal.IsNil() {
+			return
+		}
+		dVal = dVal.Elem()
+	}
+	for dst.Kind() == reflect.Ptr {
+		initPtr(dst)
+		dst = dst.Elem()
+	}
+	switch dVal.Kind() {
+	case reflect.Array, reflect.Slice:
+		dValLen := dVal.Len()
+		if dValLen == 0 {
+			return
+		}
+		var newValue reflect.Value
+		if dst.Kind() == reflect.Slice {
+			newValue = reflect.MakeSlice(dst.Type(), dValLen, dValLen)
+		} else {
+			newValue = reflect.New(dst.Type()).Elem()
+		}
+		for i := 0; i < newValue.Len(); i++ {
+			if i < dValLen {
+				if !valueSet(newValue.Index(i), dVal.Index(i)) {
+					return
+				}
+			}
+		}
+		dst.Set(newValue)
+		isSet = true
+	default:
+		isSet = valueSet(dst, dVal)
+	}
+	return
 }
 
 func getHTTPError(err error, defaultCode int) error {
