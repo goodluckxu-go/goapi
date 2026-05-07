@@ -58,7 +58,7 @@ func (i *includeRouter) returnObj() (obj returnObjResult, err error) {
 				}
 			}
 		}
-		pInfo.tags = tagStrs
+		pInfo.tags = mergePathTags(pInfo.tags, tagStrs)
 		obj.paths = append(obj.paths, pInfo)
 		return
 	}
@@ -90,7 +90,7 @@ func (i *includeRouter) returnObj() (obj returnObjResult, err error) {
 				}
 			}
 		}
-		pInfo.tags = tagStrs
+		pInfo.tags = mergePathTags(pInfo.tags, tagStrs)
 		obj.paths = append(obj.paths, pInfo)
 	}
 	return

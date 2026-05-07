@@ -252,6 +252,23 @@ func toString(v any) string {
 	return fmt.Sprintf("%v", v)
 }
 
+func mergePathTags(tags []string, args []string) (list []string) {
+	list = make([]string, 0, len(tags)+len(args))
+	for _, tag := range tags {
+		if inArray(tag, list) {
+			continue
+		}
+		list = append(list, tag)
+	}
+	for _, arg := range args {
+		if inArray(arg, list) {
+			continue
+		}
+		list = append(list, arg)
+	}
+	return
+}
+
 func mergeOpenAPITags(tags []*openapi.Tag, args []*openapi.Tag) (list []*openapi.Tag) {
 	var tagStrs []string
 	for _, tag := range tags {
