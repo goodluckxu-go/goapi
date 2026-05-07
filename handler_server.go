@@ -212,24 +212,22 @@ func (h *handlerServer) execRouter(ctx *Context) {
 }
 
 func (h *handlerServer) handleResponse(ctx *Context, resp any) {
-	mediaType := h.getResponseMediaType(ctx)
-	var header http.Header
+	var contentType string
 	if fn, ok := resp.(ResponseHeader); ok {
-		header = fn.GetHeader()
-	}
-	if header == nil {
-		header = make(http.Header)
-	}
-	contentType := header.Get("Content-Type")
-	if contentType == "" {
-		contentType = string(mediaType)
-		header.Set("Content-Type", contentType)
-	}
-	mediaType = MediaType(contentType)
-	for key, vals := range header {
-		for _, val := range vals {
-			ctx.Writer.Header().Add(key, val)
+		header := fn.GetHeader()
+		for key, vals := range header {
+			for _, val := range vals {
+				ctx.Writer.Header().Add(key, val)
+			}
 		}
+		contentType = header.Get("Content-Type")
+	}
+	var mediaType MediaType
+	if contentType == "" {
+		mediaType = h.getResponseMediaType(ctx)
+		ctx.Writer.Header().Add("Content-Type", string(mediaType))
+	} else {
+		mediaType = MediaType(contentType)
 	}
 	if fn, ok := resp.(ResponseStatus); ok {
 		ctx.Writer.WriteHeader(fn.GetStatus())
