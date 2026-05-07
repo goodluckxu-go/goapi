@@ -9,6 +9,7 @@ import (
 )
 
 type paramTag struct {
+	name                string
 	desc                string
 	_default            any
 	_defaultParamString string // Used for assigning default values to parameters

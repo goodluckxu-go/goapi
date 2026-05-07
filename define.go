@@ -176,6 +176,7 @@ const (
 	tagMax        = "max"        // VALIDATION. openapi's maxLength,maxItems,maxProperties
 	tagMin        = "min"        // VALIDATION. openapi's minLength,minItems,minProperties
 	tagUnique     = "unique"     // VALIDATION. openapi's uniqueItems
+	tagName       = "name"       // Alias during verification, if not present, use desc
 	tagPaths      = "paths"
 	tagMethods    = "methods"
 	tagSummary    = "summary"

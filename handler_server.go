@@ -444,13 +444,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 
 func (h *handlerServer) validParamField(value reflect.Value, field *paramField, mediaType MediaType) (err error) {
 	name := field.names.getFieldName(mediaType)
-	desc := name.name
-	if desc == "" {
-		desc = field.name
-	}
-	if field.tag.desc != "" {
-		desc = field.tag.desc
-	}
+	desc := h.getDesc(name.name, field)
 	if !field.anonymous {
 		if value.Kind() != reflect.Ptr {
 			if value.IsZero() {
@@ -613,10 +607,7 @@ func (h *handlerServer) getParamStringSlice(fType reflect.Type, value string) (v
 
 func (h *handlerServer) handleParamByFields(value reflect.Value, field *paramField, fields []*multipart.FileHeader) (err error) {
 	name := field.names.getFieldName("")
-	desc := name.name
-	if field.tag.desc != "" {
-		desc = field.tag.desc
-	}
+	desc := h.getDesc(name.name, field)
 	if len(fields) == 0 || fields[0] == nil {
 		if name.required {
 			return errors.New(h.handle.api.lang.Required(desc))
@@ -647,10 +638,7 @@ func (h *handlerServer) handleParamByFields(value reflect.Value, field *paramFie
 
 func (h *handlerServer) handleParamByCookie(value reflect.Value, field *paramField, cookie *http.Cookie) (err error) {
 	name := field.names.getFieldName("")
-	desc := name.name
-	if field.tag.desc != "" {
-		desc = field.tag.desc
-	}
+	desc := h.getDesc(name.name, field)
 	if cookie == nil || cookie.Value == "" {
 		if name.required {
 			return errors.New(h.handle.api.lang.Required(desc))
@@ -670,10 +658,7 @@ func (h *handlerServer) handleParamByCookie(value reflect.Value, field *paramFie
 
 func (h *handlerServer) handleParamByString(value reflect.Value, field *paramField, val string) (err error) {
 	name := field.names.getFieldName("")
-	desc := name.name
-	if field.tag.desc != "" {
-		desc = field.tag.desc
-	}
+	desc := h.getDesc(name.name, field)
 	if val == "" {
 		if name.required {
 			return errors.New(h.handle.api.lang.Required(desc))
@@ -788,10 +773,7 @@ func (h *handlerServer) handleParamByString(value reflect.Value, field *paramFie
 
 func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *paramField, values []string) (err error) {
 	name := field.names.getFieldName("")
-	desc := name.name
-	if field.tag.desc != "" {
-		desc = field.tag.desc
-	}
+	desc := h.getDesc(name.name, field)
 	if len(values) == 0 || values[0] == "" {
 		if name.required {
 			return errors.New(h.handle.api.lang.Required(desc))
@@ -1123,4 +1105,17 @@ func (h *handlerServer) getResponseMediaType(ctx *Context) MediaType {
 		return responseMediaTypes[0]
 	}
 	return mediaType
+}
+
+func (h *handlerServer) getDesc(fieldName string, field *paramField) string {
+	if fieldName == "" {
+		fieldName = field.name
+	}
+	if field.tag.name != "" {
+		return field.tag.name
+	}
+	if field.tag.desc != "" {
+		return field.tag.desc
+	}
+	return fieldName
 }

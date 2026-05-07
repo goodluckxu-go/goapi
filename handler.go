@@ -772,6 +772,9 @@ func (h *handler) handleTagByInterface(fType reflect.Type, field *paramField, va
 	if iTag, ok := val.(TagDeprecated); ok {
 		field.tag.deprecated = iTag.Deprecated()
 	}
+	if iTag, ok := val.(TagName); ok {
+		field.tag.name = iTag.Name()
+	}
 	return
 }
 
@@ -848,6 +851,11 @@ func (h *handler) handleTagByField(field reflect.StructField, pField *paramField
 	}
 	if tagVal := field.Tag.Get(tagDeprecated); tagVal != "" {
 		if err = h.parseTagValByField(tagVal, &pField.tag.deprecated, pField); err != nil {
+			return
+		}
+	}
+	if tagVal := field.Tag.Get(tagName); tagVal != "" {
+		if err = h.parseTagValByField(tagVal, &pField.tag.name, pField); err != nil {
 			return
 		}
 	}

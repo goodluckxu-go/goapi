@@ -57,3 +57,7 @@ type TagExample interface {
 type TagDeprecated interface {
 	Deprecated() bool
 }
+
+type TagName interface {
+	Name() string
+}
