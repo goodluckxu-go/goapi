@@ -384,7 +384,6 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if toFirstUpper(authType) != "Bearer" {
 				token = ""
 			}
-			jwt := &JWT{}
 			inValueAny := inValue.Interface()
 			security := inValueAny.(HTTPBearerJWT)
 			valOmitempty := false
@@ -393,7 +392,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			}
 			if token == "" {
 				if valOmitempty {
-					if err = security.HTTPBearerJWT(jwt); err != nil {
+					if err = security.HTTPBearerJWT(nil); err != nil {
 						return
 					}
 					ctx.Extensions.param = nil
@@ -402,6 +401,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				err = NewHTTPError(authErrorCode, h.handle.api.lang.NotAuthenticated())
 				return
 			}
+			jwt := &JWT{}
 			if err = decryptJWT(jwt, token, security); err != nil {
 				err = NewHTTPError(authErrorCode, h.handle.api.lang.JwtTranslate(err.Error()))
 				return
