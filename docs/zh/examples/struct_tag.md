@@ -103,6 +103,7 @@ type Body struct {
 ~~~
 ### 示例
 - 类型验证 **string** **int** **float** **bool**
+- 类型验证可以验证上面类型的 **slice** 类型，用 **,** 分割
 - 文档可展示
 ~~~go
 type Body struct {
