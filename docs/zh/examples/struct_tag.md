@@ -93,7 +93,9 @@ type Body struct {
 ~~~
 ### 默认值
 - 类型验证 **string** **int** **float** **bool**
+- 类型验证可以验证上面类型的 **slice** 类型，用 **,** 分割
 - 文档可展示
+- 如果验证字段非非必填时，前端不传参数，后端则获取到默认的值
 ~~~go
 type Body struct {
 	Name string `json:"name" default:"zhangsan"`
@@ -113,5 +115,13 @@ type Body struct {
 ~~~go
 type Body struct {
 	Name string `json:"name" deprecated:"true"`
+}
+~~~
+### 名称
+- 验证是的自定义名字
+- 验证时名字优先级 **name标签** > **desc标签** > **结构体字段名称** > **类型名称**
+~~~go
+type Body struct {
+	Name string `json:"name" name:"名称"`
 }
 ~~~

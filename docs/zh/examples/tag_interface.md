@@ -172,6 +172,7 @@ func (s State)Desc() string  {
 ### 默认值
 - 类型验证 类型本身
 - 文档可展示
+- 如果验证字段非非必填时，前端不传参数，后端则获取到默认的值
 ~~~go
 // 实现接口
 type TagDefault interface {
@@ -212,5 +213,20 @@ type State string
 
 func (s State)Deprecated() bool  {
 	return true
+}
+~~~
+### 名称
+- 验证是的自定义名字
+- 验证时名字优先级 **TagName接口** > **TagDesc接口** > **结构体字段名称** > **类型名称**
+~~~go
+// 实现接口
+type TagName interface {
+	Name() string
+}
+
+type State string
+
+func (s State)Name() string  {
+	return "状态"
 }
 ~~~

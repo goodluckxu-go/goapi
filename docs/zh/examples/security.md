@@ -14,18 +14,19 @@ type SecurityOmitempty interface {
 ~~~go
 // 需要实现接口
 type HTTPBearer interface {
-	HTTPBearer(token string)
+	HTTPBearer(token string) error
 }
 
 type Auth struct {
 	Ctx *goapi.Context // 定义该字段可以传递上下文
 }
 
-func (a *Auth)HTTPBearer(token string)  {
+func (a *Auth)HTTPBearer(token string) error  {
     // 逻辑处理
 	if token != "123456" {
-		response.HTTPException(401,"验证失败")
+		return goapi.NewHTTPError(401,"验证失败")
 	}
+	return nil
 }
 
 // 是否非必填，返回true后表示传空可通过
@@ -37,18 +38,19 @@ func (a *Auth)Omitempty() bool  {
 ~~~go
 // 需要实现接口
 type HTTPBasic interface {
-	HTTPBasic(username, password string)
+	HTTPBasic(username, password string) error
 }
 
 type Auth struct {
 	Ctx *goapi.Context // 定义该字段可以传递上下文
 }
 
-func (a *Auth)HTTPBasic(username, password string)  {
+func (a *Auth)HTTPBasic(username, password string) error  {
 	// 逻辑处理 
 	if username != "admin" && password != "123456" {
-		goapi.HTTPException(401,"验证失败")
+		return goapi.NewHTTPError(401,"验证失败")
 	}
+	return nil
 }
 
 // 是否非必填，返回true后表示传空可通过
@@ -74,11 +76,12 @@ type Auth struct {
 	ID int64 `cookie:"ID" desc:"需要验证的ID"` // cookie通用验证
 }
 
-func (a *Auth)ApiKey()  {
+func (a *Auth)ApiKey() error  {
 	// 逻辑处理 
 	if a.Token != "admin" && a.Name != "admin" && a.ID != 15 {
-		goapi.HTTPException(401,"验证失败")
+		return goapi.NewHTTPError(401,"验证失败")
 	}
+	return nil
 }
 ~~~
 ### HTTPBearerJWT鉴权定义
@@ -96,7 +99,7 @@ type HTTPBearerJWT interface {
 	SigningMethod() SigningMethod
 
 	// HTTPBearerJWT jwt logical
-	HTTPBearerJWT(jwt *JWT)
+	HTTPBearerJWT(jwt *JWT) error
 }
 
 var privateKey, _ = os.ReadFile("private.pem")
@@ -116,11 +119,17 @@ func (a *Auth) SigningMethod() goapi.SigningMethod {
 	return goapi.SigningMethodRS256
 }
 
-func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) { 
+func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) error { 
+	// 非必填需要判断
+	if jwt == nil {
+		// 非必填逻辑
+		return nil
+	}
 	// 逻辑处理
 	if jwt.ID!="147258" {
-		goapi.HTTPException(401,"验证失败")
+		return goapi.NewHTTPError(401,"验证失败")
 	}
+	return nil
 }
 
 // 是否非必填，返回true后表示传空可通过
@@ -142,7 +151,7 @@ type HTTPBearerJWT interface {
 	SigningMethod() SigningMethod
 
 	// HTTPBearerJWT jwt logical
-	HTTPBearerJWT(jwt *JWT)
+	HTTPBearerJWT(jwt *JWT) error
 }
 
 var key []byte("1234568547854525")
@@ -159,11 +168,17 @@ func (a *Auth) SigningMethod() goapi.SigningMethod {
 	return goapi.SigningMethodHS256
 }
 
-func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) { 
-	// 逻辑处理
-	if jwt.ID!="147258" {
-		goapi.HTTPException(401,"验证失败")
+func (a *Auth) HTTPBearerJWT(jwt *goapi.JWT) error {
+	// 非必填需要判断 
+	if jwt == nil {
+		// 非必填逻辑 
+		return nil
 	}
+	// 逻辑处理 
+	if jwt.ID!="147258" {
+		return goapi.NewHTTPError(401,"验证失败")
+	}
+	return nil
 }
 
 // 是否非必填，返回true后表示传空可通过
