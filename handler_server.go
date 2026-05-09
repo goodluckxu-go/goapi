@@ -197,7 +197,15 @@ func (h *handlerServer) execRouter(ctx *Context) {
 		h.handleError(ctx, getHTTPError(err, validErrorCode))
 		return
 	}
+	// internal jump judgment of the security
+	if ctx.isRedirect {
+		return
+	}
 	rs := path.value.Call(inputs)
+	// internal jump judgment of the execution method
+	if ctx.isRedirect {
+		return
+	}
 	if len(rs) == 0 {
 		return
 	}
@@ -972,7 +980,7 @@ func (h *handlerServer) redirect(ctx *Context) {
 		if ctx.Request.Method != http.MethodGet {
 			code = http.StatusTemporaryRedirect
 		}
-		http.Redirect(ctx.Writer, ctx.Request, tsrPath, code)
+		ctx.Redirect(code, tsrPath)
 	})
 	ctx.Next()
 }

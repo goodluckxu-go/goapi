@@ -28,6 +28,7 @@ type Context struct {
 	ChildPath    string
 	RequestID    string
 	handleError  func(ctx *Context, err error)
+	isRedirect   bool
 	// prefix has 'x-'
 	Extensions *Extensions
 }
@@ -48,6 +49,7 @@ func (c *Context) reset() {
 	c.queryCache = nil
 	c.ChildPath = ""
 	c.RequestID = ""
+	c.isRedirect = false
 }
 
 func (c *Context) Deadline() (deadline time.Time, ok bool) {
@@ -180,4 +182,14 @@ func (c *Context) initQueryCache() {
 func (c *Context) Query() url.Values {
 	c.initQueryCache()
 	return c.queryCache
+}
+
+// Redirect returns an HTTP redirect to the specific location.
+func (c *Context) Redirect(status int, location string) {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	if !c.isRedirect {
+		http.Redirect(c.Writer, c.Request, location, status)
+		c.isRedirect = true
+	}
 }
