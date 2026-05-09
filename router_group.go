@@ -33,6 +33,7 @@ type RouterChild struct {
 	Swagger                swagger.Config
 	RedirectTrailingSlash  bool
 	HandleMethodNotAllowed bool // support http.StatusMethodNotAllowed
+	UseMediaType           bool // use the 'media_type' of the query, if not set, the header key 'Accept' will be used by default
 	// func set
 	noRoute            func(ctx *Context)
 	noMethod           func(ctx *Context)
@@ -107,6 +108,7 @@ func (r *RouterChild) returnObj() (obj returnObjResult, err error) {
 	child := obj.childMap[r.childPath]
 	child.redirectTrailingSlash = r.RedirectTrailingSlash
 	child.handleMethodNotAllowed = r.HandleMethodNotAllowed
+	child.useMediaType = r.UseMediaType
 	child.noRoute = r.noRoute
 	child.noMethod = r.noMethod
 	child.errorFunc = r.errorFunc

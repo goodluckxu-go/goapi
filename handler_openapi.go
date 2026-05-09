@@ -419,8 +419,8 @@ func (h *handlerOpenAPI) handleSecuritySchemes(openAPI *openapi.OpenAPI, path *p
 	if openAPI.Components != nil && openAPI.Components.SecuritySchemes != nil {
 		securitySchemes = openAPI.Components.SecuritySchemes
 	}
-	responseMediaTypes := h.handle.childMap[path.childPath].responseMediaTypes
-	if len(responseMediaTypes) > 1 {
+	child := h.handle.childMap[path.childPath]
+	if len(child.responseMediaTypes) > 1 && child.useMediaType {
 		securitySchemes["mediaType"] = &openapi.SecurityScheme{
 			Type:        "apiKey",
 			Name:        returnMediaTypeField,
@@ -479,8 +479,8 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 	var bodyMediaType MediaType
 	var bodyRequired []string
 	var securityRequirements []*openapi.SecurityRequirement
-	responseMediaTypes := h.handle.childMap[path.childPath].responseMediaTypes
-	if len(responseMediaTypes) > 1 {
+	child := h.handle.childMap[path.childPath]
+	if len(child.responseMediaTypes) > 1 && child.useMediaType {
 		securityRequirements = append(securityRequirements, &openapi.SecurityRequirement{
 			"mediaType": []string{},
 		})
@@ -596,7 +596,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 		resContentMap := map[string]*openapi.MediaType{}
 		contentType := path.outParam.httpHeader.Get("Content-Type")
 		if contentType == "" {
-			for _, mediaType := range responseMediaTypes {
+			for _, mediaType := range child.responseMediaTypes {
 				schema := &openapi.Schema{}
 				if mediaType.IsStream() {
 					schema.Type = "string"
@@ -667,7 +667,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 		resContentMap := map[string]*openapi.MediaType{}
 		contentType := er.outParam.httpHeader.Get("Content-Type")
 		if contentType == "" {
-			for _, mediaType := range responseMediaTypes {
+			for _, mediaType := range child.responseMediaTypes {
 				schema := &openapi.Schema{}
 				if mediaType.IsStream() {
 					schema.Type = "string"

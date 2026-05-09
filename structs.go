@@ -145,6 +145,7 @@ type returnObjDocs struct {
 type returnObjChild struct {
 	redirectTrailingSlash  bool
 	handleMethodNotAllowed bool
+	useMediaType           bool
 	noRoute                func(ctx *Context)
 	noMethod               func(ctx *Context)
 	errorFunc              func(err error) any

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"reflect"
@@ -1100,19 +1101,78 @@ func (h *handlerServer) getRequestMediaType(ctx *Context) MediaType {
 }
 
 func (h *handlerServer) getResponseMediaType(ctx *Context) MediaType {
-	responseMediaTypes := h.handle.childMap[ctx.ChildPath].responseMediaTypes
-	if len(responseMediaTypes) == 1 {
+	child := h.handle.childMap[ctx.ChildPath]
+	if len(child.responseMediaTypes) == 1 {
+		return child.responseMediaTypes[0]
+	}
+	if child.useMediaType {
+		mediaTypeStr := ctx.Request.URL.Query().Get(returnMediaTypeField)
+		if mediaTypeStr != "" {
+			mediaType := MediaType(mediaTypeStr).MediaType()
+			if inArray(mediaType, child.responseMediaTypes) {
+				return mediaType
+			}
+		}
+	}
+	return h.parseAccept(ctx.Request.Header.Get("Accept"), child.responseMediaTypes)
+}
+
+func (h *handlerServer) parseAccept(accept string, responseMediaTypes []MediaType) (mediaType MediaType) {
+	parts := strings.Split(accept, ",")
+	var mediaTypeQ float64 = -1
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		mediaTypeStr, params, err := mime.ParseMediaType(part)
+		if err != nil {
+			continue
+		}
+		q := 1.0
+		if qStr, ok := params["q"]; ok {
+			qVal, qErr := strconv.ParseFloat(qStr, 64)
+			if qErr == nil {
+				q = qVal
+				if q < 0 {
+					q = 0
+				}
+				if q > 1 {
+					q = 1
+				}
+			}
+		}
+		// no match
+		if q == 0 {
+			continue
+		}
+		if mediaTypeQ != -1 && mediaTypeQ >= q {
+			continue
+		}
+		if mediaTypeStr == "*/*" {
+			mediaTypeQ = q
+			mediaType = responseMediaTypes[0]
+		} else if strings.HasSuffix(mediaTypeStr, "/*") {
+			prefix := mediaTypeStr[:len(mediaTypeStr)-1]
+			for _, mt := range responseMediaTypes {
+				if strings.HasPrefix(string(mt), prefix) {
+					mediaTypeQ = q
+					mediaType = mt
+					break
+				}
+			}
+		} else {
+			mType := MediaType(mediaTypeStr)
+			if inArray(mType, responseMediaTypes) {
+				mediaTypeQ = q
+				mediaType = mType
+			}
+		}
+	}
+	if mediaType == "" {
 		return responseMediaTypes[0]
 	}
-	mediaTypeStr := ctx.Request.URL.Query().Get(returnMediaTypeField)
-	if mediaTypeStr == "" {
-		return responseMediaTypes[0]
-	}
-	mediaType := MediaType(mediaTypeStr).MediaType()
-	if mediaType.Tag() == "" || !inArray(mediaType, responseMediaTypes) {
-		return responseMediaTypes[0]
-	}
-	return mediaType
+	return
 }
 
 func (h *handlerServer) getDesc(fieldName string, field *paramField) string {
