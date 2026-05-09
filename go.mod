@@ -5,8 +5,9 @@ go 1.18
 require (
 	github.com/fatih/color v1.18.0
 	github.com/gofrs/uuid v4.4.0+incompatible
-	github.com/golang-jwt/jwt/v5 v5.2.3
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/shopspring/decimal v1.4.0
+	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -15,6 +16,5 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 )
