@@ -8,6 +8,10 @@ import (
 type EnUs struct {
 }
 
+func (e *EnUs) Abbr() string {
+	return "en-US"
+}
+
 func (e *EnUs) Required(field string) string {
 	return fmt.Sprintf("The %v is mandatory", field)
 }

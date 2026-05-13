@@ -8,6 +8,10 @@ import (
 type ZhCn struct {
 }
 
+func (z *ZhCn) Abbr() string {
+	return "zh-CN"
+}
+
 func (z *ZhCn) Required(field string) string {
 	return fmt.Sprintf("%v为必填", field)
 }

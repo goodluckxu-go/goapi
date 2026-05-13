@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-
-	"github.com/goodluckxu-go/goapi/v2/lang"
 )
 
 // New It is a newly created API function
@@ -18,7 +16,6 @@ func New(isDocs bool, docsPath ...string) *API {
 	api := &API{
 		log:                  &DefaultLogger{},
 		addr:                 ":8080",
-		lang:                 &lang.EnUs{},
 		structTagVariableMap: map[string]any{},
 	}
 	api.init()
@@ -38,7 +35,7 @@ func Default(isDocs bool, docsPath ...string) *API {
 type API struct {
 	IRouters
 	defaultMiddlewares   []HandleFunc
-	lang                 Lang
+	langList             []Lang
 	log                  Logger
 	addr                 string
 	structTagVariableMap map[string]any
@@ -46,8 +43,18 @@ type API struct {
 }
 
 // SetLang It is to set the validation language function
-func (a *API) SetLang(lang Lang) {
-	a.lang = lang
+func (a *API) SetLang(langs ...Lang) {
+	m := map[string]struct{}{}
+	for _, v := range a.langList {
+		m[v.Abbr()] = struct{}{}
+	}
+	for _, v := range langs {
+		if _, ok := m[v.Abbr()]; ok {
+			continue
+		}
+		m[v.Abbr()] = struct{}{}
+		a.langList = append(a.langList, v)
+	}
 }
 
 // SetLogger It is a function for setting custom logs

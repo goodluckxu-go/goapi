@@ -301,23 +301,23 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 		switch in.inType {
 		case inTypePath:
 			if val, ok := ctx.Params.Get(in.values[0].name); ok {
-				if err = h.handleParamByString(inValue, in.field, val); err != nil {
+				if err = h.handleParamByString(ctx, inValue, in.field, val); err != nil {
 					return
 				}
 			}
 		case inTypeQuery:
-			err = h.handleParamByStringSlice(inValue, in.field, ctx.Query()[in.values[0].name])
+			err = h.handleParamByStringSlice(ctx, inValue, in.field, ctx.Query()[in.values[0].name])
 			if err != nil {
 				return
 			}
 		case inTypeHeader:
-			if err = h.handleParamByString(inValue, in.field, ctx.Request.Header.Get(in.values[0].name)); err != nil {
+			if err = h.handleParamByString(ctx, inValue, in.field, ctx.Request.Header.Get(in.values[0].name)); err != nil {
 				return
 			}
 		case inTypeCookie:
 			cookie, _ := ctx.Request.Cookie(in.values[0].name)
 			if in.field._type.ConvertibleTo(typeCookie) {
-				if err = h.handleParamByCookie(inValue, in.field, cookie); err != nil {
+				if err = h.handleParamByCookie(ctx, inValue, in.field, cookie); err != nil {
 					return
 				}
 				continue
@@ -326,7 +326,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if cookie != nil {
 				val = cookie.Value
 			}
-			if err = h.handleParamByString(inValue, in.field, val); err != nil {
+			if err = h.handleParamByString(ctx, inValue, in.field, val); err != nil {
 				return
 			}
 		case inTypeForm:
@@ -339,7 +339,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 					val = ctx.Request.MultipartForm.Value[in.values[0].name][0]
 				}
 			}
-			if err = h.handleParamByString(inValue, in.field, val); err != nil {
+			if err = h.handleParamByString(ctx, inValue, in.field, val); err != nil {
 				return
 			}
 		case inTypeFile:
@@ -347,7 +347,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if ctx.Request.MultipartForm != nil {
 				files = ctx.Request.MultipartForm.File[in.values[0].name]
 			}
-			if err = h.handleParamByFields(inValue, in.field, files); err != nil {
+			if err = h.handleParamByFields(ctx, inValue, in.field, files); err != nil {
 				return
 			}
 		case inTypeBody:
@@ -361,7 +361,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if mediaType.IsStream() {
 				continue
 			}
-			err = h.validParamField(inValue, in.field, mediaType)
+			err = h.validParamField(ctx, inValue, in.field, mediaType)
 			if err != nil {
 				return
 			}
@@ -378,7 +378,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				valOmitempty = fn.Omitempty()
 			}
 			if !valOmitempty && token == "" {
-				err = NewHTTPError(authErrorCode, h.handle.api.lang.NotAuthenticated())
+				err = NewHTTPError(authErrorCode, ctx.lang().NotAuthenticated())
 				return
 			}
 			security := inValueAny.(HTTPBearer)
@@ -407,12 +407,12 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 					ctx.Extensions.param = nil
 					continue
 				}
-				err = NewHTTPError(authErrorCode, h.handle.api.lang.NotAuthenticated())
+				err = NewHTTPError(authErrorCode, ctx.lang().NotAuthenticated())
 				return
 			}
 			jwt := &JWT{}
 			if err = decryptJWT(jwt, token, security); err != nil {
-				err = NewHTTPError(authErrorCode, h.handle.api.lang.JwtTranslate(err.Error()))
+				err = NewHTTPError(authErrorCode, ctx.lang().JwtTranslate(err.Error()))
 				return
 			}
 			if err = security.HTTPBearerJWT(jwt); err != nil {
@@ -428,7 +428,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				valOmitempty = fn.Omitempty()
 			}
 			if !valOmitempty && username == "" {
-				err = NewHTTPError(authErrorCode, h.handle.api.lang.NotAuthenticated())
+				err = NewHTTPError(authErrorCode, ctx.lang().NotAuthenticated())
 				return
 			}
 			security := inValueAny.(HTTPBasic)
@@ -451,17 +451,17 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 	return
 }
 
-func (h *handlerServer) validParamField(value reflect.Value, field *paramField, mediaType MediaType) (err error) {
+func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field *paramField, mediaType MediaType) (err error) {
 	name := field.names.getFieldName(mediaType)
 	desc := h.getDesc(name.name, field)
 	if !field.anonymous {
 		if value.Kind() != reflect.Ptr {
 			if value.IsZero() {
 				if name.required {
-					return errors.New(h.handle.api.lang.Required(desc))
+					return errors.New(ctx.lang().Required(desc))
 				}
 				if defaultSet(value, field.tag._default) {
-					return h.validParamField(value, field, mediaType)
+					return h.validParamField(ctx, value, field, mediaType)
 				}
 				return
 			}
@@ -469,10 +469,10 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 			for value.Kind() == reflect.Ptr {
 				if value.IsNil() {
 					if name.required {
-						return errors.New(h.handle.api.lang.Required(desc))
+						return errors.New(ctx.lang().Required(desc))
 					}
 					if defaultSet(value, field.tag._default) {
-						return h.validParamField(value, field, mediaType)
+						return h.validParamField(ctx, value, field, mediaType)
 					}
 					return
 				}
@@ -495,43 +495,43 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 			fields = sInfo.fields
 		}
 		for _, childField := range fields {
-			if err = h.validParamField(value.Field(childField.index), childField, mediaType); err != nil {
+			if err = h.validParamField(ctx, value.Field(childField.index), childField, mediaType); err != nil {
 				return
 			}
 		}
 	case reflect.Slice, reflect.Array:
 		if field.tag.max != nil && uint64(value.Len()) > *field.tag.max {
-			return errors.New(h.handle.api.lang.Max(desc, *field.tag.max))
+			return errors.New(ctx.lang().Max(desc, *field.tag.max))
 		}
 		if uint64(value.Len()) < field.tag.min {
-			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
+			return errors.New(ctx.lang().Min(desc, field.tag.min))
 		}
 		if field.tag.unique {
 			m := map[any]struct{}{}
 			for i := 0; i < value.Len(); i++ {
 				if _, ok := m[value.Index(i).Interface()]; ok {
-					return errors.New(h.handle.api.lang.Unique(desc))
+					return errors.New(ctx.lang().Unique(desc))
 				}
 				m[value.Index(i).Interface()] = struct{}{}
 			}
 		}
 		for i := 0; i < value.Len(); i++ {
-			if err = h.validParamField(value.Index(i), field.fields[0], mediaType); err != nil {
+			if err = h.validParamField(ctx, value.Index(i), field.fields[0], mediaType); err != nil {
 				return
 			}
 		}
 	case reflect.Map:
 		if field.tag.max != nil && uint64(value.Len()) > *field.tag.max {
-			return errors.New(h.handle.api.lang.Max(desc, *field.tag.max))
+			return errors.New(ctx.lang().Max(desc, *field.tag.max))
 		}
 		if uint64(value.Len()) < field.tag.min {
-			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
+			return errors.New(ctx.lang().Min(desc, field.tag.min))
 		}
 		for _, key := range value.MapKeys() {
-			if err = h.validParamField(key, field.fields[0], mediaType); err != nil {
+			if err = h.validParamField(ctx, key, field.fields[0], mediaType); err != nil {
 				return
 			}
-			if err = h.validParamField(value.MapIndex(key), field.fields[1], mediaType); err != nil {
+			if err = h.validParamField(ctx, value.MapIndex(key), field.fields[1], mediaType); err != nil {
 				return
 			}
 		}
@@ -548,32 +548,32 @@ func (h *handlerServer) validParamField(value reflect.Value, field *paramField, 
 			valStr = value.String()
 		}
 		if field.tag.max != nil && uint64(len(valStr)) > *field.tag.max {
-			return errors.New(h.handle.api.lang.Max(desc, *field.tag.max))
+			return errors.New(ctx.lang().Max(desc, *field.tag.max))
 		}
 		if uint64(len(valStr)) < field.tag.min {
-			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
+			return errors.New(ctx.lang().Min(desc, field.tag.min))
 		}
 		if field.tag.regexp != "" {
 			if re := h.getCompiledRegexp(field.tag.regexp); re != nil && !re.MatchString(valStr) {
-				return errors.New(h.handle.api.lang.Regexp(desc, field.tag.regexp))
+				return errors.New(ctx.lang().Regexp(desc, field.tag.regexp))
 			}
 		}
 		if field.tag.enum != nil && !inArrayAny(any(valStr), field.tag.enum) {
-			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
+			return errors.New(ctx.lang().Enum(desc, field.tag.enum))
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		vFloat := float64(value.Int())
-		if err = h.validFloat64(vFloat, desc, field); err != nil {
+		if err = h.validFloat64(ctx, vFloat, desc, field); err != nil {
 			return
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		vFloat := float64(value.Uint())
-		if err = h.validFloat64(vFloat, desc, field); err != nil {
+		if err = h.validFloat64(ctx, vFloat, desc, field); err != nil {
 			return
 		}
 	case reflect.Float32, reflect.Float64:
 		vFloat := value.Float()
-		if err = h.validFloat64(vFloat, desc, field); err != nil {
+		if err = h.validFloat64(ctx, vFloat, desc, field); err != nil {
 			return
 		}
 	default:
@@ -614,12 +614,12 @@ func (h *handlerServer) getParamStringSlice(fType reflect.Type, value string) (v
 	return
 }
 
-func (h *handlerServer) handleParamByFields(value reflect.Value, field *paramField, fields []*multipart.FileHeader) (err error) {
+func (h *handlerServer) handleParamByFields(ctx *Context, value reflect.Value, field *paramField, fields []*multipart.FileHeader) (err error) {
 	name := field.names.getFieldName("")
 	desc := h.getDesc(name.name, field)
 	if len(fields) == 0 || fields[0] == nil {
 		if name.required {
-			return errors.New(h.handle.api.lang.Required(desc))
+			return errors.New(ctx.lang().Required(desc))
 		}
 		return
 	}
@@ -635,7 +635,7 @@ func (h *handlerServer) handleParamByFields(value reflect.Value, field *paramFie
 	case reflect.Slice, reflect.Array:
 		newValue := reflect.MakeSlice(value.Type(), len(fields), len(fields))
 		for i := 0; i < len(fields); i++ {
-			if err = h.handleParamByFields(newValue.Index(i), field.fields[0], []*multipart.FileHeader{fields[i]}); err != nil {
+			if err = h.handleParamByFields(ctx, newValue.Index(i), field.fields[0], []*multipart.FileHeader{fields[i]}); err != nil {
 				return
 			}
 		}
@@ -645,12 +645,12 @@ func (h *handlerServer) handleParamByFields(value reflect.Value, field *paramFie
 	return
 }
 
-func (h *handlerServer) handleParamByCookie(value reflect.Value, field *paramField, cookie *http.Cookie) (err error) {
+func (h *handlerServer) handleParamByCookie(ctx *Context, value reflect.Value, field *paramField, cookie *http.Cookie) (err error) {
 	name := field.names.getFieldName("")
 	desc := h.getDesc(name.name, field)
 	if cookie == nil || cookie.Value == "" {
 		if name.required {
-			return errors.New(h.handle.api.lang.Required(desc))
+			return errors.New(ctx.lang().Required(desc))
 		}
 		return
 	}
@@ -665,15 +665,15 @@ func (h *handlerServer) handleParamByCookie(value reflect.Value, field *paramFie
 	return
 }
 
-func (h *handlerServer) handleParamByString(value reflect.Value, field *paramField, val string) (err error) {
+func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, field *paramField, val string) (err error) {
 	name := field.names.getFieldName("")
 	desc := h.getDesc(name.name, field)
 	if val == "" {
 		if name.required {
-			return errors.New(h.handle.api.lang.Required(desc))
+			return errors.New(ctx.lang().Required(desc))
 		}
 		if field.tag._defaultParamString != "" {
-			return h.handleParamByString(value, field, field.tag._defaultParamString)
+			return h.handleParamByString(ctx, value, field, field.tag._defaultParamString)
 		}
 		return
 	}
@@ -690,23 +690,23 @@ func (h *handlerServer) handleParamByString(value reflect.Value, field *paramFie
 	switch field.kind {
 	case reflect.Slice, reflect.Array:
 		values := h.getParamStringSlice(field._type, val)
-		if err = h.handleParamByStringSlice(value, field, values); err != nil {
+		if err = h.handleParamByStringSlice(ctx, value, field, values); err != nil {
 			return
 		}
 	case reflect.String:
 		if field.tag.max != nil && uint64(len(val)) > *field.tag.max {
-			return errors.New(h.handle.api.lang.Max(desc, *field.tag.max))
+			return errors.New(ctx.lang().Max(desc, *field.tag.max))
 		}
 		if uint64(len(val)) < field.tag.min {
-			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
+			return errors.New(ctx.lang().Min(desc, field.tag.min))
 		}
 		if field.tag.regexp != "" {
 			if re := h.getCompiledRegexp(field.tag.regexp); re != nil && !re.MatchString(val) {
-				return errors.New(h.handle.api.lang.Regexp(desc, field.tag.regexp))
+				return errors.New(ctx.lang().Regexp(desc, field.tag.regexp))
 			}
 		}
 		if field.tag.enum != nil && !inArrayAny(any(val), field.tag.enum) {
-			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
+			return errors.New(ctx.lang().Enum(desc, field.tag.enum))
 		}
 		if field.isTextType {
 			if err = coverInterfaceByValue[TextInterface](value, func(fn TextInterface) error {
@@ -725,11 +725,11 @@ func (h *handlerServer) handleParamByString(value reflect.Value, field *paramFie
 		}
 		if valInt == 0 {
 			if name.required {
-				return errors.New(h.handle.api.lang.Required(desc))
+				return errors.New(ctx.lang().Required(desc))
 			}
 			return
 		}
-		if err = h.validFloat64(float64(valInt), desc, field); err != nil {
+		if err = h.validFloat64(ctx, float64(valInt), desc, field); err != nil {
 			return
 		}
 		value.SetInt(valInt)
@@ -741,11 +741,11 @@ func (h *handlerServer) handleParamByString(value reflect.Value, field *paramFie
 		}
 		if valUint == 0 {
 			if name.required {
-				return errors.New(h.handle.api.lang.Required(desc))
+				return errors.New(ctx.lang().Required(desc))
 			}
 			return
 		}
-		if err = h.validFloat64(float64(valUint), desc, field); err != nil {
+		if err = h.validFloat64(ctx, float64(valUint), desc, field); err != nil {
 			return
 		}
 		value.SetUint(valUint)
@@ -757,11 +757,11 @@ func (h *handlerServer) handleParamByString(value reflect.Value, field *paramFie
 		}
 		if valFloat == 0 {
 			if name.required {
-				return errors.New(h.handle.api.lang.Required(desc))
+				return errors.New(ctx.lang().Required(desc))
 			}
 			return
 		}
-		if err = h.validFloat64(valFloat, desc, field); err != nil {
+		if err = h.validFloat64(ctx, valFloat, desc, field); err != nil {
 			return
 		}
 		value.SetFloat(valFloat)
@@ -772,7 +772,7 @@ func (h *handlerServer) handleParamByString(value reflect.Value, field *paramFie
 			return
 		}
 		if field.tag.enum != nil && !inArrayAny(any(valBool), field.tag.enum) {
-			return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
+			return errors.New(ctx.lang().Enum(desc, field.tag.enum))
 		}
 		value.SetBool(valBool)
 	default:
@@ -780,15 +780,15 @@ func (h *handlerServer) handleParamByString(value reflect.Value, field *paramFie
 	return
 }
 
-func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *paramField, values []string) (err error) {
+func (h *handlerServer) handleParamByStringSlice(ctx *Context, value reflect.Value, field *paramField, values []string) (err error) {
 	name := field.names.getFieldName("")
 	desc := h.getDesc(name.name, field)
 	if len(values) == 0 || values[0] == "" {
 		if name.required {
-			return errors.New(h.handle.api.lang.Required(desc))
+			return errors.New(ctx.lang().Required(desc))
 		}
 		if field.tag._defaultParamString != "" {
-			return h.handleParamByString(value, field, field.tag._defaultParamString)
+			return h.handleParamByString(ctx, value, field, field.tag._defaultParamString)
 		}
 		return
 	}
@@ -805,16 +805,16 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 	switch field.kind {
 	case reflect.Slice, reflect.Array:
 		if field.tag.max != nil && uint64(len(values)) > *field.tag.max {
-			return errors.New(h.handle.api.lang.Max(desc, *field.tag.max))
+			return errors.New(ctx.lang().Max(desc, *field.tag.max))
 		}
 		if uint64(len(values)) < field.tag.min {
-			return errors.New(h.handle.api.lang.Min(desc, field.tag.min))
+			return errors.New(ctx.lang().Min(desc, field.tag.min))
 		}
 		if field.tag.unique {
 			m := map[any]struct{}{}
 			for _, val := range values {
 				if _, ok := m[val]; ok {
-					return errors.New(h.handle.api.lang.Unique(desc))
+					return errors.New(ctx.lang().Unique(desc))
 				}
 				m[val] = struct{}{}
 			}
@@ -829,14 +829,14 @@ func (h *handlerServer) handleParamByStringSlice(value reflect.Value, field *par
 		for i := 0; i < len(values); i++ {
 			if i < valLen {
 				childVal := newValue.Index(i)
-				if err = h.handleParamByStringSlice(childVal, field.fields[0], []string{values[i]}); err != nil {
+				if err = h.handleParamByStringSlice(ctx, childVal, field.fields[0], []string{values[i]}); err != nil {
 					return
 				}
 			}
 		}
 		valueSet(value, newValue)
 	default:
-		if err = h.handleParamByString(value, field, values[0]); err != nil {
+		if err = h.handleParamByString(ctx, value, field, values[0]); err != nil {
 			return
 		}
 	}
@@ -854,30 +854,30 @@ func (h *handlerServer) handleParamByOther(ctx *Context, value reflect.Value) {
 	}
 }
 
-func (h *handlerServer) validFloat64(vFloat float64, desc string, field *paramField) (err error) {
+func (h *handlerServer) validFloat64(ctx *Context, vFloat float64, desc string, field *paramField) (err error) {
 	if field.tag.lt != nil && vFloat >= *field.tag.lt {
-		return errors.New(h.handle.api.lang.Lt(desc, *field.tag.lt))
+		return errors.New(ctx.lang().Lt(desc, *field.tag.lt))
 	}
 	if field.tag.lte != nil && vFloat > *field.tag.lte {
-		return errors.New(h.handle.api.lang.Lte(desc, *field.tag.lte))
+		return errors.New(ctx.lang().Lte(desc, *field.tag.lte))
 	}
 	if field.tag.gt != nil && vFloat <= *field.tag.gt {
-		return errors.New(h.handle.api.lang.Gt(desc, *field.tag.gt))
+		return errors.New(ctx.lang().Gt(desc, *field.tag.gt))
 	}
 	if field.tag.gte != nil && vFloat < *field.tag.gte {
-		return errors.New(h.handle.api.lang.Gte(desc, *field.tag.gte))
+		return errors.New(ctx.lang().Gte(desc, *field.tag.gte))
 	}
 	if field.tag.multiple != nil {
 		if *field.tag.multiple == 0 {
-			return errors.New(h.handle.api.lang.MultipleOf(desc, *field.tag.multiple))
+			return errors.New(ctx.lang().MultipleOf(desc, *field.tag.multiple))
 		}
 		rs, _ := decimal.NewFromFloat(vFloat).Div(decimal.NewFromFloat(*field.tag.multiple)).Float64()
 		if rs != float64(int64(rs)) {
-			return errors.New(h.handle.api.lang.MultipleOf(desc, *field.tag.multiple))
+			return errors.New(ctx.lang().MultipleOf(desc, *field.tag.multiple))
 		}
 	}
 	if field.tag.enum != nil && !inArrayAny(any(vFloat), field.tag.enum) {
-		return errors.New(h.handle.api.lang.Enum(desc, field.tag.enum))
+		return errors.New(ctx.lang().Enum(desc, field.tag.enum))
 	}
 	return
 }
@@ -996,6 +996,7 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ctx.handleError = h.handleError
 	}
 	h.generateRequestID(ctx)
+	ctx.langInfo = h.parseAcceptLanguage(ctx, h.handle.langList)
 	h.handleHTTPRequest(ctx)
 	h.pool.Put(ctx)
 }
@@ -1171,6 +1172,72 @@ func (h *handlerServer) parseAccept(accept string, responseMediaTypes []MediaTyp
 	}
 	if mediaType == "" {
 		return responseMediaTypes[0]
+	}
+	return
+}
+
+func (h *handlerServer) parseAcceptLanguage(ctx *Context, langList []Lang) (lang Lang) {
+	if len(langList) == 1 {
+		return langList[0]
+	}
+	acceptLanguage := ctx.Request.Header.Get("Accept-Language")
+	acceptLanguage = strings.TrimSpace(acceptLanguage)
+	if acceptLanguage == "" {
+		return langList[0]
+	}
+	parts := strings.Split(acceptLanguage, ",")
+	var langQ float64 = -1
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		langStr, paramsStr, ok := strings.Cut(part, ";")
+		langStr = strings.TrimSpace(langStr)
+		q := 1.0
+		if ok {
+			paramsStr = strings.TrimSpace(paramsStr)
+			if paramsStr != "" {
+				pList := strings.Split(paramsStr, ";")
+				for _, v := range pList {
+					qKey, qValStr, qOk := strings.Cut(v, "=")
+					if !qOk {
+						continue
+					}
+					if strings.TrimSpace(qKey) == "q" {
+						qValStr = strings.TrimSpace(qValStr)
+						qVal, qErr := strconv.ParseFloat(qValStr, 64)
+						if qErr == nil {
+							q = qVal
+							if q < 0 {
+								q = 0
+							}
+							if q > 1 {
+								q = 1
+							}
+						}
+						break
+					}
+				}
+			}
+		}
+		// no match
+		if q == 0 {
+			continue
+		}
+		if langQ != -1 && langQ >= q {
+			continue
+		}
+		if h.handle.langMap[langStr] != nil {
+			langQ = q
+			lang = h.handle.langMap[langStr]
+			if q == 1.0 {
+				return
+			}
+		}
+	}
+	if lang == nil {
+		return langList[0]
 	}
 	return
 }

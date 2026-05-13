@@ -8,6 +8,10 @@ import (
 type JaJp struct {
 }
 
+func (j *JaJp) Abbr() string {
+	return "ja-JP"
+}
+
 func (j *JaJp) Required(field string) string {
 	return fmt.Sprintf("%vは必須です", field)
 }

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/goodluckxu-go/goapi/v2/lang"
 	"github.com/goodluckxu-go/goapi/v2/openapi"
 	"github.com/goodluckxu-go/goapi/v2/swagger"
 )
@@ -27,6 +28,7 @@ func newHandler(api *API) *handler {
 		openapiMap:             map[string]*openapi.OpenAPI{},
 		swaggerMap:             map[string]swagger.Config{},
 		errorMap:               map[string]*errorInfo{},
+		langMap:                map[string]Lang{},
 	}
 }
 
@@ -42,9 +44,18 @@ type handler struct {
 	swaggerMap             map[string]swagger.Config
 	childMap               map[string]returnObjChild
 	errorMap               map[string]*errorInfo
+	langList               []Lang
+	langMap                map[string]Lang
 }
 
 func (h *handler) Handle() {
+	h.langList = h.api.langList
+	if len(h.langList) == 0 {
+		h.langList = []Lang{&lang.EnUs{}}
+	}
+	for _, val := range h.langList {
+		h.langMap[val.Abbr()] = val
+	}
 	obj, err := h.api.returnObj()
 	if err != nil {
 		log.Fatal(err)

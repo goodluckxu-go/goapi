@@ -1,6 +1,7 @@
 package goapi
 
 type Lang interface {
+	Abbr() string
 	Required(field string) string
 	Lt(field string, val float64) string
 	Lte(field string, val float64) string

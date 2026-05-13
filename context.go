@@ -29,6 +29,7 @@ type Context struct {
 	RequestID    string
 	handleError  func(ctx *Context, err error)
 	isRedirect   bool
+	langInfo     Lang
 	// prefix has 'x-'
 	Extensions *Extensions
 }
@@ -192,4 +193,8 @@ func (c *Context) Redirect(status int, location string) {
 		http.Redirect(c.Writer, c.Request, location, status)
 		c.isRedirect = true
 	}
+}
+
+func (c *Context) lang() Lang {
+	return c.langInfo
 }
