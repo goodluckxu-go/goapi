@@ -12,6 +12,18 @@ import (
 	"testing"
 )
 
+func BenchmarkOneRouterByIncludeFunc(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/index/func", nil)
+	if err != nil {
+		panic(err)
+	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandler()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
 func BenchmarkOneRouter(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/index", nil)
 	if err != nil {
@@ -205,6 +217,7 @@ func testGetApiHandler(middlewares ...HandleFunc) http.Handler {
 	api.SetLogger(nil)
 	api.AddMiddleware(middlewares...)
 	api.IncludeRouter(&testRouters{}, "", false)
+	api.IncludeRouter(IndexFunc, "", false)
 	return api.Handler()
 }
 
@@ -238,6 +251,11 @@ func createFile(filePath string) (string, bytes.Buffer) {
 	// 结束multipart写入
 	w.Close()
 	return w.FormDataContentType(), b
+}
+
+func IndexFunc(input struct {
+	router Router `paths:"/index/func" methods:"get"`
+}) {
 }
 
 type testRouters struct {
