@@ -12,49 +12,37 @@ import (
 	"testing"
 )
 
-func BenchmarkOneRouterByIncludeFunc(b *testing.B) {
-	req, err := http.NewRequest(http.MethodGet, "/index/func", nil)
-	if err != nil {
-		panic(err)
-	}
-	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
-	for i := 0; i < b.N; i++ {
-		hd.ServeHTTP(writer, req)
-	}
-}
-
-func BenchmarkOneRouter(b *testing.B) {
+func BenchmarkOneRouter_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/index", nil)
 	if err != nil {
 		panic(err)
 	}
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkOneReturnRouter(b *testing.B) {
+func BenchmarkOneReturnRouter_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/index/return", nil)
 	if err != nil {
 		panic(err)
 	}
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkMiddlewareRouter(b *testing.B) {
+func BenchmarkMiddlewareRouter_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/middleware", nil)
 	if err != nil {
 		panic(err)
 	}
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler(func(ctx *Context) {
+	hd := testGetApiHandlerByFunc(func(ctx *Context) {
 		ctx.Next()
 	}, func(ctx *Context) {
 		ctx.Next()
@@ -64,121 +52,121 @@ func BenchmarkMiddlewareRouter(b *testing.B) {
 	}
 }
 
-func BenchmarkSecurityHTTPBearer(b *testing.B) {
+func BenchmarkSecurityHTTPBearer_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/security/http_bearer", nil)
 	if err != nil {
 		panic(err)
 	}
 	req.Header.Set("Authorization", "Bearer token")
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkSecurityHTTPBasic(b *testing.B) {
+func BenchmarkSecurityHTTPBasic_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/security/http_basic", nil)
 	if err != nil {
 		panic(err)
 	}
 	req.Header.Set("Authorization", "Basic dGVzdDoxMjM0NTY=")
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkSecurityApiKey(b *testing.B) {
+func BenchmarkSecurityApiKey_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/security/api_key", nil)
 	if err != nil {
 		panic(err)
 	}
 	req.Header.Set("Token", "123456")
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkParamPath(b *testing.B) {
+func BenchmarkParamPath_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/param/path/15", nil)
 	if err != nil {
 		panic(err)
 	}
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkParamPathAll(b *testing.B) {
+func BenchmarkParamPathAll_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/param/pathAll/img/1.png", nil)
 	if err != nil {
 		panic(err)
 	}
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkParamQuery(b *testing.B) {
+func BenchmarkParamQuery_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/param/query?query=1", nil)
 	if err != nil {
 		panic(err)
 	}
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkParamHeader(b *testing.B) {
+func BenchmarkParamHeader_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/param/header", nil)
 	if err != nil {
 		panic(err)
 	}
 	req.Header.Set("Header", "10")
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkParamCookieTypeString(b *testing.B) {
+func BenchmarkParamCookieTypeString_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/param/cookie/string", nil)
 	if err != nil {
 		panic(err)
 	}
 	req.Header.Add("Cookie", "cookie=125")
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkParamCookieTypeHttpCookie(b *testing.B) {
+func BenchmarkParamCookieTypeHttpCookie_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodGet, "/param/cookie/httpCookie", nil)
 	if err != nil {
 		panic(err)
 	}
 	req.Header.Add("Cookie", "cookie=125")
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkPostDataRouter(b *testing.B) {
+func BenchmarkPostDataRouter_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodPost, "/post", nil)
 	if err != nil {
 		panic(err)
@@ -190,14 +178,14 @@ func BenchmarkPostDataRouter(b *testing.B) {
 	})
 	req.ContentLength = int64(len(buf))
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		req.Body = io.NopCloser(bytes.NewBuffer(buf))
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func BenchmarkPostFileRouter(b *testing.B) {
+func BenchmarkPostFileRouter_Func(b *testing.B) {
 	req, err := http.NewRequest(http.MethodPost, "/post/file", nil)
 	if err != nil {
 		panic(err)
@@ -205,19 +193,228 @@ func BenchmarkPostFileRouter(b *testing.B) {
 	ctype, buf := createFile("./README.md")
 	req.Header.Set("Content-Type", ctype)
 	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
-	hd := testGetApiHandler()
+	hd := testGetApiHandlerByFunc()
 	for i := 0; i < b.N; i++ {
 		req.Body = io.NopCloser(bytes.NewBuffer(buf.Bytes()))
 		hd.ServeHTTP(writer, req)
 	}
 }
 
-func testGetApiHandler(middlewares ...HandleFunc) http.Handler {
+func BenchmarkOneRouter_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/index", nil)
+	if err != nil {
+		panic(err)
+	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkOneReturnRouter_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/index/return", nil)
+	if err != nil {
+		panic(err)
+	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkMiddlewareRouter_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/middleware", nil)
+	if err != nil {
+		panic(err)
+	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct(func(ctx *Context) {
+		ctx.Next()
+	}, func(ctx *Context) {
+		ctx.Next()
+	})
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkSecurityHTTPBearer_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/security/http_bearer", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Authorization", "Bearer token")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkSecurityHTTPBasic_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/security/http_basic", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Authorization", "Basic dGVzdDoxMjM0NTY=")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkSecurityApiKey_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/security/api_key", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Token", "123456")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamPath_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/path/15", nil)
+	if err != nil {
+		panic(err)
+	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamPathAll_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/pathAll/img/1.png", nil)
+	if err != nil {
+		panic(err)
+	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamQuery_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/query?query=1", nil)
+	if err != nil {
+		panic(err)
+	}
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamHeader_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/header", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Header", "10")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamCookieTypeString_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/cookie/string", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("Cookie", "cookie=125")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkParamCookieTypeHttpCookie_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodGet, "/param/cookie/httpCookie", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Add("Cookie", "cookie=125")
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkPostDataRouter_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodPost, "/post", nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	buf, _ := json.Marshal(map[string]interface{}{
+		"Id":   15,
+		"Name": "zs",
+	})
+	req.ContentLength = int64(len(buf))
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		req.Body = io.NopCloser(bytes.NewBuffer(buf))
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func BenchmarkPostFileRouter_Struct(b *testing.B) {
+	req, err := http.NewRequest(http.MethodPost, "/post/file", nil)
+	if err != nil {
+		panic(err)
+	}
+	ctype, buf := createFile("./README.md")
+	req.Header.Set("Content-Type", ctype)
+	writer := &responseWriter{ResponseWriter: httptest.NewRecorder()}
+	hd := testGetApiHandlerByStruct()
+	for i := 0; i < b.N; i++ {
+		req.Body = io.NopCloser(bytes.NewBuffer(buf.Bytes()))
+		hd.ServeHTTP(writer, req)
+	}
+}
+
+func testGetApiHandlerByFunc(middlewares ...HandleFunc) http.Handler {
+	api := New(false)
+	api.SetLogger(nil)
+	api.AddMiddleware(middlewares...)
+	t := new(testRouters)
+	api.IncludeRouter(t.Index, "", false)
+	api.IncludeRouter(t.IndexReturn, "", false)
+	api.IncludeRouter(t.HTTPBearer, "", false)
+	api.IncludeRouter(t.HTTPBasic, "", false)
+	api.IncludeRouter(t.ApiKey, "", false)
+	api.IncludeRouter(t.Middleware, "", false)
+	api.IncludeRouter(t.ParamPath, "", false)
+	api.IncludeRouter(t.ParamPathAll, "", false)
+	api.IncludeRouter(t.ParamQuery, "", false)
+	api.IncludeRouter(t.ParamHeader, "", false)
+	api.IncludeRouter(t.ParamCookieTypeString, "", false)
+	api.IncludeRouter(t.ParamCookieTypeHttpCookie, "", false)
+	api.IncludeRouter(t.PostData, "", false)
+	api.IncludeRouter(t.PostFile, "", false)
+	return api.Handler()
+}
+
+func testGetApiHandlerByStruct(middlewares ...HandleFunc) http.Handler {
 	api := New(false)
 	api.SetLogger(nil)
 	api.AddMiddleware(middlewares...)
 	api.IncludeRouter(&testRouters{}, "", false)
-	api.IncludeRouter(IndexFunc, "", false)
 	return api.Handler()
 }
 
@@ -251,11 +448,6 @@ func createFile(filePath string) (string, bytes.Buffer) {
 	// 结束multipart写入
 	w.Close()
 	return w.FormDataContentType(), b
-}
-
-func IndexFunc(input struct {
-	router Router `paths:"/index/func" methods:"get"`
-}) {
 }
 
 type testRouters struct {
