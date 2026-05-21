@@ -22,7 +22,6 @@ type Context struct {
 	skippedNodes *[]skippedNode
 	index        int
 	fullPath     string
-	mediaType    string
 	path         *pathInfo
 	queryCache   url.Values
 	ChildPath    string
@@ -128,6 +127,41 @@ func (c *Context) Next() {
 		return
 	}
 	handle(c)
+}
+
+// Copy returns a copy of the current context that can be safely used outside the request's scope.
+// This has to be used when the context has to be passed to a goroutine.
+func (c *Context) Copy() *Context {
+	cp := Context{
+		Request:     c.Request,
+		log:         c.log,
+		fullPath:    c.fullPath,
+		queryCache:  c.queryCache,
+		ChildPath:   c.ChildPath,
+		RequestID:   c.RequestID,
+		handleError: c.handleError,
+		langInfo:    c.langInfo,
+		Extensions:  c.Extensions.Root(),
+	}
+
+	cp.writermem.ResponseWriter = nil
+	cp.Writer = &cp.writermem
+
+	cp.Values = make(map[string]any, len(c.Values))
+	c.mux.RLock()
+	for k, v := range c.Values {
+		cp.Values[k] = v
+	}
+	c.mux.RUnlock()
+
+	if c.Params != nil && len(*c.Params) > 0 {
+		cParams := make([]Param, len(*c.Params))
+		copy(cParams, *c.Params)
+		params := Params(cParams)
+		cp.Params = &params
+	}
+
+	return &cp
 }
 
 // Logger It is a method of obtaining logs
