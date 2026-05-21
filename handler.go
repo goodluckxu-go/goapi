@@ -243,7 +243,12 @@ func (h *handler) Handle() {
 		if path.inFs != nil {
 			continue
 		}
+		extensions := map[string]any{}
 		for _, in := range path.inParams {
+			extends := h.handleExtensions(in.field, "")
+			for k, v := range extends {
+				extensions[k] = v
+			}
 			if in.inType == inTypeBody {
 				isBody := false
 				for _, val := range in.values {
@@ -271,6 +276,7 @@ func (h *handler) Handle() {
 				}
 			}
 		}
+		path.extensions = &Extensions{extensions: extensions}
 	}
 	for _, item := range h.errorMap {
 		if item.errorFunc != nil {
@@ -873,6 +879,73 @@ func (h *handler) handleTagByField(field reflect.StructField, pField *paramField
 	// handle extensions
 	pField.tag.extensions = h.getExtensionsTags(string(field.Tag))
 	return
+}
+
+func (h *handler) handleExtensions(field *paramField, prefix string, useStructMaps ...map[string]struct{}) (extensions map[string]any) {
+	extensions = map[string]any{}
+	useStructMap := map[string]struct{}{}
+	if len(useStructMaps) > 0 {
+		useStructMap = useStructMaps[0]
+	}
+	name := ""
+	switch field.kind {
+	case reflect.Struct:
+		name = "Struct"
+		if field.name != "" {
+			name += "_" + field.name
+		}
+		h.setExtensionsPrefix(&prefix, name)
+		for k, v := range field.tag.extensions {
+			extensions[name+"."+k] = v
+		}
+		if field.pkgName != "" {
+			if _, ok := useStructMap[field.pkgName]; ok {
+				return
+			}
+			useStructMap[field.pkgName] = struct{}{}
+			stInfo := h.structs[field.pkgName]
+			field.fields = stInfo.fields
+		}
+		for _, item := range field.fields {
+			childExtensions := h.handleExtensions(item, prefix, useStructMap)
+			for k, v := range childExtensions {
+				extensions[k] = v
+			}
+		}
+	case reflect.Slice, reflect.Array:
+		name = "Slice"
+		h.setExtensionsPrefix(&prefix, name)
+		for k, v := range field.tag.extensions {
+			extensions[name+"."+k] = v
+		}
+		childExtensions := h.handleExtensions(field.fields[0], prefix, useStructMap)
+		for k, v := range childExtensions {
+			extensions[k] = v
+		}
+	case reflect.Map:
+		name = "Map"
+		h.setExtensionsPrefix(&prefix, name)
+		for k, v := range field.tag.extensions {
+			extensions[name+"."+k] = v
+		}
+		childExtensions := h.handleExtensions(field.fields[1], prefix, useStructMap)
+		for k, v := range childExtensions {
+			extensions[k] = v
+		}
+	default:
+		for k, v := range field.tag.extensions {
+			extensions[prefix+"."+k] = v
+		}
+	}
+	return
+}
+
+func (h *handler) setExtensionsPrefix(prefix *string, name string) {
+	if *prefix == "" {
+		*prefix = name
+		return
+	}
+	*prefix = *prefix + "." + name
 }
 
 func (h *handler) getExtensionsTags(tag string) (extensions map[string]any) {

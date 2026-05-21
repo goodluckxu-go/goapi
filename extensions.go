@@ -1,75 +1,86 @@
 package goapi
 
 import (
-	"reflect"
 	"strconv"
 )
 
 type Extensions struct {
-	param   *paramField
-	ins     []*inParam
-	structs map[string]*structInfo
-}
-
-func (l *Extensions) init() {
-	if l.param == nil {
-		l.param = &paramField{
-			kind: reflect.Struct,
-			tag:  &paramTag{},
-		}
-		for _, in := range l.ins {
-			l.param.fields = append(l.param.fields, in.field)
-		}
-	}
+	extensions map[string]any
+	prefix     string
 }
 
 func (l *Extensions) new() (t *Extensions) {
-	t = &Extensions{param: l.param, ins: l.ins, structs: l.structs}
-	t.init()
+	if len(l.extensions) == 0 {
+		return l
+	}
+	t = new(Extensions)
+	t.extensions = l.extensions
+	t.prefix = l.prefix
 	return
 }
 
 // Root Obtain the root level
 func (l *Extensions) Root() (t *Extensions) {
-	t = &Extensions{ins: l.ins, structs: l.structs}
-	t.init()
+	if len(l.extensions) == 0 {
+		return l
+	}
+	t = l.new()
+	t.prefix = ""
 	return
 }
 
 // Struct kind of struct
 func (l *Extensions) Struct(field string) (t *Extensions) {
+	if len(l.extensions) == 0 {
+		return l
+	}
 	t = l.new()
-	if len(t.param.fields) == 0 {
-		t.param.fields = t.structs[t.param.pkgName].fields
+	name := "Struct_" + field
+	if t.prefix == "" {
+		t.prefix = name
+	} else {
+		t.prefix += "." + name
 	}
-	for _, pf := range t.param.fields {
-		if pf.name == field {
-			t.param = pf
-			return t
-		}
-	}
-	return nil
+	return
 }
 
 // Map kind of map
 func (l *Extensions) Map() (t *Extensions) {
+	if len(l.extensions) == 0 {
+		return l
+	}
 	t = l.new()
-	t.param = t.param.fields[1]
+	name := "Map"
+	if t.prefix == "" {
+		t.prefix = name
+	} else {
+		t.prefix += "." + name
+	}
 	return
 }
 
 // Slice kind of array/slice
 func (l *Extensions) Slice() (t *Extensions) {
+	if len(l.extensions) == 0 {
+		return l
+	}
 	t = l.new()
-	t.param = t.param.fields[0]
-	return l
+	name := "Slice"
+	if t.prefix == "" {
+		t.prefix = name
+	} else {
+		t.prefix += "." + name
+	}
+	return
 }
 
 // Get the extended content
 // key prefix has 'x-'
 func (l *Extensions) Get(key string) (val any, ok bool) {
-	l.init()
-	val, ok = l.param.tag.extensions[key]
+	if len(l.extensions) == 0 {
+		return
+	}
+	val, ok = l.extensions[l.prefix+"."+key]
 	return
 }
 

@@ -127,7 +127,6 @@ func (h *handlerServer) handleStaticPath(path string) string {
 func (h *handlerServer) handleStaticFS(path *pathInfo) HandleFunc {
 	pathS := h.handleStaticPath(path.paths[0])
 	fileServer := http.StripPrefix(pathS, http.FileServer(path.inFs))
-	path.extensions = &Extensions{ins: path.inParams, structs: h.handle.structs}
 	return func(ctx *Context) {
 		ctx.path = path
 		ctx.Extensions = path.extensions
@@ -153,7 +152,6 @@ func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 			h.execRouter(ctx)
 		}
 	}
-	path.extensions = &Extensions{ins: path.inParams, structs: h.handle.structs}
 	return func(ctx *Context) {
 		ctx.path = path
 		ctx.Extensions = path.extensions
@@ -385,7 +383,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if err = security.HTTPBearer(token); err != nil {
 				return
 			}
-			ctx.Extensions.param = nil
+			ctx.Extensions.prefix = ""
 		case inTypeSecurityHTTPBearerJWT:
 			initPtr(inValue)
 			authorization := ctx.Request.Header.Get("Authorization")
@@ -404,7 +402,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 					if err = security.HTTPBearerJWT(nil); err != nil {
 						return
 					}
-					ctx.Extensions.param = nil
+					ctx.Extensions.prefix = ""
 					continue
 				}
 				err = NewHTTPError(authErrorCode, ctx.lang().NotAuthenticated())
@@ -418,7 +416,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if err = security.HTTPBearerJWT(jwt); err != nil {
 				return
 			}
-			ctx.Extensions.param = nil
+			ctx.Extensions.prefix = ""
 		case inTypeSecurityHTTPBasic:
 			initPtr(inValue)
 			username, password, _ := ctx.Request.BasicAuth()
@@ -435,14 +433,14 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if err = security.HTTPBasic(username, password); err != nil {
 				return
 			}
-			ctx.Extensions.param = nil
+			ctx.Extensions.prefix = ""
 		case inTypeSecurityApiKey:
 			initPtr(inValue)
 			security := inValue.Interface().(ApiKey)
 			if err = security.ApiKey(); err != nil {
 				return
 			}
-			ctx.Extensions.param = nil
+			ctx.Extensions.prefix = ""
 		case inTypeOther:
 			ctx.Extensions = ctx.Extensions.Struct(in.parentName)
 			h.handleParamByOther(ctx, inValue)
