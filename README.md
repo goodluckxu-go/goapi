@@ -1,5 +1,7 @@
-![Markdown Logo](logo.png)
 # goapi
+
+<img align="right" width="159px" src="logo.png">
+
 使用OpenAPI3.1文档的HTTP框架
 使用说明:
 - [中文文档](docs/zh/index.md)
