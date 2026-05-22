@@ -2,7 +2,6 @@ package goapi
 
 import (
 	"bytes"
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -10,8 +9,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
-
-	"gopkg.in/yaml.v3"
+	"sync"
 )
 
 type InType string
@@ -60,37 +58,73 @@ const (
 
 const returnMediaTypeField = "media_type"
 
-var mediaTypeTagMap = map[string]MediaType{
-	"xml":  XML,
-	"json": JSON,
-	"yaml": YAML,
+type mediaTypes struct {
+	mediaTypeTagMap      map[string]MediaType
+	tagMediaTypeMap      map[MediaType]string
+	analysisMediaTypeMap map[MediaType]MediaTypeAnalysis
+}
+
+func (m mediaTypes) setMediaTypeAnalysis(mediaTypeAnalysis MediaTypeAnalysis) {
+	mediaType, tag := mediaTypeAnalysis.Info()
+	if mediaType == "" {
+		return
+	}
+	m.tagMediaTypeMap[mediaType] = tag
+	m.analysisMediaTypeMap[mediaType] = mediaTypeAnalysis
+	if tag != "" {
+		m.mediaTypeTagMap[tag] = mediaType
+	} else if oldTag := m.tagMediaTypeMap[mediaType]; oldTag != "" {
+		delete(m.mediaTypeTagMap, oldTag)
+	}
+}
+
+func (m mediaTypes) getMediaTypeAnalysis(mediaType MediaType) MediaTypeAnalysis {
+	return m.analysisMediaTypeMap[mediaType]
+}
+
+func (m mediaTypes) getTag(mediaType MediaType) string {
+	return m.tagMediaTypeMap[mediaType]
+}
+
+func (m mediaTypes) getMediaType(tag string) MediaType {
+	return m.mediaTypeTagMap[tag]
+}
+
+var allMediaType = mediaTypes{
+	mediaTypeTagMap:      map[string]MediaType{},
+	tagMediaTypeMap:      map[MediaType]string{},
+	analysisMediaTypeMap: map[MediaType]MediaTypeAnalysis{},
 }
 
 type MediaType string
 
-func (m MediaType) Tag() string {
-	for k, v := range mediaTypeTagMap {
-		if MediaType(k) == m.MediaType() || v == m.MediaType() {
-			return k
-		}
+var bufPool sync.Pool
+
+func init() {
+	bufPool.New = func() any {
+		return &bytes.Buffer{}
 	}
-	return ""
+}
+
+func (m MediaType) Tag() string {
+	if rs := allMediaType.getTag(m); rs != "" {
+		return rs
+	}
+	return allMediaType.getTag(m.MediaType())
 }
 
 func (m MediaType) MediaType() MediaType {
 	mediaTypeStr := string(m)
-	mediaType := mediaTypeTagMap[mediaTypeStr]
-	if mediaType != "" {
-		return mediaType
+	if rs := allMediaType.getMediaType(mediaTypeStr); rs != "" {
+		return rs
 	}
 	mediaTypeStr, _, _ = strings.Cut(mediaTypeStr, ";")
 	return MediaType(mediaTypeStr)
 }
 
 func (m MediaType) DefaultName(name string) string {
-	switch m {
-	case YAML:
-		return strings.ToLower(name)
+	if analysis := allMediaType.getMediaTypeAnalysis(m); analysis != nil {
+		return analysis.DefaultName(name)
 	}
 	return name
 }
@@ -103,20 +137,8 @@ func (m MediaType) IsStream() bool {
 }
 
 func (m MediaType) Marshaler(v any) ([]byte, error) {
-	switch m {
-	case JSON:
-		return json.Marshal(v)
-	case XML:
-		b := new(bytes.Buffer)
-		b.WriteString(xml.Header)
-		body, err := xml.Marshal(v)
-		if err != nil {
-			return nil, err
-		}
-		b.Write(body)
-		return b.Bytes(), nil
-	case YAML:
-		return yaml.Marshal(v)
+	if analysis := allMediaType.getMediaTypeAnalysis(m); analysis != nil {
+		return analysis.Marshal(v)
 	}
 	switch val := v.(type) {
 	case []byte:
@@ -128,28 +150,31 @@ func (m MediaType) Marshaler(v any) ([]byte, error) {
 }
 
 func (m MediaType) Unmarshaler(body io.ReadCloser, value reflect.Value) error {
-	switch m {
-	case JSON:
-		return json.NewDecoder(body).Decode(value.Interface())
-	case XML:
-		return xml.NewDecoder(body).Decode(value.Interface())
-	case YAML:
-		return yaml.NewDecoder(body).Decode(value.Interface())
-	default:
-		value = value.Elem()
-		if value.Type().ConvertibleTo(typeBytes) {
-			buf, err := io.ReadAll(body)
-			if err != nil {
-				return err
-			}
-			value.Set(reflect.ValueOf(buf).Convert(value.Type()))
-			return nil
+	if analysis := allMediaType.getMediaTypeAnalysis(m); analysis != nil {
+		buf := bufPool.Get().(*bytes.Buffer)
+		defer func() {
+			buf.Reset()
+			bufPool.Put(buf)
+		}()
+		if _, err := io.Copy(buf, body); err != nil {
+			return err
 		}
-		if value.Type() == typeReadCloser {
-			value.Set(reflect.ValueOf(body))
-			return nil
-		}
+		return analysis.Unmarshal(buf.Bytes(), value.Interface())
 	}
+	value = value.Elem()
+	if value.Type().ConvertibleTo(typeBytes) {
+		buf, err := io.ReadAll(body)
+		if err != nil {
+			return err
+		}
+		value.Set(reflect.ValueOf(buf).Convert(value.Type()))
+		return nil
+	}
+	if value.Type() == typeReadCloser {
+		value.Set(reflect.ValueOf(body))
+		return nil
+	}
+
 	return fmt.Errorf("MediaType: unknown type: %s", m)
 }
 
