@@ -183,15 +183,17 @@ func (h *handlerServer) execRouter(ctx *Context) {
 	var err error
 	var inputs []reflect.Value
 	lastInputIdx := 0
+	var ctxVal reflect.Value
 	if len(path.inTypes) == 2 {
 		inputs = make([]reflect.Value, 2)
-		inputs[0] = reflect.ValueOf(ctx)
+		ctxVal = reflect.ValueOf(ctx)
+		inputs[0] = ctxVal
 		lastInputIdx = 1
 	} else {
 		inputs = make([]reflect.Value, 1)
 		lastInputIdx = 0
 	}
-	inputs[lastInputIdx], err = h.handleInParamToValue(ctx, path.inTypes[lastInputIdx], path.inParams)
+	inputs[lastInputIdx], err = h.handleInParamToValue(ctx, ctxVal, path.inTypes[lastInputIdx], path.inParams)
 	if err != nil {
 		h.handleError(ctx, getHTTPError(err, validErrorCode))
 		return
@@ -270,7 +272,7 @@ func (h *handlerServer) copyReader(w ResponseWriter, r io.ReadCloser) error {
 	}
 }
 
-func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, ins []*inParam) (value reflect.Value, err error) {
+func (h *handlerServer) handleInParamToValue(ctx *Context, ctxVal reflect.Value, inType reflect.Type, ins []*inParam) (value reflect.Value, err error) {
 	value = reflect.New(inType).Elem()
 	for value.Kind() == reflect.Ptr {
 		initPtr(value)
@@ -437,7 +439,7 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 				return
 			}
 		case inTypeOther:
-			h.handleParamByOther(ctx, inValue)
+			h.handleParamByOther(ctx, ctxVal, inValue)
 		}
 	}
 	return
@@ -835,10 +837,13 @@ func (h *handlerServer) handleParamByStringSlice(ctx *Context, value reflect.Val
 	return
 }
 
-func (h *handlerServer) handleParamByOther(ctx *Context, value reflect.Value) {
+func (h *handlerServer) handleParamByOther(ctx *Context, ctxVal reflect.Value, value reflect.Value) {
 	for value.Kind() == reflect.Ptr {
 		if value.Type().ConvertibleTo(typeContext) {
-			valueSet(value, reflect.ValueOf(ctx))
+			if !ctxVal.IsValid() {
+				ctxVal = reflect.ValueOf(ctx)
+			}
+			valueSet(value, ctxVal)
 			return
 		}
 		initPtr(value)
