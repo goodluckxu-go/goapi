@@ -383,7 +383,6 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if err = security.HTTPBearer(token); err != nil {
 				return
 			}
-			ctx.Extensions.prefix = ""
 		case inTypeSecurityHTTPBearerJWT:
 			initPtr(inValue)
 			authorization := ctx.Request.Header.Get("Authorization")
@@ -402,7 +401,6 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 					if err = security.HTTPBearerJWT(nil); err != nil {
 						return
 					}
-					ctx.Extensions.prefix = ""
 					continue
 				}
 				err = NewHTTPError(authErrorCode, ctx.lang().NotAuthenticated())
@@ -416,7 +414,6 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if err = security.HTTPBearerJWT(jwt); err != nil {
 				return
 			}
-			ctx.Extensions.prefix = ""
 		case inTypeSecurityHTTPBasic:
 			initPtr(inValue)
 			username, password, _ := ctx.Request.BasicAuth()
@@ -433,16 +430,13 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, inType reflect.Type, 
 			if err = security.HTTPBasic(username, password); err != nil {
 				return
 			}
-			ctx.Extensions.prefix = ""
 		case inTypeSecurityApiKey:
 			initPtr(inValue)
 			security := inValue.Interface().(ApiKey)
 			if err = security.ApiKey(); err != nil {
 				return
 			}
-			ctx.Extensions.prefix = ""
 		case inTypeOther:
-			ctx.Extensions = ctx.Extensions.Struct(in.parentName)
 			h.handleParamByOther(ctx, inValue)
 		}
 	}

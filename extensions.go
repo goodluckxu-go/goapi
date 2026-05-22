@@ -4,105 +4,32 @@ import (
 	"strconv"
 )
 
-type Extensions struct {
-	extensions map[string]any
-	prefix     string
-}
+type Extensions map[string][]string
 
-func (l *Extensions) new() (t *Extensions) {
-	if len(l.extensions) == 0 {
-		return l
-	}
-	t = new(Extensions)
-	t.extensions = l.extensions
-	t.prefix = l.prefix
-	return
-}
-
-// Root Obtain the root level
-func (l *Extensions) Root() (t *Extensions) {
-	if len(l.extensions) == 0 {
-		return l
-	}
-	t = l.new()
-	t.prefix = ""
-	return
-}
-
-// Struct kind of struct
-func (l *Extensions) Struct(field string) (t *Extensions) {
-	if len(l.extensions) == 0 {
-		return l
-	}
-	t = l.new()
-	name := "Struct_" + field
-	if t.prefix == "" {
-		t.prefix = name
-	} else {
-		t.prefix += "." + name
-	}
-	return
-}
-
-// Map kind of map
-func (l *Extensions) Map() (t *Extensions) {
-	if len(l.extensions) == 0 {
-		return l
-	}
-	t = l.new()
-	name := "Map"
-	if t.prefix == "" {
-		t.prefix = name
-	} else {
-		t.prefix += "." + name
-	}
-	return
-}
-
-// Slice kind of array/slice
-func (l *Extensions) Slice() (t *Extensions) {
-	if len(l.extensions) == 0 {
-		return l
-	}
-	t = l.new()
-	name := "Slice"
-	if t.prefix == "" {
-		t.prefix = name
-	} else {
-		t.prefix += "." + name
-	}
-	return
-}
-
-// Get the extended content
+// Get Obtain extended information, only tags at the same level as 'goapi.Router' are supported
+//
+//	struct {
+//		router goapi.Router `paths:"/" methods:"get" x-test1:"1"` // x-test1 are supported
+//		Body struct {
+//			Page int `query:"page" x-error:"error"` // x-error no supported, not at the same level as 'goapi.Router'
+//		} `x-test2:"2"` // x-test2 are supported
+//		Limit int `query:"limit" x-test3:"3"` // x-test3 are supported
+//	}
+//
 // key prefix has 'x-'
-func (l *Extensions) Get(key string) (val any, ok bool) {
-	if len(l.extensions) == 0 {
-		return
+func (l Extensions) Get(key string) (val string) {
+	list := l[key]
+	if len(list) > 0 {
+		val = list[0]
 	}
-	val, ok = l.extensions[l.prefix+"."+key]
 	return
-}
-
-// GetValue the extended content
-// key prefix has 'x-'
-func (l *Extensions) GetValue(key string) (val any) {
-	val, _ = l.Get(key)
-	return
-}
-
-// GetString the extended content
-// key prefix has 'x-'
-func (l *Extensions) GetString(key string) string {
-	valStr, _ := l.GetValue(key).(string)
-	return valStr
 }
 
 // GetInt the extended content
 // key prefix has 'x-'
-func (l *Extensions) GetInt(key string) int64 {
-	valStr, ok := l.GetValue(key).(string)
-	if !ok {
+func (l Extensions) GetInt(key string) int64 {
+	valStr := l.Get(key)
+	if valStr == "" {
 		return 0
 	}
 	val, _ := strconv.ParseInt(valStr, 10, 64)
@@ -111,9 +38,9 @@ func (l *Extensions) GetInt(key string) int64 {
 
 // GetUint the extended content
 // key prefix has 'x-'
-func (l *Extensions) GetUint(key string) uint64 {
-	valStr, ok := l.GetValue(key).(string)
-	if !ok {
+func (l Extensions) GetUint(key string) uint64 {
+	valStr := l.Get(key)
+	if valStr == "" {
 		return 0
 	}
 	val, _ := strconv.ParseUint(valStr, 10, 64)
@@ -122,9 +49,9 @@ func (l *Extensions) GetUint(key string) uint64 {
 
 // GetFloat the extended content
 // key prefix has 'x-'
-func (l *Extensions) GetFloat(key string) float64 {
-	valStr, ok := l.GetValue(key).(string)
-	if !ok {
+func (l Extensions) GetFloat(key string) float64 {
+	valStr := l.Get(key)
+	if valStr == "" {
 		return 0
 	}
 	val, _ := strconv.ParseFloat(valStr, 64)
@@ -133,9 +60,9 @@ func (l *Extensions) GetFloat(key string) float64 {
 
 // GetBool the extended content
 // key prefix has 'x-'
-func (l *Extensions) GetBool(key string) bool {
-	valStr, ok := l.GetValue(key).(string)
-	if !ok {
+func (l Extensions) GetBool(key string) bool {
+	valStr := l.Get(key)
+	if valStr == "" {
 		return false
 	}
 	val, _ := strconv.ParseBool(valStr)

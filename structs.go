@@ -82,7 +82,6 @@ type structInfo struct {
 type inParam struct {
 	inType       InType
 	parentInType InType
-	parentName   string
 	values       paramFieldNames
 	deeps        []int
 	structField  reflect.StructField
@@ -112,7 +111,7 @@ type pathInfo struct {
 	outParam         *outParam
 	middlewares      []HandleFunc
 	handlersWithExec []HandleFunc // Pre-built: middlewares + execRouter, reducing allocation for each request
-	extensions       *Extensions
+	extensions       Extensions
 	// openapi
 	summary     string
 	desc        string

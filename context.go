@@ -30,7 +30,7 @@ type Context struct {
 	isRedirect   bool
 	langInfo     Lang
 	// prefix has 'x-'
-	Extensions *Extensions
+	Extensions Extensions
 }
 
 func (c *Context) reset() {
@@ -141,7 +141,7 @@ func (c *Context) Copy() *Context {
 		RequestID:   c.RequestID,
 		handleError: c.handleError,
 		langInfo:    c.langInfo,
-		Extensions:  c.Extensions.Root(),
+		Extensions:  c.Extensions,
 	}
 
 	cp.writermem.ResponseWriter = nil
