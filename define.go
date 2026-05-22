@@ -153,6 +153,7 @@ func (m MediaType) Unmarshaler(body io.ReadCloser, value reflect.Value) error {
 	if analysis := allMediaType.getMediaTypeAnalysis(m); analysis != nil {
 		buf := bufPool.Get().(*bytes.Buffer)
 		defer func() {
+			_ = body.Close()
 			buf.Reset()
 			bufPool.Put(buf)
 		}()
@@ -163,6 +164,7 @@ func (m MediaType) Unmarshaler(body io.ReadCloser, value reflect.Value) error {
 	}
 	value = value.Elem()
 	if value.Type().ConvertibleTo(typeBytes) {
+		defer body.Close()
 		buf, err := io.ReadAll(body)
 		if err != nil {
 			return err
@@ -174,7 +176,7 @@ func (m MediaType) Unmarshaler(body io.ReadCloser, value reflect.Value) error {
 		value.Set(reflect.ValueOf(body))
 		return nil
 	}
-
+	_ = body.Close()
 	return fmt.Errorf("MediaType: unknown type: %s", m)
 }
 
