@@ -359,7 +359,7 @@ func (n *node) incrementChildPrio(pos int) int {
 	// Build new index char string
 	if newPos != pos {
 		n.indices = n.addBytes(n.indices[:newPos], // Unchanged prefix, might be empty
-			n.indices[pos:pos+1],                     // The index char we move
+			n.indices[pos:pos+1], // The index char we move
 			n.indices[newPos:pos], n.indices[pos+1:]) // Rest without char at 'pos'
 	}
 
@@ -498,5 +498,4 @@ func (n *node) returnValue(params *Params, valuePtr *nodeValue) {
 	for key := range *params {
 		(*params)[key].Key = n.params[key]
 	}
-	return
 }

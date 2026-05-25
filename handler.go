@@ -106,10 +106,10 @@ func (h *handler) Handle() {
 					}
 					return false
 				}, 2) {
-					log.Fatal(fmt.Sprintf("the type of parameter '%v' in '%v' must be "+
+					log.Fatalf("the type of parameter '%v' in '%v' must be "+
 						"‘*multipart.FileHeader’ or an array of ‘*multipart.FileHeader’, has type '%v'",
 						in.values[0].name, in.inType.Tag(),
-						in.structField.Type.String()))
+						in.structField.Type.String())
 				}
 			} else if in.inType == inTypeBody {
 				m := map[uint8]struct{}{}
@@ -128,7 +128,7 @@ func (h *handler) Handle() {
 					}
 				}
 				if len(m) != 1 {
-					log.Fatal(fmt.Sprintf("Content-Type %v cannot be used together", strings.Join(mList, ", ")))
+					log.Fatalf("Content-Type %v cannot be used together", strings.Join(mList, ", "))
 				}
 				if _, ok := m[1]; ok {
 					// stream
@@ -273,7 +273,7 @@ func (h *handler) Handle() {
 		}
 		path.extensions, err = h.handleExtensions(path.value.Type())
 		if err != nil {
-			log.Fatal(fmt.Sprintf("%v, pos: %v", err, path.pos))
+			log.Fatalf("%v, pos: %v", err, path.pos)
 		}
 	}
 	for _, item := range h.errorMap {
@@ -1237,7 +1237,7 @@ func (h *handler) getMappingTag(tagVal string, replaces ...map[string]struct{}) 
 			val := h.api.structTagVariableMap[oldVal]
 			if val != nil {
 				if _, ok := replace[oldVal]; ok {
-					log.Fatal(fmt.Sprintf("mapping tag '%v' dead loop", oldVal))
+					log.Fatalf("mapping tag '%v' dead loop", oldVal)
 				}
 				newTagVal += h.getMappingTag(val.(string), h.cloneMappingAppend(replace, oldVal))
 				continue

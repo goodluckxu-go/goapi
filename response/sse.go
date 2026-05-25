@@ -55,16 +55,24 @@ type SSEWriter struct {
 func (s *SSEWriter) Write(data SSEData) (err error) {
 	var buf bytes.Buffer
 	if data.Event != "" {
-		buf.WriteString("event: " + data.Event + "\n")
+		buf.WriteString("event: ")
+		buf.WriteString(data.Event)
+		buf.WriteByte('\n')
 	}
-	buf.WriteString("data: " + data.Data + "\n")
+	buf.WriteString("data: ")
+	buf.WriteString(data.Data)
+	buf.WriteByte('\n')
 	if data.Id != "" {
-		buf.WriteString("id: " + data.Id + "\n")
+		buf.WriteString("id: ")
+		buf.WriteString(data.Id)
+		buf.WriteByte('\n')
 	}
 	if data.Retry > 0 {
-		buf.WriteString("retry: " + strconv.Itoa(int(data.Retry)) + "\n")
+		buf.WriteString("retry: ")
+		buf.WriteString(strconv.Itoa(int(data.Retry)))
+		buf.WriteByte('\n')
 	}
-	buf.WriteString("\n")
+	buf.WriteByte('\n')
 	_, err = s.w.Write(buf.Bytes())
 	return
 }
