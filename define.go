@@ -52,8 +52,8 @@ const (
 	inTypeSecurityHTTPBearerJWT InType = "HTTPBearerJWT"
 	inTypeSecurityHTTPBasic     InType = "HTTPBasic"
 	inTypeSecurityApiKey        InType = "ApiKey"
-	// Other assignable parameters, for example: goapi.Context
-	inTypeOther InType = "other"
+	// Other assignable parameters
+	inTypeCtx InType = "Ctx" //  goapi.Context
 )
 
 const returnMediaTypeField = "media_type"

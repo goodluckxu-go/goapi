@@ -193,6 +193,9 @@ func (h *handlerServer) execRouter(ctx *Context) {
 		inputs = make([]reflect.Value, 1)
 		lastInputIdx = 0
 	}
+	if path.existsCtx && !ctxVal.IsValid() {
+		ctxVal = reflect.ValueOf(ctx)
+	}
 	inputs[lastInputIdx], err = h.handleInParamToValue(ctx, ctxVal, path.inTypes[lastInputIdx], path.inParams)
 	if err != nil {
 		h.handleError(ctx, getHTTPError(err, validErrorCode))
@@ -438,8 +441,8 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, ctxVal reflect.Value,
 			if err = security.ApiKey(); err != nil {
 				return
 			}
-		case inTypeOther:
-			h.handleParamByOther(ctx, ctxVal, inValue)
+		case inTypeCtx:
+			h.handleParamByCtx(ctxVal, inValue)
 		}
 	}
 	return
@@ -837,13 +840,10 @@ func (h *handlerServer) handleParamByStringSlice(ctx *Context, value reflect.Val
 	return
 }
 
-func (h *handlerServer) handleParamByOther(ctx *Context, ctxVal reflect.Value, value reflect.Value) {
+func (h *handlerServer) handleParamByCtx(ctxVal reflect.Value, value reflect.Value) {
 	for value.Kind() == reflect.Ptr {
-		if value.Type().ConvertibleTo(typeContext) {
-			if !ctxVal.IsValid() {
-				ctxVal = reflect.ValueOf(ctx)
-			}
-			valueSet(value, ctxVal)
+		if value.Type() == typeContext {
+			value.Set(ctxVal)
 			return
 		}
 		initPtr(value)

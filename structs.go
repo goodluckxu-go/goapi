@@ -112,6 +112,7 @@ type pathInfo struct {
 	middlewares      []HandleFunc
 	handlersWithExec []HandleFunc // Pre-built: middlewares + execRouter, reducing allocation for each request
 	extensions       Extensions
+	existsCtx        bool // exists *goapi.Context
 	// openapi
 	summary     string
 	desc        string

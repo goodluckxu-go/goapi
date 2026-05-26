@@ -319,7 +319,7 @@ func (i *includeRouter) parseIn(field reflect.StructField, deeps []int, security
 	fType := field.Type
 	for fType.Kind() == reflect.Ptr {
 		if fType == typeContext {
-			in.inType = inTypeOther
+			in.inType = inTypeCtx
 			params = append(params, in)
 			return
 		}
