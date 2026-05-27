@@ -2,12 +2,13 @@ package openapi
 
 import (
 	"fmt"
-	json "github.com/json-iterator/go"
 	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	json "github.com/json-iterator/go"
 )
 
 // OpenAPI is the root of an OpenAPI v3.1.0 document
@@ -2400,9 +2401,6 @@ func (s *Schema) Validate(openapi *OpenAPI) error {
 		}
 		return nil
 	}
-	if s.Type == "" {
-		return verifyError("type", fmt.Errorf("type must be a non empty string"))
-	}
 
 	switch s.Type {
 	case "integer", "number":
@@ -2410,6 +2408,7 @@ func (s *Schema) Validate(openapi *OpenAPI) error {
 	case "boolean":
 	case "array":
 	case "object":
+	case "":
 	default:
 		return verifyError("type", fmt.Errorf("must be within "+
 			"\"integer\", \"number\", \"string\", \"boolean\", \"array\", \"object\""))

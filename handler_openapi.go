@@ -532,6 +532,7 @@ func (h *handlerOpenAPI) handleStructs() {
 			continue
 		}
 		v.openapiName = strings.Replace(k, "/", ".", -1)
+		v.openapiName = strings.Replace(v.openapiName, "interface {}", "any", -1)
 		// todo 注销异常代码
 		//_, name, baseName := h.parseOpenapiName(k)
 		//if len(nameBaseMap[baseName]) == 1 {
@@ -630,6 +631,8 @@ func (h *handlerOpenAPI) convertType(fType reflect.Type, isBodyNotJsonXml bool) 
 		}
 		rs.typeStr = "object"
 		rs.isStruct = true
+	case reflect.Interface:
+		rs.typeStr = ""
 	default:
 		rs.typeStr = "string"
 	}
