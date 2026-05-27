@@ -20,7 +20,6 @@ func newHandler(api *API) *handler {
 	return &handler{
 		api:                    api,
 		paths:                  make([]*pathInfo, 0),
-		structDepends:          make(map[string][]string),
 		structs:                make(map[string]*structInfo),
 		structTypes:            make(map[string]reflect.Type),
 		mediaTypes:             map[MediaType]struct{}{},
@@ -35,7 +34,6 @@ func newHandler(api *API) *handler {
 type handler struct {
 	api                    *API
 	paths                  []*pathInfo
-	structDepends          map[string][]string
 	structs                map[string]*structInfo
 	structTypes            map[string]reflect.Type
 	mediaTypes             map[MediaType]struct{}
@@ -610,9 +608,6 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 			}
 			return
 		}
-		if len(beforeStructPkgName) > 0 && !inArray(rs.pkgName, h.structDepends[beforeStructPkgName[0]]) {
-			h.structDepends[beforeStructPkgName[0]] = append(h.structDepends[beforeStructPkgName[0]], rs.pkgName)
-		}
 
 		if _, ok := h.structs[rs.pkgName]; !ok {
 			h.structTypes[rs.pkgName] = eType
@@ -1013,10 +1008,14 @@ func (h *handler) handleTagByType(kind reflect.Kind, tag *paramTag) {
 }
 
 func (h *handler) getPkgName(fType reflect.Type) string {
-	if fType.PkgPath() == "" || fType.Name() == "" {
+	pkgPath := fType.PkgPath()
+	pkgName := fType.Name()
+	if pkgPath == "" || pkgName == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s.%s", fType.PkgPath(), fType.Name())
+	// Replace all type 'interface {}' with 'any'
+	pkgName = strings.ReplaceAll(pkgName, "interface {}", "any")
+	return fmt.Sprintf("%s.%s", pkgPath, pkgName)
 }
 
 func (h *handler) handleTagEnumToFloat64(enum []any, fType reflect.Type) (err error) {

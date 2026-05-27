@@ -98,6 +98,9 @@ func (h *handlerOpenAPI) handlePkgNameMediaTypes(docsPath string, field *paramFi
 		totalCount := 0
 		useCount := 0
 		for _, mediaType := range mediaTypes {
+			if mediaType.IsStream() {
+				continue
+			}
 			name := field.names.getFieldName(mediaType)
 			// Not found or the value is -
 			if name.mediaType == "" || name.name == "-" {
