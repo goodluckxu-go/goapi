@@ -1,6 +1,7 @@
 package goapi
 
 import (
+	"encoding"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -540,10 +541,18 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 	case reflect.String:
 		valStr := ""
 		if field.isTextType {
-			if fn, ok := getFnByCovertInterface[TextInterface](value, true); ok {
+			if fn, ok := getFnByCovertInterface[encoding.TextMarshaler](value); ok {
 				var txt []byte
 				if txt, err = fn.MarshalText(); err == nil {
 					valStr = string(txt)
+				}
+			}
+			for k, v := range field.tag.enum {
+				if fn, ok := getFnByCovertInterface[encoding.TextMarshaler](v); ok {
+					var txt []byte
+					if txt, err = fn.MarshalText(); err == nil {
+						field.tag.enum[k] = string(txt)
+					}
 				}
 			}
 		} else {
@@ -718,6 +727,16 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 		if field.tag.regexp != "" {
 			if re := h.getCompiledRegexp(field.tag.regexp); re != nil && !re.MatchString(val) {
 				return errors.New(ctx.lang().Regexp(desc, field.tag.regexp))
+			}
+		}
+		if field.isTextType {
+			for k, v := range field.tag.enum {
+				if fn, ok := getFnByCovertInterface[encoding.TextMarshaler](v); ok {
+					var txt []byte
+					if txt, err = fn.MarshalText(); err == nil {
+						field.tag.enum[k] = string(txt)
+					}
+				}
 			}
 		}
 		if field.tag.enum != nil && !inArrayAny(any(val), field.tag.enum) {

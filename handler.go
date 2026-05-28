@@ -1027,6 +1027,9 @@ func (h *handler) handleTagEnumToFloat64(enum []any, fType reflect.Type) (err er
 	}
 	for k, v := range enum {
 		val := reflect.ValueOf(v)
+		if _, ok := getFnByCovertInterface[TextInterface](val, true); ok {
+			continue
+		}
 		switch val.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			v = float64(val.Int())
