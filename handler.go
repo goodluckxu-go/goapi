@@ -788,6 +788,9 @@ func (h *handler) handleTagByInterface(fType reflect.Type, field *paramField, va
 	if iTag, ok := val.(TagName); ok {
 		field.tag.name = iTag.Name()
 	}
+	if _, ok := val.(TagValidate); ok {
+		field.tag.isValid = true
+	}
 	return
 }
 

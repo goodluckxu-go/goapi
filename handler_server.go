@@ -480,9 +480,14 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 			}
 		}
 	}
+	realValue := value
 	for value.Kind() == reflect.Ptr {
 		initPtr(value)
+		realValue = value
 		value = value.Elem()
+	}
+	if err = h.handleValidate(field, realValue); err != nil {
+		return
 	}
 	switch field.kind {
 	case reflect.Struct:
@@ -620,12 +625,17 @@ func (h *handlerServer) handleParamByFields(ctx *Context, value reflect.Value, f
 		}
 		return
 	}
+	realValue := value
 	for value.Kind() == reflect.Ptr {
 		if value.Type().ConvertibleTo(typeFile) {
 			valueSet(value, reflect.ValueOf(fields[0]))
+			if err = h.handleValidate(field, value); err != nil {
+				return
+			}
 			return
 		}
 		initPtr(value)
+		realValue = value
 		value = value.Elem()
 	}
 	switch value.Kind() {
@@ -637,6 +647,9 @@ func (h *handlerServer) handleParamByFields(ctx *Context, value reflect.Value, f
 			}
 		}
 		value.Set(newValue)
+		if err = h.handleValidate(field, realValue); err != nil {
+			return
+		}
 	default:
 	}
 	return
@@ -654,6 +667,9 @@ func (h *handlerServer) handleParamByCookie(ctx *Context, value reflect.Value, f
 	for value.Kind() == reflect.Ptr {
 		if value.Type().ConvertibleTo(typeCookie) {
 			valueSet(value, reflect.ValueOf(cookie))
+			if err = h.handleValidate(field, value); err != nil {
+				return
+			}
 			return
 		}
 		initPtr(value)
@@ -674,11 +690,13 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 		}
 		return
 	}
+	realValue := value
 	for value.Kind() == reflect.Ptr {
 		if value.Type().ConvertibleTo(typeFile) || value.Type().ConvertibleTo(typeCookie) {
 			break
 		}
 		initPtr(value)
+		realValue = value
 		if _, ok := getTypeByCovertInterface[TextInterface](value); ok {
 			break
 		}
@@ -687,7 +705,7 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 	switch field.kind {
 	case reflect.Slice, reflect.Array:
 		values := h.getParamStringSlice(field._type, val)
-		if err = h.handleParamByStringSlice(ctx, value, field, values); err != nil {
+		if err = h.handleParamByStringSlice(ctx, realValue, field, values); err != nil {
 			return
 		}
 	case reflect.String:
@@ -714,6 +732,9 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 		} else {
 			value.SetString(val)
 		}
+		if err = h.handleValidate(field, realValue); err != nil {
+			return
+		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var valInt int64
 		valInt, err = strconv.ParseInt(val, 10, 64)
@@ -730,6 +751,9 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 			return
 		}
 		value.SetInt(valInt)
+		if err = h.handleValidate(field, realValue); err != nil {
+			return
+		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		var valUint uint64
 		valUint, err = strconv.ParseUint(val, 10, 64)
@@ -746,6 +770,9 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 			return
 		}
 		value.SetUint(valUint)
+		if err = h.handleValidate(field, realValue); err != nil {
+			return
+		}
 	case reflect.Float32, reflect.Float64:
 		var valFloat float64
 		valFloat, err = strconv.ParseFloat(val, 64)
@@ -762,6 +789,9 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 			return
 		}
 		value.SetFloat(valFloat)
+		if err = h.handleValidate(field, realValue); err != nil {
+			return
+		}
 	case reflect.Bool:
 		var valBool bool
 		valBool, err = strconv.ParseBool(val)
@@ -772,6 +802,9 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 			return errors.New(ctx.lang().Enum(desc, field.tag.enum))
 		}
 		value.SetBool(valBool)
+		if err = h.handleValidate(field, realValue); err != nil {
+			return
+		}
 	default:
 	}
 	return
@@ -789,11 +822,13 @@ func (h *handlerServer) handleParamByStringSlice(ctx *Context, value reflect.Val
 		}
 		return
 	}
+	realValue := value
 	for value.Kind() == reflect.Ptr {
 		if value.Type().ConvertibleTo(typeFile) || value.Type().ConvertibleTo(typeCookie) {
 			break
 		}
 		initPtr(value)
+		realValue = value
 		if _, ok := getTypeByCovertInterface[TextInterface](value); ok {
 			break
 		}
@@ -832,12 +867,25 @@ func (h *handlerServer) handleParamByStringSlice(ctx *Context, value reflect.Val
 			}
 		}
 		valueSet(value, newValue)
+		if err = h.handleValidate(field, realValue); err != nil {
+			return
+		}
 	default:
-		if err = h.handleParamByString(ctx, value, field, values[0]); err != nil {
+		if err = h.handleParamByString(ctx, realValue, field, values[0]); err != nil {
 			return
 		}
 	}
 	return
+}
+
+func (h *handlerServer) handleValidate(field *paramField, value reflect.Value) error {
+	if !field.tag.isValid {
+		return nil
+	}
+	if fn, ok := getFnByCovertInterface[TagValidate](value); ok {
+		return fn.Validate()
+	}
+	return nil
 }
 
 func (h *handlerServer) handleParamByCtx(ctxVal reflect.Value, value reflect.Value) {

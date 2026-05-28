@@ -26,6 +26,7 @@ type paramTag struct {
 	max      *uint64
 	min      uint64
 	unique   bool
+	isValid  bool
 	// extensions
 	extensions map[string]any
 }

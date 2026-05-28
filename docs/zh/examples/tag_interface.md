@@ -230,3 +230,23 @@ func (s State)Name() string  {
 	return "状态"
 }
 ~~~
+### 自定义验证
+- 可以验证复杂字段
+~~~go
+// 实现接口
+type TagValidate interface {
+	Validate() error
+}
+
+type Info struct {
+	ID int
+	Name string
+}
+
+func (i Info)Validate() error  {
+	if i.ID == 1 || Name == "admin" {
+	    return errors.New("不能输入ID为1或者Name为admin")
+	}
+	return nil
+}
+~~~

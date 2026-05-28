@@ -61,3 +61,7 @@ type TagDeprecated interface {
 type TagName interface {
 	Name() string
 }
+
+type TagValidate interface {
+	Validate() error
+}
