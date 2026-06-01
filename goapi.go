@@ -18,6 +18,7 @@ func New(isDocs bool, docsPath ...string) *API {
 		addr:                 ":8080",
 		structTagVariableMap: map[string]any{},
 	}
+	api.RouterChild = &RouterChild{}
 	api.init()
 	api.isDocs = isDocs
 	api.docsPath = dPath

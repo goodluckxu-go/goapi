@@ -10,7 +10,7 @@ type RouterInterface interface {
 }
 
 type IRouters struct {
-	RouterChild
+	*RouterChild
 }
 
 // Child It is an introduction routing children
