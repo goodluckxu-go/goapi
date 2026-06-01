@@ -356,11 +356,9 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, ctxVal reflect.Value,
 			}
 		case inTypeBody:
 			mediaType := h.getRequestMediaType(ctx)
-			if ctx.Request.ContentLength > 0 {
-				err = h.setBody(inValue, ctx.Request.Body, mediaType)
-				if err != nil {
-					return
-				}
+			err = h.setBody(inValue, ctx.Request.Body, mediaType)
+			if err != nil {
+				return
 			}
 			if mediaType.IsStream() {
 				continue
@@ -971,6 +969,9 @@ func (h *handlerServer) getParamValue(value reflect.Value, deeps []int) reflect.
 }
 
 func (h *handlerServer) setBody(value reflect.Value, reader io.ReadCloser, mediaType MediaType) (err error) {
+	if reader == nil {
+		return nil
+	}
 	value = h.removeMorPtrValue(value)
 	if value.Kind() == reflect.Ptr {
 		return mediaType.Unmarshaler(reader, value)
