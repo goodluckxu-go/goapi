@@ -156,7 +156,7 @@ func (h *handler) Handle() {
 						fType = fType.Elem()
 					}
 					in.field._type = fType
-					if err = h.handleTagByField(in.structField, in.field); err != nil {
+					if err = h.handleMetaByField(in.structField, in.field); err != nil {
 						log.Fatal(err)
 					}
 				} else {
@@ -500,7 +500,7 @@ func (h *handler) handleParam(inType InType, field reflect.StructField, index in
 	if err = h.handleMetaByInterface(fType, rs, fVal); err != nil {
 		return
 	}
-	if err = h.handleTagByField(field, rs); err != nil {
+	if err = h.handleMetaByField(field, rs); err != nil {
 		return
 	}
 	h.handleMetaByType(eType.Kind(), rs.meta)
@@ -553,7 +553,7 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 	if err = h.handleMetaByInterface(fType, rs, fVal); err != nil {
 		return
 	}
-	if err = h.handleTagByField(field, rs); err != nil {
+	if err = h.handleMetaByField(field, rs); err != nil {
 		return
 	}
 	h.handleMetaByType(eType.Kind(), rs.meta)
@@ -794,7 +794,7 @@ func (h *handler) handleMetaByInterface(fType reflect.Type, field *paramField, v
 	return
 }
 
-func (h *handler) handleTagByField(field reflect.StructField, pField *paramField) (err error) {
+func (h *handler) handleMetaByField(field reflect.StructField, pField *paramField) (err error) {
 	fType := field.Type
 	for fType.Kind() == reflect.Ptr {
 		fType = fType.Elem()
