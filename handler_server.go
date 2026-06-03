@@ -456,7 +456,7 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 				if name.required {
 					return errors.New(ctx.lang().Required(desc))
 				}
-				if defaultSet(value, field.tag._default) {
+				if defaultSet(value, field.meta._default) {
 					return h.validParamField(ctx, value, field, mediaType)
 				}
 				return
@@ -467,7 +467,7 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 					if name.required {
 						return errors.New(ctx.lang().Required(desc))
 					}
-					if defaultSet(value, field.tag._default) {
+					if defaultSet(value, field.meta._default) {
 						return h.validParamField(ctx, value, field, mediaType)
 					}
 					return
@@ -501,13 +501,13 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 			}
 		}
 	case reflect.Slice, reflect.Array:
-		if field.tag.max != nil && uint64(value.Len()) > *field.tag.max {
-			return errors.New(ctx.lang().Max(desc, *field.tag.max))
+		if field.meta.max != nil && uint64(value.Len()) > *field.meta.max {
+			return errors.New(ctx.lang().Max(desc, *field.meta.max))
 		}
-		if uint64(value.Len()) < field.tag.min {
-			return errors.New(ctx.lang().Min(desc, field.tag.min))
+		if uint64(value.Len()) < field.meta.min {
+			return errors.New(ctx.lang().Min(desc, field.meta.min))
 		}
-		if field.tag.unique {
+		if field.meta.unique {
 			m := map[any]struct{}{}
 			for i := 0; i < value.Len(); i++ {
 				if _, ok := m[value.Index(i).Interface()]; ok {
@@ -522,11 +522,11 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 			}
 		}
 	case reflect.Map:
-		if field.tag.max != nil && uint64(value.Len()) > *field.tag.max {
-			return errors.New(ctx.lang().Max(desc, *field.tag.max))
+		if field.meta.max != nil && uint64(value.Len()) > *field.meta.max {
+			return errors.New(ctx.lang().Max(desc, *field.meta.max))
 		}
-		if uint64(value.Len()) < field.tag.min {
-			return errors.New(ctx.lang().Min(desc, field.tag.min))
+		if uint64(value.Len()) < field.meta.min {
+			return errors.New(ctx.lang().Min(desc, field.meta.min))
 		}
 		for _, key := range value.MapKeys() {
 			if err = h.validParamField(ctx, key, field.fields[0], mediaType); err != nil {
@@ -545,30 +545,30 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 					valStr = string(txt)
 				}
 			}
-			for k, v := range field.tag.enum {
+			for k, v := range field.meta.enum {
 				if fn, ok := getFnByCovertInterface[encoding.TextMarshaler](v); ok {
 					var txt []byte
 					if txt, err = fn.MarshalText(); err == nil {
-						field.tag.enum[k] = string(txt)
+						field.meta.enum[k] = string(txt)
 					}
 				}
 			}
 		} else {
 			valStr = value.String()
 		}
-		if field.tag.max != nil && uint64(len(valStr)) > *field.tag.max {
-			return errors.New(ctx.lang().Max(desc, *field.tag.max))
+		if field.meta.max != nil && uint64(len(valStr)) > *field.meta.max {
+			return errors.New(ctx.lang().Max(desc, *field.meta.max))
 		}
-		if uint64(len(valStr)) < field.tag.min {
-			return errors.New(ctx.lang().Min(desc, field.tag.min))
+		if uint64(len(valStr)) < field.meta.min {
+			return errors.New(ctx.lang().Min(desc, field.meta.min))
 		}
-		if field.tag.regexp != "" {
-			if re := h.getCompiledRegexp(field.tag.regexp); re != nil && !re.MatchString(valStr) {
-				return errors.New(ctx.lang().Regexp(desc, field.tag.regexp))
+		if field.meta.regexp != "" {
+			if re := h.getCompiledRegexp(field.meta.regexp); re != nil && !re.MatchString(valStr) {
+				return errors.New(ctx.lang().Regexp(desc, field.meta.regexp))
 			}
 		}
-		if field.tag.enum != nil && !inArrayAny(any(valStr), field.tag.enum) {
-			return errors.New(ctx.lang().Enum(desc, field.tag.enum))
+		if field.meta.enum != nil && !inArrayAny(any(valStr), field.meta.enum) {
+			return errors.New(ctx.lang().Enum(desc, field.meta.enum))
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		vFloat := float64(value.Int())
@@ -692,8 +692,8 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 		if name.required {
 			return errors.New(ctx.lang().Required(desc))
 		}
-		if field.tag._defaultParamString != "" {
-			return h.handleParamByString(ctx, value, field, field.tag._defaultParamString)
+		if field.meta._defaultParamString != "" {
+			return h.handleParamByString(ctx, value, field, field.meta._defaultParamString)
 		}
 		return
 	}
@@ -716,29 +716,29 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 			return
 		}
 	case reflect.String:
-		if field.tag.max != nil && uint64(len(val)) > *field.tag.max {
-			return errors.New(ctx.lang().Max(desc, *field.tag.max))
+		if field.meta.max != nil && uint64(len(val)) > *field.meta.max {
+			return errors.New(ctx.lang().Max(desc, *field.meta.max))
 		}
-		if uint64(len(val)) < field.tag.min {
-			return errors.New(ctx.lang().Min(desc, field.tag.min))
+		if uint64(len(val)) < field.meta.min {
+			return errors.New(ctx.lang().Min(desc, field.meta.min))
 		}
-		if field.tag.regexp != "" {
-			if re := h.getCompiledRegexp(field.tag.regexp); re != nil && !re.MatchString(val) {
-				return errors.New(ctx.lang().Regexp(desc, field.tag.regexp))
+		if field.meta.regexp != "" {
+			if re := h.getCompiledRegexp(field.meta.regexp); re != nil && !re.MatchString(val) {
+				return errors.New(ctx.lang().Regexp(desc, field.meta.regexp))
 			}
 		}
 		if field.isTextType {
-			for k, v := range field.tag.enum {
+			for k, v := range field.meta.enum {
 				if fn, ok := getFnByCovertInterface[encoding.TextMarshaler](v); ok {
 					var txt []byte
 					if txt, err = fn.MarshalText(); err == nil {
-						field.tag.enum[k] = string(txt)
+						field.meta.enum[k] = string(txt)
 					}
 				}
 			}
 		}
-		if field.tag.enum != nil && !inArrayAny(any(val), field.tag.enum) {
-			return errors.New(ctx.lang().Enum(desc, field.tag.enum))
+		if field.meta.enum != nil && !inArrayAny(any(val), field.meta.enum) {
+			return errors.New(ctx.lang().Enum(desc, field.meta.enum))
 		}
 		if field.isTextType {
 			if err = coverInterfaceByValue[TextInterface](value, func(fn TextInterface) error {
@@ -815,8 +815,8 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 		if err != nil {
 			return
 		}
-		if field.tag.enum != nil && !inArrayAny(any(valBool), field.tag.enum) {
-			return errors.New(ctx.lang().Enum(desc, field.tag.enum))
+		if field.meta.enum != nil && !inArrayAny(any(valBool), field.meta.enum) {
+			return errors.New(ctx.lang().Enum(desc, field.meta.enum))
 		}
 		value.SetBool(valBool)
 		if err = h.handleValidate(field, realValue); err != nil {
@@ -834,8 +834,8 @@ func (h *handlerServer) handleParamByStringSlice(ctx *Context, value reflect.Val
 		if name.required {
 			return errors.New(ctx.lang().Required(desc))
 		}
-		if field.tag._defaultParamString != "" {
-			return h.handleParamByString(ctx, value, field, field.tag._defaultParamString)
+		if field.meta._defaultParamString != "" {
+			return h.handleParamByString(ctx, value, field, field.meta._defaultParamString)
 		}
 		return
 	}
@@ -853,13 +853,13 @@ func (h *handlerServer) handleParamByStringSlice(ctx *Context, value reflect.Val
 	}
 	switch field.kind {
 	case reflect.Slice, reflect.Array:
-		if field.tag.max != nil && uint64(len(values)) > *field.tag.max {
-			return errors.New(ctx.lang().Max(desc, *field.tag.max))
+		if field.meta.max != nil && uint64(len(values)) > *field.meta.max {
+			return errors.New(ctx.lang().Max(desc, *field.meta.max))
 		}
-		if uint64(len(values)) < field.tag.min {
-			return errors.New(ctx.lang().Min(desc, field.tag.min))
+		if uint64(len(values)) < field.meta.min {
+			return errors.New(ctx.lang().Min(desc, field.meta.min))
 		}
-		if field.tag.unique {
+		if field.meta.unique {
 			m := map[any]struct{}{}
 			for _, val := range values {
 				if _, ok := m[val]; ok {
@@ -896,10 +896,10 @@ func (h *handlerServer) handleParamByStringSlice(ctx *Context, value reflect.Val
 }
 
 func (h *handlerServer) handleValidate(field *paramField, value reflect.Value) error {
-	if !field.tag.isValid {
+	if !field.meta.isValid {
 		return nil
 	}
-	if fn, ok := getFnByCovertInterface[TagValidate](value); ok {
+	if fn, ok := getFnByCovertInterface[MetaValidate](value); ok {
 		return fn.Validate()
 	}
 	return nil
@@ -917,29 +917,29 @@ func (h *handlerServer) handleParamByCtx(ctxVal reflect.Value, value reflect.Val
 }
 
 func (h *handlerServer) validFloat64(ctx *Context, vFloat float64, desc string, field *paramField) (err error) {
-	if field.tag.lt != nil && vFloat >= *field.tag.lt {
-		return errors.New(ctx.lang().Lt(desc, *field.tag.lt))
+	if field.meta.lt != nil && vFloat >= *field.meta.lt {
+		return errors.New(ctx.lang().Lt(desc, *field.meta.lt))
 	}
-	if field.tag.lte != nil && vFloat > *field.tag.lte {
-		return errors.New(ctx.lang().Lte(desc, *field.tag.lte))
+	if field.meta.lte != nil && vFloat > *field.meta.lte {
+		return errors.New(ctx.lang().Lte(desc, *field.meta.lte))
 	}
-	if field.tag.gt != nil && vFloat <= *field.tag.gt {
-		return errors.New(ctx.lang().Gt(desc, *field.tag.gt))
+	if field.meta.gt != nil && vFloat <= *field.meta.gt {
+		return errors.New(ctx.lang().Gt(desc, *field.meta.gt))
 	}
-	if field.tag.gte != nil && vFloat < *field.tag.gte {
-		return errors.New(ctx.lang().Gte(desc, *field.tag.gte))
+	if field.meta.gte != nil && vFloat < *field.meta.gte {
+		return errors.New(ctx.lang().Gte(desc, *field.meta.gte))
 	}
-	if field.tag.multiple != nil {
-		if *field.tag.multiple == 0 {
-			return errors.New(ctx.lang().MultipleOf(desc, *field.tag.multiple))
+	if field.meta.multiple != nil {
+		if *field.meta.multiple == 0 {
+			return errors.New(ctx.lang().MultipleOf(desc, *field.meta.multiple))
 		}
-		rs, _ := decimal.NewFromFloat(vFloat).Div(decimal.NewFromFloat(*field.tag.multiple)).Float64()
+		rs, _ := decimal.NewFromFloat(vFloat).Div(decimal.NewFromFloat(*field.meta.multiple)).Float64()
 		if rs != float64(int64(rs)) {
-			return errors.New(ctx.lang().MultipleOf(desc, *field.tag.multiple))
+			return errors.New(ctx.lang().MultipleOf(desc, *field.meta.multiple))
 		}
 	}
-	if field.tag.enum != nil && !inArrayAny(any(vFloat), field.tag.enum) {
-		return errors.New(ctx.lang().Enum(desc, field.tag.enum))
+	if field.meta.enum != nil && !inArrayAny(any(vFloat), field.meta.enum) {
+		return errors.New(ctx.lang().Enum(desc, field.meta.enum))
 	}
 	return
 }
@@ -1311,11 +1311,11 @@ func (h *handlerServer) getDesc(fieldName string, field *paramField) string {
 	if fieldName == "" {
 		fieldName = field.name
 	}
-	if field.tag.name != "" {
-		return field.tag.name
+	if field.meta.name != "" {
+		return field.meta.name
 	}
-	if field.tag.desc != "" {
-		return field.tag.desc
+	if field.meta.desc != "" {
+		return field.meta.desc
 	}
 	return fieldName
 }

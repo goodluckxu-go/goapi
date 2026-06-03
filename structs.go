@@ -8,7 +8,7 @@ import (
 	"github.com/goodluckxu-go/goapi/v2/swagger"
 )
 
-type paramTag struct {
+type paramMeta struct {
 	name                string
 	desc                string
 	_default            any
@@ -40,7 +40,7 @@ type paramField struct {
 	anonymous  bool
 	pkgName    string
 	index      int
-	tag        *paramTag
+	meta       *paramMeta
 	fields     []*paramField
 	xmlName    string // The name of the xml structure
 }

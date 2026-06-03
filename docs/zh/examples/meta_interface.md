@@ -9,7 +9,7 @@
 - 文档可展示
 ~~~go
 // 实现接口
-type TagRegexp interface {
+type MetaRegexp interface {
 	Regexp() string
 }
 
@@ -24,7 +24,7 @@ func (p Phone)Regexp()string  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagEnum interface {
+type MetaEnum interface {
 	Enum() []any
 }
 
@@ -39,7 +39,7 @@ func (s State)Enum() []any  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagLt interface {
+type MetaLt interface {
 	Lt() float64
 }
 
@@ -54,7 +54,7 @@ func (s State)Lt() float64  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagLte interface {
+type MetaLte interface {
 	Lte() float64
 }
 
@@ -69,7 +69,7 @@ func (s State)Lte() float64  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagGt interface {
+type MetaGt interface {
 	Gt() float64
 }
 
@@ -84,7 +84,7 @@ func (s State)Gt() float64  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagGte interface {
+type MetaGte interface {
 	Gte() float64
 }
 
@@ -99,7 +99,7 @@ func (s State)Gte() float64  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagMultiple interface {
+type MetaMultiple interface {
 	Multiple() float64
 }
 
@@ -114,7 +114,7 @@ func (s State)Multiple() float64  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagMax interface {
+type MetaMax interface {
 	Max() uint64
 }
 
@@ -129,7 +129,7 @@ func (s State)Max() uint64  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagMin interface {
+type MetaMin interface {
 	Min() uint64
 }
 
@@ -144,7 +144,7 @@ func (s State)Min() uint64  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagUnique interface {
+type MetaUnique interface {
 	Unique() bool
 }
 
@@ -159,7 +159,7 @@ func (s State)Unique() bool  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagDesc interface {
+type MetaDesc interface {
 	Desc() string
 }
 
@@ -175,7 +175,7 @@ func (s State)Desc() string  {
 - 如果验证字段非非必填时，前端不传参数，后端则获取到默认的值
 ~~~go
 // 实现接口
-type TagDefault interface {
+type MetaDefault interface {
     Default() any
 }
 
@@ -190,7 +190,7 @@ func (s State)Default() any  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagExample interface {
+type MetaExample interface {
 	Example() any
 }
 
@@ -205,7 +205,7 @@ func (s State)Example() any  {
 - 文档可展示
 ~~~go
 // 实现接口
-type TagDeprecated interface {
+type MetaDeprecated interface {
 	Deprecated() bool
 }
 
@@ -217,10 +217,10 @@ func (s State)Deprecated() bool  {
 ~~~
 ### 名称
 - 验证是的自定义名字
-- 验证时名字优先级 **TagName接口** > **TagDesc接口** > **结构体字段名称** > **类型名称**
+- 验证时名字优先级 **MetaName接口** > **MetaDesc接口** > **结构体字段名称** > **类型名称**
 ~~~go
 // 实现接口
-type TagName interface {
+type MetaName interface {
 	Name() string
 }
 
@@ -234,7 +234,7 @@ func (s State)Name() string  {
 - 可以验证复杂字段
 ~~~go
 // 实现接口
-type TagValidate interface {
+type MetaValidate interface {
 	Validate() error
 }
 

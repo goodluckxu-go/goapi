@@ -172,11 +172,11 @@ func (h *handlerOpenAPI) handleParamFields(fields []*paramField, mediaType Media
 func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramField, mediaType MediaType, docsPath string) (name paramFieldName) {
 	name = field.names.getFieldName(mediaType)
 	kind := field.kind
-	schema.Description = field.tag.desc
-	schema.Deprecated = field.tag.deprecated
+	schema.Description = field.meta.desc
+	schema.Deprecated = field.meta.deprecated
 	swagger := h.handle.swaggerMap[docsPath]
 	if swagger.ShowExtensions {
-		schema.Extensions = field.tag.extensions
+		schema.Extensions = field.meta.extensions
 	}
 	if mediaType == XML {
 		schema.XML = &openapi.XML{
@@ -189,15 +189,15 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 			}
 		}
 	}
-	if field.tag._default != nil {
-		_default := field.tag._default
+	if field.meta._default != nil {
+		_default := field.meta._default
 		isSet := h.handleNoJsonAndXmlExample(mediaType, &_default)
 		if isSet {
 			schema.Default = _default
 		}
 	}
-	if field.tag.example != nil {
-		example := field.tag.example
+	if field.meta.example != nil {
+		example := field.meta.example
 		isSet := h.handleNoJsonAndXmlExample(mediaType, &example)
 		if isSet {
 			schema.Examples = []any{example}
@@ -223,55 +223,55 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		if kind != reflect.Int {
 			schema.Format = kind.String()
 		}
-		schema.Maximum = field.tag.lte
-		schema.ExclusiveMaximum = field.tag.lt
-		schema.Minimum = field.tag.gte
-		schema.ExclusiveMinimum = field.tag.gt
-		schema.MultipleOf = field.tag.multiple
-		schema.Enum = field.tag.enum
+		schema.Maximum = field.meta.lte
+		schema.ExclusiveMaximum = field.meta.lt
+		schema.Minimum = field.meta.gte
+		schema.ExclusiveMinimum = field.meta.gt
+		schema.MultipleOf = field.meta.multiple
+		schema.Enum = field.meta.enum
 	case reflect.Float32:
 		schema.Type = "number"
 		schema.Format = "float"
-		schema.Maximum = field.tag.lte
-		schema.ExclusiveMaximum = field.tag.lt
-		schema.Minimum = field.tag.gte
-		schema.ExclusiveMinimum = field.tag.gt
-		schema.MultipleOf = field.tag.multiple
-		schema.Enum = field.tag.enum
+		schema.Maximum = field.meta.lte
+		schema.ExclusiveMaximum = field.meta.lt
+		schema.Minimum = field.meta.gte
+		schema.ExclusiveMinimum = field.meta.gt
+		schema.MultipleOf = field.meta.multiple
+		schema.Enum = field.meta.enum
 	case reflect.Float64:
 		schema.Type = "number"
 		schema.Format = "double"
-		schema.Maximum = field.tag.lte
-		schema.ExclusiveMaximum = field.tag.lt
-		schema.Minimum = field.tag.gte
-		schema.ExclusiveMinimum = field.tag.gt
-		schema.MultipleOf = field.tag.multiple
-		schema.Enum = field.tag.enum
+		schema.Maximum = field.meta.lte
+		schema.ExclusiveMaximum = field.meta.lt
+		schema.Minimum = field.meta.gte
+		schema.ExclusiveMinimum = field.meta.gt
+		schema.MultipleOf = field.meta.multiple
+		schema.Enum = field.meta.enum
 	case reflect.String:
 		schema.Type = "string"
-		schema.MaxLength = field.tag.max
-		schema.MinLength = field.tag.min
-		schema.Pattern = field.tag.regexp
-		schema.Enum = field.tag.enum
+		schema.MaxLength = field.meta.max
+		schema.MinLength = field.meta.min
+		schema.Pattern = field.meta.regexp
+		schema.Enum = field.meta.enum
 	case reflect.Bool:
 		schema.Type = "boolean"
-		schema.Enum = field.tag.enum
+		schema.Enum = field.meta.enum
 	case reflect.Array, reflect.Slice:
 		if mediaType != "" && mediaType.IsStream() && field._type.ConvertibleTo(typeBytes) {
 			schema.Type = "string"
 			return
 		}
 		schema.Type = "array"
-		schema.MaxItems = field.tag.max
-		schema.MinItems = field.tag.min
-		schema.UniqueItems = field.tag.unique
+		schema.MaxItems = field.meta.max
+		schema.MinItems = field.meta.min
+		schema.UniqueItems = field.meta.unique
 		childSchema := &openapi.Schema{}
 		h.handleParamField(childSchema, field.fields[0], mediaType, docsPath)
 		schema.Items = childSchema
 	case reflect.Map:
 		schema.Type = "object"
-		schema.MaxProperties = field.tag.max
-		schema.MinProperties = field.tag.min
+		schema.MaxProperties = field.meta.max
+		schema.MinProperties = field.meta.min
 		childSchema := &openapi.Schema{
 			PropertyNames: &openapi.Schema{},
 		}
@@ -284,8 +284,8 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 		if field.pkgName == "" {
 			properties, required := h.handleParamFields(field.fields, mediaType, docsPath)
 			schema.Type = "object"
-			schema.MaxProperties = field.tag.max
-			schema.MinProperties = field.tag.min
+			schema.MaxProperties = field.meta.max
+			schema.MinProperties = field.meta.min
 			schema.Properties = properties
 			schema.Required = required
 			return
@@ -306,10 +306,10 @@ func (h *handlerOpenAPI) handleParamField(schema *openapi.Schema, field *paramFi
 
 func (h *handlerOpenAPI) getMapKeyExample(field *paramField) string {
 	var example any
-	if field.tag.example != nil {
-		example = field.tag.example
-	} else if field.tag._default != nil {
-		example = field.tag._default
+	if field.meta.example != nil {
+		example = field.meta.example
+	} else if field.meta._default != nil {
+		example = field.meta._default
 	}
 	if example == nil {
 		return "string"
@@ -441,26 +441,26 @@ func (h *handlerOpenAPI) handleSecuritySchemes(openAPI *openapi.OpenAPI, path *p
 				Type:        "apiKey",
 				Name:        in.values[0].name,
 				In:          in.inType.Tag(),
-				Description: in.field.tag.desc,
+				Description: in.field.meta.desc,
 			}
 		case inTypeSecurityHTTPBearer:
 			securitySchemes[in.structField.Name] = &openapi.SecurityScheme{
 				Type:        "http",
 				Scheme:      "bearer",
-				Description: in.field.tag.desc,
+				Description: in.field.meta.desc,
 			}
 		case inTypeSecurityHTTPBearerJWT:
 			securitySchemes[in.structField.Name] = &openapi.SecurityScheme{
 				Type:         "http",
 				Scheme:       "bearer",
 				BearerFormat: "JWT",
-				Description:  in.field.tag.desc,
+				Description:  in.field.meta.desc,
 			}
 		case inTypeSecurityHTTPBasic:
 			securitySchemes[in.structField.Name] = &openapi.SecurityScheme{
 				Type:        "http",
 				Scheme:      "basic",
-				Description: in.field.tag.desc,
+				Description: in.field.meta.desc,
 			}
 		}
 	}
@@ -507,16 +507,16 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			h.handleParamField(schema, in.field, "", "")
 			var extensions map[string]any
 			if swagger.ShowExtensions {
-				extensions = in.field.tag.extensions
+				extensions = in.field.meta.extensions
 			}
 			parameter := &openapi.Parameter{
 				Name:        name.name,
 				In:          in.inType.Tag(),
-				Description: in.field.tag.desc,
+				Description: in.field.meta.desc,
 				Required:    name.required,
-				Deprecated:  in.field.tag.deprecated,
+				Deprecated:  in.field.meta.deprecated,
 				Schema:      schema,
-				Example:     in.field.tag.example,
+				Example:     in.field.meta.example,
 				Extensions:  extensions,
 			}
 			if in.inType == inTypePath && pathName == name.name && isMatchAll {
@@ -550,7 +550,7 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 				bodyRequired = append(bodyRequired, name.name)
 			}
 		case inTypeBody:
-			bodyDesc = in.field.tag.desc
+			bodyDesc = in.field.meta.desc
 			for _, value := range in.values {
 				schema := &openapi.Schema{}
 				h.handleParamField(schema, in.field, value.mediaType, path.docsPath)

@@ -141,7 +141,7 @@ func (h *handler) Handle() {
 						log.Fatal("other media types only support types '[]byte', 'string', and 'io.ReadCloser‘")
 					}
 					in.field = &paramField{
-						tag: &paramTag{},
+						meta: &paramMeta{},
 					}
 					fType := removeMorePtr(in.structField.Type)
 					in.field.kind = fType.Kind()
@@ -149,7 +149,7 @@ func (h *handler) Handle() {
 						in.field.kind = fType.Elem().Kind()
 					}
 					fVal := getValueByType(fType, true)
-					if err = h.handleTagByInterface(fType, in.field, fVal); err != nil {
+					if err = h.handleMetaByInterface(fType, in.field, fVal); err != nil {
 						log.Fatal(err)
 					}
 					if fType.Kind() == reflect.Ptr {
@@ -196,7 +196,7 @@ func (h *handler) Handle() {
 		}
 		if path.outParam != nil {
 			field = &paramField{
-				tag:   &paramTag{},
+				meta:  &paramMeta{},
 				_type: path.outParam.structField.Type,
 			}
 			path.outParam.httpStatus = http.StatusOK
@@ -311,12 +311,12 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 		val = val.Elem()
 	}
 	var example any
-	if field.tag.example != nil {
-		example = field.tag.example
-	} else if field.tag._default != nil {
-		example = field.tag._default
-	} else if len(field.tag.enum) > 0 {
-		example = field.tag.enum[0]
+	if field.meta.example != nil {
+		example = field.meta.example
+	} else if field.meta._default != nil {
+		example = field.meta._default
+	} else if len(field.meta.enum) > 0 {
+		example = field.meta.enum[0]
 	}
 	if example != nil && !onlyFind {
 		exampleVal := reflect.ValueOf(example)
@@ -380,15 +380,15 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 		}
 		if !onlyFind {
 			mapKey := reflect.New(val.Type().Key()).Elem()
-			h.setExample(mapKey, &paramField{tag: &paramTag{}}, false, useStructMap)
+			h.setExample(mapKey, &paramField{meta: &paramMeta{}}, false, useStructMap)
 			newVal := reflect.MakeMap(reflect.MapOf(mapKey.Type(), mapVal.Type()))
 			newVal.SetMapIndex(mapKey, mapVal)
 			val.Set(newVal)
 		}
 	case reflect.String:
 		if !onlyFind {
-			if field.tag.regexp != "" {
-				val.SetString(field.tag.regexp)
+			if field.meta.regexp != "" {
+				val.SetString(field.meta.regexp)
 			} else {
 				val.SetString("string")
 			}
@@ -398,29 +398,29 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 			return
 		}
 		var valFloat *float64
-		if field.tag.gt != nil && field.tag.gte != nil {
-			if *field.tag.gt > *field.tag.gte {
-				valFloat = toPtr(*field.tag.gt + 1)
+		if field.meta.gt != nil && field.meta.gte != nil {
+			if *field.meta.gt > *field.meta.gte {
+				valFloat = toPtr(*field.meta.gt + 1)
 			} else {
-				valFloat = toPtr(*field.tag.gte)
+				valFloat = toPtr(*field.meta.gte)
 			}
 			return
-		} else if field.tag.gt != nil {
-			valFloat = toPtr(*field.tag.gt + 1)
-		} else if field.tag.gte != nil {
-			valFloat = toPtr(*field.tag.gte)
+		} else if field.meta.gt != nil {
+			valFloat = toPtr(*field.meta.gt + 1)
+		} else if field.meta.gte != nil {
+			valFloat = toPtr(*field.meta.gte)
 		}
 		if valFloat == nil {
-			if field.tag.lt != nil && field.tag.lte != nil {
-				if *field.tag.lt > *field.tag.lte {
-					valFloat = toPtr(*field.tag.lte)
+			if field.meta.lt != nil && field.meta.lte != nil {
+				if *field.meta.lt > *field.meta.lte {
+					valFloat = toPtr(*field.meta.lte)
 				} else {
-					valFloat = toPtr(*field.tag.lt - 1)
+					valFloat = toPtr(*field.meta.lt - 1)
 				}
-			} else if field.tag.lt != nil {
-				valFloat = toPtr(*field.tag.lt - 1)
-			} else if field.tag.lte != nil {
-				valFloat = toPtr(*field.tag.lte)
+			} else if field.meta.lt != nil {
+				valFloat = toPtr(*field.meta.lt - 1)
+			} else if field.meta.lte != nil {
+				valFloat = toPtr(*field.meta.lte)
 			}
 		}
 		if valFloat == nil {
@@ -469,7 +469,7 @@ func (h *handler) handleParam(inType InType, field reflect.StructField, index in
 		index: index,
 		names: names,
 		name:  field.Name,
-		tag:   &paramTag{},
+		meta:  &paramMeta{},
 	}
 	fType := field.Type
 	fType = removeMorePtr(fType)
@@ -497,13 +497,13 @@ func (h *handler) handleParam(inType InType, field reflect.StructField, index in
 		rs.isTextType = true
 	}
 	fVal := getValueByType(fType, true)
-	if err = h.handleTagByInterface(fType, rs, fVal); err != nil {
+	if err = h.handleMetaByInterface(fType, rs, fVal); err != nil {
 		return
 	}
 	if err = h.handleTagByField(field, rs); err != nil {
 		return
 	}
-	h.handleTagByType(eType.Kind(), rs.tag)
+	h.handleMetaByType(eType.Kind(), rs.meta)
 	if rs.isTextType {
 		return
 	}
@@ -527,7 +527,7 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 	}
 	rs = &paramField{
 		index:     index,
-		tag:       &paramTag{},
+		meta:      &paramMeta{},
 		name:      field.Name,
 		names:     names,
 		anonymous: field.Anonymous,
@@ -550,13 +550,13 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 		rs.isTextType = true
 	}
 	fVal := getValueByType(fType, true)
-	if err = h.handleTagByInterface(fType, rs, fVal); err != nil {
+	if err = h.handleMetaByInterface(fType, rs, fVal); err != nil {
 		return
 	}
 	if err = h.handleTagByField(field, rs); err != nil {
 		return
 	}
-	h.handleTagByType(eType.Kind(), rs.tag)
+	h.handleMetaByType(eType.Kind(), rs.meta)
 	if rs.isTextType {
 		return
 	}
@@ -688,7 +688,7 @@ func (h *handler) typeByXmlName(_type reflect.Type) (xmlName string) {
 	return
 }
 
-func (h *handler) setTagByDefaultParamString(val any) string {
+func (h *handler) setMetaByDefaultParamString(val any) string {
 	switch v := val.(type) {
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, bool, string:
 		return toString(v)
@@ -704,17 +704,17 @@ func (h *handler) setTagByDefaultParamString(val any) string {
 		case reflect.Slice, reflect.Array:
 			var vals []string
 			for i := 0; i < value.Len(); i++ {
-				vals = append(vals, h.setTagByDefaultParamString(value.Index(i).Interface()))
+				vals = append(vals, h.setMetaByDefaultParamString(value.Index(i).Interface()))
 			}
 			return strings.Join(vals, ",")
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			return h.setTagByDefaultParamString(value.Int())
+			return h.setMetaByDefaultParamString(value.Int())
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return h.setTagByDefaultParamString(value.Uint())
+			return h.setMetaByDefaultParamString(value.Uint())
 		case reflect.Float32, reflect.Float64:
-			return h.setTagByDefaultParamString(value.Float())
+			return h.setMetaByDefaultParamString(value.Float())
 		case reflect.Bool:
-			return h.setTagByDefaultParamString(value.Bool())
+			return h.setMetaByDefaultParamString(value.Bool())
 		case reflect.String:
 			return value.String()
 		default:
@@ -723,7 +723,7 @@ func (h *handler) setTagByDefaultParamString(val any) string {
 	return ""
 }
 
-func (h *handler) handleTagByInterface(fType reflect.Type, field *paramField, valPtr reflect.Value) (err error) {
+func (h *handler) handleMetaByInterface(fType reflect.Type, field *paramField, valPtr reflect.Value) (err error) {
 	var val any
 	if fType.Kind() == reflect.Ptr {
 		val = valPtr.Interface()
@@ -732,64 +732,64 @@ func (h *handler) handleTagByInterface(fType reflect.Type, field *paramField, va
 		val = valPtr.Elem().Interface()
 	}
 	kind := field.kind
-	if iTag, ok := val.(TagRegexp); ok && kind == reflect.String {
-		field.tag.regexp = iTag.Regexp()
+	if iMeta, ok := val.(MetaRegexp); ok && kind == reflect.String {
+		field.meta.regexp = iMeta.Regexp()
 	}
-	if iTag, ok := val.(TagEnum); ok && isNormalType(fType) {
-		field.tag.enum = iTag.Enum()
-		if err = h.handleTagEnumToFloat64(field.tag.enum, fType); err != nil {
+	if iMeta, ok := val.(MetaEnum); ok && isNormalType(fType) {
+		field.meta.enum = iMeta.Enum()
+		if err = h.handleMetaEnumToFloat64(field.meta.enum, fType); err != nil {
 			return
 		}
 	}
-	if iTag, ok := val.(TagLt); ok && isNumberType(fType) {
-		field.tag.lt = toPtr(iTag.Lt())
+	if iMeta, ok := val.(MetaLt); ok && isNumberType(fType) {
+		field.meta.lt = toPtr(iMeta.Lt())
 	}
-	if iTag, ok := val.(TagLte); ok && isNumberType(fType) {
-		field.tag.lte = toPtr(iTag.Lte())
+	if iMeta, ok := val.(MetaLte); ok && isNumberType(fType) {
+		field.meta.lte = toPtr(iMeta.Lte())
 	}
-	if iTag, ok := val.(TagGt); ok && isNumberType(fType) {
-		field.tag.gt = toPtr(iTag.Gt())
+	if iMeta, ok := val.(MetaGt); ok && isNumberType(fType) {
+		field.meta.gt = toPtr(iMeta.Gt())
 	}
-	if iTag, ok := val.(TagGte); ok && isNumberType(fType) {
-		field.tag.gte = toPtr(iTag.Gte())
+	if iMeta, ok := val.(MetaGte); ok && isNumberType(fType) {
+		field.meta.gte = toPtr(iMeta.Gte())
 	}
-	if iTag, ok := val.(TagMultiple); ok && isNumberType(fType) {
-		field.tag.multiple = toPtr(iTag.Multiple())
+	if iMeta, ok := val.(MetaMultiple); ok && isNumberType(fType) {
+		field.meta.multiple = toPtr(iMeta.Multiple())
 	}
-	if iTag, ok := val.(TagMax); ok && inArray(kind, []reflect.Kind{reflect.Array, reflect.Slice,
+	if iMeta, ok := val.(MetaMax); ok && inArray(kind, []reflect.Kind{reflect.Array, reflect.Slice,
 		reflect.Map, reflect.String}) {
-		field.tag.max = toPtr(iTag.Max())
+		field.meta.max = toPtr(iMeta.Max())
 	}
-	if iTag, ok := val.(TagMin); ok && inArray(kind, []reflect.Kind{reflect.Array, reflect.Slice,
+	if iMeta, ok := val.(MetaMin); ok && inArray(kind, []reflect.Kind{reflect.Array, reflect.Slice,
 		reflect.Map, reflect.String}) {
-		field.tag.min = iTag.Min()
+		field.meta.min = iMeta.Min()
 	}
-	if iTag, ok := val.(TagUnique); ok && inArray(kind, []reflect.Kind{reflect.Array, reflect.Slice}) {
-		field.tag.unique = iTag.Unique()
+	if iMeta, ok := val.(MetaUnique); ok && inArray(kind, []reflect.Kind{reflect.Array, reflect.Slice}) {
+		field.meta.unique = iMeta.Unique()
 	}
-	if iTag, ok := val.(TagDesc); ok {
-		field.tag.desc = h.getMappingTag(iTag.Desc())
+	if iMeta, ok := val.(MetaDesc); ok {
+		field.meta.desc = h.getMappingTag(iMeta.Desc())
 	}
-	if iTag, ok := val.(TagDefault); ok {
+	if iMeta, ok := val.(MetaDefault); ok {
 		fVal := reflect.New(field._type)
-		if !defaultSet(fVal, iTag.Default()) {
+		if !defaultSet(fVal, iMeta.Default()) {
 			err = fmt.Errorf("the type returned by the 'Default' method must be consistent with the defined type")
 			return
 		}
-		field.tag._default = fVal.Interface()
-		field.tag._defaultParamString = h.setTagByDefaultParamString(field.tag._default)
+		field.meta._default = fVal.Interface()
+		field.meta._defaultParamString = h.setMetaByDefaultParamString(field.meta._default)
 	}
-	if iTag, ok := val.(TagExample); ok {
-		field.tag.example = iTag.Example()
+	if iMeta, ok := val.(MetaExample); ok {
+		field.meta.example = iMeta.Example()
 	}
-	if iTag, ok := val.(TagDeprecated); ok {
-		field.tag.deprecated = iTag.Deprecated()
+	if iMeta, ok := val.(MetaDeprecated); ok {
+		field.meta.deprecated = iMeta.Deprecated()
 	}
-	if iTag, ok := val.(TagName); ok {
-		field.tag.name = iTag.Name()
+	if iMeta, ok := val.(MetaName); ok {
+		field.meta.name = iMeta.Name()
 	}
-	if _, ok := val.(TagValidate); ok {
-		field.tag.isValid = true
+	if _, ok := val.(MetaValidate); ok {
+		field.meta.isValid = true
 	}
 	return
 }
@@ -801,82 +801,82 @@ func (h *handler) handleTagByField(field reflect.StructField, pField *paramField
 	}
 	kind := pField.kind
 	if tagVal := field.Tag.Get(tagRegexp); tagVal != "" && kind == reflect.String {
-		pField.tag.regexp = tagVal
+		pField.meta.regexp = tagVal
 	}
 	if tagVal := field.Tag.Get(tagEnum); tagVal != "" && (isNormalType(fType) || kind == reflect.String) {
-		if err = h.parseTagValByField(tagVal, &pField.tag.enum, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.enum, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagLt); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByField(tagVal, &pField.tag.lt, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.lt, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagLte); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByField(tagVal, &pField.tag.lte, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.lte, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagGt); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByField(tagVal, &pField.tag.gt, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.gt, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagGte); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByField(tagVal, &pField.tag.gte, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.gte, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagMultiple); tagVal != "" && isNumberType(fType) {
-		if err = h.parseTagValByField(tagVal, &pField.tag.multiple, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.multiple, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagMax); tagVal != "" && inArray(kind, []reflect.Kind{reflect.Array,
 		reflect.Slice, reflect.Map, reflect.String}) {
-		if err = h.parseTagValByField(tagVal, &pField.tag.max, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.max, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagMin); tagVal != "" && inArray(kind, []reflect.Kind{reflect.Array,
 		reflect.Slice, reflect.Map, reflect.String}) {
-		if err = h.parseTagValByField(tagVal, &pField.tag.min, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.min, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagUnique); tagVal != "" && inArray(kind, []reflect.Kind{reflect.Array,
 		reflect.Slice}) {
-		if err = h.parseTagValByField(tagVal, &pField.tag.unique, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.unique, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagDesc); tagVal != "" {
-		pField.tag.desc = h.getMappingTag(tagVal)
+		pField.meta.desc = h.getMappingTag(tagVal)
 	}
 	if tagVal := field.Tag.Get(tagDefault); tagVal != "" {
-		if err = h.parseTagValByField(tagVal, &pField.tag._default, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta._default, pField); err != nil {
 			return
 		}
-		pField.tag._defaultParamString = h.setTagByDefaultParamString(tagVal)
+		pField.meta._defaultParamString = h.setMetaByDefaultParamString(tagVal)
 	}
 	if tagVal := field.Tag.Get(tagExample); tagVal != "" {
-		if err = h.parseTagValByField(tagVal, &pField.tag.example, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.example, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagDeprecated); tagVal != "" {
-		if err = h.parseTagValByField(tagVal, &pField.tag.deprecated, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.deprecated, pField); err != nil {
 			return
 		}
 	}
 	if tagVal := field.Tag.Get(tagName); tagVal != "" {
-		if err = h.parseTagValByField(tagVal, &pField.tag.name, pField); err != nil {
+		if err = h.parseMetaValByField(tagVal, &pField.meta.name, pField); err != nil {
 			return
 		}
 	}
 	// handle extensions
-	pField.tag.extensions = h.getExtensionsTags(string(field.Tag))
+	pField.meta.extensions = h.getExtensionsTags(string(field.Tag))
 	return
 }
 
@@ -933,7 +933,7 @@ func (h *handler) getExtensionsTags(tag string) (extensions map[string]any) {
 
 		// Scan to colon. A space, a quote or a control character is a syntax error.
 		// Strictly speaking, control chars include the range [0x7f, 0x9f], not just
-		// [0x00, 0x1f], but in practice, we ignore the multi-byte control characters
+		// [0x00, 0x1f], but in practice, we ignore the multibyte control characters
 		// as it is simpler to inspect the tag's bytes than the tag's runes.
 		i = 0
 		for i < len(tag) && tag[i] > ' ' && tag[i] != ':' && tag[i] != '"' && tag[i] != 0x7f {
@@ -942,7 +942,7 @@ func (h *handler) getExtensionsTags(tag string) (extensions map[string]any) {
 		if i == 0 || i+1 >= len(tag) || tag[i] != ':' || tag[i+1] != '"' {
 			break
 		}
-		name := string(tag[:i])
+		name := tag[:i]
 		tag = tag[i+1:]
 
 		// Scan quoted string to find value.
@@ -956,11 +956,11 @@ func (h *handler) getExtensionsTags(tag string) (extensions map[string]any) {
 		if i >= len(tag) {
 			break
 		}
-		qvalue := string(tag[:i+1])
+		qValue := tag[:i+1]
 		tag = tag[i+1:]
 
 		if len(name) > 2 && name[:2] == "x-" {
-			value, err := strconv.Unquote(qvalue)
+			value, err := strconv.Unquote(qValue)
 			if err != nil {
 				break
 			}
@@ -974,7 +974,7 @@ func (h *handler) getExtensionsTags(tag string) (extensions map[string]any) {
 	return
 }
 
-func (h *handler) handleTagByType(kind reflect.Kind, tag *paramTag) {
+func (h *handler) handleMetaByType(kind reflect.Kind, meta *paramMeta) {
 	minNum, maxNum := float64(0), float64(-1)
 	switch kind {
 	case reflect.Int8:
@@ -1001,11 +1001,11 @@ func (h *handler) handleTagByType(kind reflect.Kind, tag *paramTag) {
 		return
 	}
 	if maxNum != -1 {
-		if tag.lte == nil || *tag.lte > maxNum {
-			tag.lte = toPtr(maxNum)
+		if meta.lte == nil || *meta.lte > maxNum {
+			meta.lte = toPtr(maxNum)
 		}
-		if tag.gte == nil || *tag.gte < minNum {
-			tag.gte = toPtr(minNum)
+		if meta.gte == nil || *meta.gte < minNum {
+			meta.gte = toPtr(minNum)
 		}
 	}
 }
@@ -1021,7 +1021,7 @@ func (h *handler) getPkgName(fType reflect.Type) string {
 	return fmt.Sprintf("%s.%s", pkgPath, pkgName)
 }
 
-func (h *handler) handleTagEnumToFloat64(enum []any, fType reflect.Type) (err error) {
+func (h *handler) handleMetaEnumToFloat64(enum []any, fType reflect.Type) (err error) {
 	if !isNumberType(fType) {
 		return
 	}
@@ -1055,7 +1055,7 @@ func (h *handler) handleTagEnumToFloat64(enum []any, fType reflect.Type) (err er
 	return
 }
 
-func (h *handler) parseTagValByField(inVal string, outVal any, pField *paramField) error {
+func (h *handler) parseMetaValByField(inVal string, outVal any, pField *paramField) error {
 	switch val := outVal.(type) {
 	case *string:
 		*val = inVal
