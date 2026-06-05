@@ -45,7 +45,7 @@ type Router struct {
 func GetSwagger(path, title string, openapiJsonBody []byte, config Config) (routers []Router) {
 	path = handlePath(path)
 	paths := []string{
-		path + "/",
+		path,
 		path + cssIndexPath,
 		path + cssSwaggerUiPath,
 		path + jsSwaggerInitializerPath,
@@ -56,18 +56,18 @@ func GetSwagger(path, title string, openapiJsonBody []byte, config Config) (rout
 	var darkHtml string
 	if config.DarkMode {
 		paths = append(paths, path+cssSwaggerDarkPath)
-		darkHtml = `<link rel="stylesheet" type="text/css" href="` + path + cssSwaggerDarkPath + `" />`
+		darkHtml = `<link rel="stylesheet" type="text/css" href="` + cssSwaggerDarkPath + `" />`
 	}
 	routers = append(routers, Router{
 		Paths: paths,
 		Handler: func(writer http.ResponseWriter, request *http.Request) {
 			switch strings.TrimPrefix(request.URL.Path, path) {
-			case "/":
+			case "":
 				writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 				if handleCache(writer, request) {
 					return
 				}
-				_, _ = writer.Write([]byte(fmt.Sprintf(index, title, path, path, darkHtml, favicon, path, path, path)))
+				_, _ = writer.Write([]byte(fmt.Sprintf(index, title, darkHtml)))
 			case cssIndexPath:
 				writer.Header().Set("Content-Type", "text/css; charset=utf-8")
 				if handleCache(writer, request) {
@@ -91,7 +91,7 @@ func GetSwagger(path, title string, openapiJsonBody []byte, config Config) (rout
 				if handleCache(writer, request) {
 					return
 				}
-				_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, path, config.DocExpansion, config.DeepLinking)))
+				_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, config.DocExpansion, config.DeepLinking)))
 			case jsSwaggerUiBundlePath:
 				writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 				if handleCache(writer, request) {
@@ -124,8 +124,8 @@ func handleCache(writer http.ResponseWriter, request *http.Request) bool {
 }
 
 func handlePath(path string) string {
-	if path[len(path)-1] == '/' {
-		path = path[:len(path)-1]
+	if path[len(path)-1] != '/' {
+		path += "/"
 	}
 	return path
 }

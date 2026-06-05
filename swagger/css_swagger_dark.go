@@ -1,6 +1,6 @@
 package swagger
 
-const cssSwaggerDarkPath = "/swagger-dark.css"
+const cssSwaggerDarkPath = "swagger-dark.css"
 
 const cssSwaggerDark = `@media only screen and (prefers-color-scheme: dark) {
 

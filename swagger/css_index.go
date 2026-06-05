@@ -1,6 +1,6 @@
 package swagger
 
-const cssIndexPath = "/index.css"
+const cssIndexPath = "index.css"
 
 const cssIndex = `html {
     box-sizing: border-box;
