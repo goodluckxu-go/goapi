@@ -478,8 +478,9 @@ walk:
 		if len(*skippedNodes) == 0 {
 			return
 		}
-		skipped := (*skippedNodes)[0]
-		*skippedNodes = (*skippedNodes)[1:]
+		length := len(*skippedNodes)
+		skipped := (*skippedNodes)[length-1]
+		*skippedNodes = (*skippedNodes)[:length-1]
 		n = skipped.node
 		path = skipped.path
 		*params = make(Params, len(*skipped.params))
