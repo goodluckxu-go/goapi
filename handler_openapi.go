@@ -657,6 +657,9 @@ func (h *handlerOpenAPI) handleOperation(operation *openapi.Operation, path *pat
 			}
 			header[key] = &openapi.Header{
 				Description: strings.Join(head, ", "),
+				Schema: &openapi.Schema{
+					Type: "string",
+				},
 			}
 		}
 		resMap[toString(path.outParam.httpStatus)] = &openapi.Response{

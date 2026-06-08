@@ -10,13 +10,17 @@ import (
 	"strings"
 )
 
-// OpenAPI is the root of an OpenAPI v3.1.0 document
-// See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.0.md
+// OpenAPI is the root of an OpenAPI v3.2.0 document
+// See https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.2.0.md
 type OpenAPI struct {
 	// REQUIRED. This string MUST be the version number of the OpenAPI Specification that the
 	// OpenAPI document uses. The field SHOULD be used by tooling to interpret the OpenAPI
 	// document. This is not related to the API info.version string.openapi
 	OpenAPI string `json:"openapi"`
+
+	// The self-assigned URI of this document, which also serves as its base URI.
+	// This MUST be in the form of a URI reference and MUST NOT contain a fragment.
+	Self string `json:"$self"`
 
 	// REQUIRED. Provides metadata about the API. The metadata MAY be used by tooling as required.
 	Info *Info `json:"info"`
@@ -66,6 +70,7 @@ type OpenAPI struct {
 func (o *OpenAPI) marshalField() []marshalField {
 	return []marshalField{
 		{"openapi", o.OpenAPI, o.OpenAPI == ""},
+		{"$self", o.Self, o.Self == ""},
 		{"info", o.Info, o.Info == nil},
 		{"jsonSchemaDialect", o.JSONSchemaDialect, o.JSONSchemaDialect == ""},
 		{"servers", o.Servers, o.Servers == nil},
@@ -89,6 +94,7 @@ func (o *OpenAPI) UnmarshalJSON(buf []byte) (err error) {
 		return
 	}
 	delete(x.Extensions, "openapi")
+	delete(x.Extensions, "$self")
 	delete(x.Extensions, "info")
 	delete(x.Extensions, "jsonSchemaDialect")
 	delete(x.Extensions, "servers")
@@ -103,8 +109,12 @@ func (o *OpenAPI) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (o *OpenAPI) Validate() error {
-	if !regexp.MustCompile(`^3\.1(\.\d+)*$`).MatchString(o.OpenAPI) {
-		return verifyError("openapi", fmt.Errorf("must be 3.1 or 3.1.*"))
+	if !regexp.MustCompile(`^3\.2(\.\d+)*$`).MatchString(o.OpenAPI) {
+		return verifyError("openapi", fmt.Errorf("must be 3.2 or 3.2.*"))
+	}
+
+	if strings.Contains(o.Self, "#") {
+		return verifyError("$self", fmt.Errorf("must not contain a fragment"))
 	}
 
 	if o.Info != nil {
@@ -113,6 +123,10 @@ func (o *OpenAPI) Validate() error {
 		}
 	} else {
 		return verifyError("info", fmt.Errorf("must be a non empty object"))
+	}
+
+	if o.Components == nil && o.Paths == nil && o.Webhooks == nil {
+		return fmt.Errorf("at least one of components, paths, or webhooks must be present")
 	}
 
 	for k, v := range o.Servers {
@@ -143,6 +157,9 @@ func (o *OpenAPI) Validate() error {
 		if err := v.Validate(); err != nil {
 			return verifyError(fmt.Sprintf("tags[%v]", k), err)
 		}
+	}
+	if err := validateTags(o.Tags); err != nil {
+		return verifyError("tags", err)
 	}
 
 	if o.ExternalDocs != nil {
@@ -363,6 +380,9 @@ type Server struct {
 	// for rich text representation.
 	Description string `json:"description"`
 
+	// An optional name to identify this server.
+	Name string `json:"name"`
+
 	// A map between a variable name and its value. The value is used for substitution in the server's URL template.
 	Variables map[string]*ServerVariable `json:"variables"`
 
@@ -374,6 +394,7 @@ func (s *Server) marshalField() []marshalField {
 	return []marshalField{
 		{"url", s.URL, s.URL == ""},
 		{"description", s.Description, s.Description == ""},
+		{"name", s.Name, s.Name == ""},
 		{"variables", s.Variables, s.Variables == nil},
 	}
 }
@@ -390,6 +411,7 @@ func (s *Server) UnmarshalJSON(buf []byte) (err error) {
 	}
 	delete(x.Extensions, "url")
 	delete(x.Extensions, "description")
+	delete(x.Extensions, "name")
 	delete(x.Extensions, "variables")
 	*s = Server(x)
 	return
@@ -501,6 +523,9 @@ type Components struct {
 	// An object to hold reusable Path Item Object.
 	PathItems map[string]*PathItem `json:"pathItems"`
 
+	// An object to hold reusable Media Type Objects.
+	MediaTypes map[string]*MediaType `json:"mediaTypes"`
+
 	// This object MAY be extended with Specification Extensions.
 	Extensions map[string]any
 }
@@ -517,6 +542,7 @@ func (c *Components) marshalField() []marshalField {
 		{"links", c.Links, c.Links == nil},
 		{"callbacks", c.Callbacks, c.Callbacks == nil},
 		{"pathItems", c.PathItems, c.PathItems == nil},
+		{"mediaTypes", c.MediaTypes, c.MediaTypes == nil},
 	}
 }
 
@@ -540,6 +566,7 @@ func (c *Components) UnmarshalJSON(buf []byte) (err error) {
 	delete(x.Extensions, "links")
 	delete(x.Extensions, "callbacks")
 	delete(x.Extensions, "pathItems")
+	delete(x.Extensions, "mediaTypes")
 	*c = Components(x)
 	return
 }
@@ -602,6 +629,12 @@ func (c *Components) Validate(openapi *OpenAPI) error {
 	for k, v := range c.PathItems {
 		if err := v.Validate(openapi, k); err != nil {
 			return verifyError(fmt.Sprintf("pathItems[%v]", k), err)
+		}
+	}
+
+	for k, v := range c.MediaTypes {
+		if err := v.Validate(openapi); err != nil {
+			return verifyError(fmt.Sprintf("mediaTypes[%v]", k), err)
 		}
 	}
 
@@ -737,6 +770,12 @@ type PathItem struct {
 	// A definition of a TRACE operation on this path.
 	Trace *Operation `json:"trace"`
 
+	// A definition of a QUERY operation on this path.
+	Query *Operation `json:"query"`
+
+	// Additional operations on this path keyed by the HTTP method name to send in the request.
+	AdditionalOperations map[string]*Operation `json:"additionalOperations"`
+
 	// An alternative array to service all operations in this path.server
 	Servers []*Server `json:"servers"`
 
@@ -770,6 +809,8 @@ func (p *PathItem) marshalField() []marshalField {
 		{"head", p.Head, p.Head == nil},
 		{"patch", p.Patch, p.Patch == nil},
 		{"trace", p.Trace, p.Trace == nil},
+		{"query", p.Query, p.Query == nil},
+		{"additionalOperations", p.AdditionalOperations, p.AdditionalOperations == nil},
 		{"servers", p.Servers, p.Servers == nil},
 		{"parameters", p.Parameters, p.Parameters == nil},
 	}
@@ -796,6 +837,8 @@ func (p *PathItem) UnmarshalJSON(buf []byte) (err error) {
 	delete(x.Extensions, "head")
 	delete(x.Extensions, "patch")
 	delete(x.Extensions, "trace")
+	delete(x.Extensions, "query")
+	delete(x.Extensions, "additionalOperations")
 	delete(x.Extensions, "servers")
 	delete(x.Extensions, "parameters")
 	*p = PathItem(x)
@@ -811,50 +854,67 @@ func (p *PathItem) Validate(openapi *OpenAPI, path string) error {
 	}
 
 	if p.Get != nil {
-		if err := p.Get.Validate(openapi, path); err != nil {
+		if err := p.Get.Validate(openapi, path, p.Parameters); err != nil {
 			return verifyError("get", err)
 		}
 	}
 
 	if p.Put != nil {
-		if err := p.Put.Validate(openapi, path); err != nil {
+		if err := p.Put.Validate(openapi, path, p.Parameters); err != nil {
 			return verifyError("put", err)
 		}
 	}
 
 	if p.Post != nil {
-		if err := p.Post.Validate(openapi, path); err != nil {
+		if err := p.Post.Validate(openapi, path, p.Parameters); err != nil {
 			return verifyError("post", err)
 		}
 	}
 
 	if p.Delete != nil {
-		if err := p.Delete.Validate(openapi, path); err != nil {
+		if err := p.Delete.Validate(openapi, path, p.Parameters); err != nil {
 			return verifyError("delete", err)
 		}
 	}
 
 	if p.Options != nil {
-		if err := p.Options.Validate(openapi, path); err != nil {
+		if err := p.Options.Validate(openapi, path, p.Parameters); err != nil {
 			return verifyError("options", err)
 		}
 	}
 
 	if p.Head != nil {
-		if err := p.Head.Validate(openapi, path); err != nil {
+		if err := p.Head.Validate(openapi, path, p.Parameters); err != nil {
 			return verifyError("head", err)
 		}
 	}
 
 	if p.Patch != nil {
-		if err := p.Patch.Validate(openapi, path); err != nil {
+		if err := p.Patch.Validate(openapi, path, p.Parameters); err != nil {
 			return verifyError("patch", err)
 		}
 	}
 
 	if p.Trace != nil {
-		if err := p.Trace.Validate(openapi, path); err != nil {
+		if err := p.Trace.Validate(openapi, path, p.Parameters); err != nil {
 			return verifyError("trace", err)
+		}
+	}
+
+	if p.Query != nil {
+		if err := p.Query.Validate(openapi, path, p.Parameters); err != nil {
+			return verifyError("query", err)
+		}
+	}
+
+	for k, v := range p.AdditionalOperations {
+		switch strings.ToUpper(k) {
+		case "GET", "PUT", "POST", "DELETE", "OPTIONS", "HEAD", "PATCH", "TRACE", "QUERY":
+			return verifyError(fmt.Sprintf("additionalOperations[%v]", k),
+				fmt.Errorf("must not duplicate a fixed operation field"))
+		}
+		if err := v.Validate(openapi, path, p.Parameters); err != nil {
+			return verifyError(fmt.Sprintf("additionalOperations[%v]", k), err)
 		}
 	}
 
@@ -862,6 +922,10 @@ func (p *PathItem) Validate(openapi *OpenAPI, path string) error {
 		if err := v.Validate(); err != nil {
 			return verifyError(fmt.Sprintf("servers[%v]", k), err)
 		}
+	}
+
+	if err := validateParameterList(p.Parameters); err != nil {
+		return verifyError("parameters", err)
 	}
 
 	for k, v := range p.Parameters {
@@ -979,58 +1043,48 @@ func (o *Operation) UnmarshalJSON(buf []byte) (err error) {
 	return
 }
 
-func (o *Operation) Validate(openapi *OpenAPI, path string) error {
+func (o *Operation) Validate(openapi *OpenAPI, path string, pathParameters ...[]*Parameter) error {
 	if o.ExternalDocs != nil {
 		if err := o.ExternalDocs.Validate(); err != nil {
 			return verifyError("externalDocs", err)
 		}
 	}
 
-	idMap := map[string]int{}
-	for _, v := range openapi.Paths.m {
-		if v.Get != nil {
-			idMap[v.Get.OperationId]++
-		}
-		if v.Put != nil {
-			idMap[v.Put.OperationId]++
-		}
-		if v.Post != nil {
-			idMap[v.Post.OperationId]++
-		}
-		if v.Delete != nil {
-			idMap[v.Delete.OperationId]++
-		}
-		if v.Options != nil {
-			idMap[v.Options.OperationId]++
-		}
-		if v.Head != nil {
-			idMap[v.Head.OperationId]++
-		}
-		if v.Patch != nil {
-			idMap[v.Patch.OperationId]++
-		}
-		if v.Trace != nil {
-			idMap[v.Trace.OperationId]++
-		}
-	}
+	idMap := collectOperationIds(openapi)
 	for _, c := range idMap {
 		if c > 1 {
 			return verifyError("operationId", fmt.Errorf("value duplication"))
 		}
 	}
 
-	pathTotal := strings.Count(path, "{")
-	pathCount := 0
+	parameters := o.Parameters
+	if len(pathParameters) > 0 {
+		parameters = append(append([]*Parameter{}, pathParameters[0]...), o.Parameters...)
+	}
+
+	if err := validateParameterList(o.Parameters); err != nil {
+		return verifyError("parameters", err)
+	}
+	if err := validateQuerystringParameters(parameters); err != nil {
+		return verifyError("parameters", err)
+	}
+
+	pathNames := pathParameterNames(path)
+	pathNameSet := map[string]bool{}
 	for k, v := range o.Parameters {
-		if v.In == "path" {
-			pathCount++
-		}
 		if err := v.Validate(openapi, path); err != nil {
 			return verifyError(fmt.Sprintf("parameters[%v]", k), err)
 		}
 	}
-	if pathCount != pathTotal {
-		return verifyError("parameters", fmt.Errorf("must be in %q when in is \"path\"", path))
+	for _, v := range parameters {
+		if v != nil && v.Ref == "" && v.In == "path" {
+			pathNameSet[v.Name] = true
+		}
+	}
+	for _, name := range pathNames {
+		if !pathNameSet[name] {
+			return verifyError("parameters", fmt.Errorf("%q must be defined when in is \"path\"", name))
+		}
 	}
 
 	if o.RequestBody != nil {
@@ -1115,6 +1169,9 @@ func (e *ExternalDocumentation) Validate() error {
 type Parameter struct {
 	Ref string `json:"$ref"`
 
+	// A short summary which SHOULD override that of the referenced component.
+	Summary string `json:"summary"`
+
 	// REQUIRED. The name of the parameter. Parameter names are case sensitive.
 	//   If in is "path", the name field MUST correspond to a template expression occurring within
 	//     the path field in the Paths Object. See Path Templating for further information.
@@ -1123,7 +1180,7 @@ type Parameter struct {
 	//   For all other cases, the name corresponds to the parameter name used by the in property.
 	Name string `json:"name"`
 
-	// REQUIRED. The location of the parameter. Possible values are , , or ."query""header""path""cookie"
+	// REQUIRED. The location of the parameter. Possible values are "query", "querystring", "header", "path", or "cookie".
 	In string `json:"in"`
 
 	// A brief description of the parameter. This could contain examples of use. CommonMark syntax
@@ -1186,6 +1243,7 @@ func (p *Parameter) marshalField() []marshalField {
 	if p.Ref != "" {
 		return []marshalField{
 			{"$ref", p.Ref, false},
+			{"summary", p.Summary, p.Summary == ""},
 			{"description", p.Description, p.Description == ""},
 		}
 	}
@@ -1220,6 +1278,7 @@ func (p *Parameter) UnmarshalJSON(buf []byte) (err error) {
 		return
 	}
 	delete(x.Extensions, "$ref")
+	delete(x.Extensions, "summary")
 	delete(x.Extensions, "name")
 	delete(x.Extensions, "in")
 	delete(x.Extensions, "description")
@@ -1257,12 +1316,33 @@ func (p *Parameter) Validate(openapi *OpenAPI, path string) error {
 		return verifyError("in", fmt.Errorf("must be a non empty string"))
 	}
 
-	if p.In != "query" && p.In != "header" && p.In != "path" && p.In != "cookie" {
-		return verifyError("in", fmt.Errorf("must be within \"query\", \"header\", \"path\", \"cookie\""))
+	if p.In != "query" && p.In != "querystring" && p.In != "header" && p.In != "path" && p.In != "cookie" {
+		return verifyError("in", fmt.Errorf("must be within \"query\", \"querystring\", \"header\", \"path\", \"cookie\""))
 	}
 
 	if p.In == "path" && !p.Required {
 		return verifyError("required", fmt.Errorf("must be \"true\" when in is \"path\""))
+	}
+
+	if p.AllowEmptyValue && p.In != "query" {
+		return verifyError("allowEmptyValue", fmt.Errorf("must only be used when in is \"query\""))
+	}
+
+	if p.Schema != nil && p.Content != nil {
+		return fmt.Errorf("fields schema and content are mutually exclusive")
+	}
+
+	if p.Schema == nil && p.Content == nil {
+		return fmt.Errorf("one of fields schema and content must be specified")
+	}
+
+	if p.In == "querystring" {
+		if p.Content == nil {
+			return verifyError("content", fmt.Errorf("must be specified when in is \"querystring\""))
+		}
+		if p.Style != "" {
+			return verifyError("style", fmt.Errorf("must not be specified when in is \"querystring\""))
+		}
 	}
 
 	if p.Schema != nil {
@@ -1286,6 +1366,12 @@ func (p *Parameter) Validate(openapi *OpenAPI, path string) error {
 			return verifyError(fmt.Sprintf("content[%v]", k), err)
 		}
 	}
+	if p.Content != nil && len(p.Content) == 0 {
+		return verifyError("content", fmt.Errorf("must be a non empty object"))
+	}
+	if len(p.Content) > 1 {
+		return verifyError("content", fmt.Errorf("must only contain one entry"))
+	}
 
 	if p.Extensions != nil {
 		if err := validatorExtensions(p.Extensions); err != nil {
@@ -1297,6 +1383,9 @@ func (p *Parameter) Validate(openapi *OpenAPI, path string) error {
 
 type RequestBody struct {
 	Ref string `json:"$ref"`
+
+	// A short summary which SHOULD override that of the referenced component.
+	Summary string `json:"summary"`
 
 	// A brief description of the request body. This could contain examples of use. CommonMark
 	// syntax MAY be used for rich text representation.
@@ -1318,6 +1407,7 @@ func (r *RequestBody) marshalField() []marshalField {
 	if r.Ref != "" {
 		return []marshalField{
 			{"$ref", r.Ref, false},
+			{"summary", r.Summary, r.Summary == ""},
 			{"description", r.Description, r.Description == ""},
 		}
 	}
@@ -1339,6 +1429,7 @@ func (r *RequestBody) UnmarshalJSON(buf []byte) (err error) {
 		return
 	}
 	delete(x.Extensions, "$ref")
+	delete(x.Extensions, "summary")
 	delete(x.Extensions, "description")
 	delete(x.Extensions, "content")
 	delete(x.Extensions, "required")
@@ -1373,8 +1464,19 @@ func (r *RequestBody) Validate(openapi *OpenAPI) error {
 }
 
 type MediaType struct {
+	Ref string `json:"$ref"`
+
+	// A short summary which SHOULD override that of the referenced component.
+	Summary string `json:"summary"`
+
+	// A description of the media type. CommonMark syntax MAY be used for rich text representation.
+	Description string `json:"description"`
+
 	// The schema defining the content of the request, response, or parameter.
 	Schema *Schema `json:"schema"`
+
+	// The schema defining each item within a sequential media type.
+	ItemSchema *Schema `json:"itemSchema"`
 
 	// Example of the media type. The example object SHOULD be in the correct format as specified by the media
 	// type. The field is mutually exclusive of the field. Furthermore, if referencing a which contains an
@@ -1391,16 +1493,33 @@ type MediaType struct {
 	// media type is or .requestBody multipart application/x-www-form-urlencoded
 	Encoding map[string]*Encoding `json:"encoding"`
 
+	// Positional encoding information for a prefix of items in multipart content.
+	PrefixEncoding []*Encoding `json:"prefixEncoding"`
+
+	// Encoding information for multiple array items in multipart content.
+	ItemEncoding *Encoding `json:"itemEncoding"`
+
 	// This object MAY be extended with Specification Extensions.
 	Extensions map[string]any
 }
 
 func (m *MediaType) marshalField() []marshalField {
+	if m.Ref != "" {
+		return []marshalField{
+			{"$ref", m.Ref, false},
+			{"summary", m.Summary, m.Summary == ""},
+			{"description", m.Description, m.Description == ""},
+		}
+	}
 	return []marshalField{
+		{"description", m.Description, m.Description == ""},
 		{"schema", m.Schema, m.Schema == nil},
+		{"itemSchema", m.ItemSchema, m.ItemSchema == nil},
 		{"example", m.Example, m.Example == nil},
 		{"examples", m.Examples, m.Examples == nil},
 		{"encoding", m.Encoding, m.Encoding == nil},
+		{"prefixEncoding", m.PrefixEncoding, m.PrefixEncoding == nil},
+		{"itemEncoding", m.ItemEncoding, m.ItemEncoding == nil},
 	}
 }
 
@@ -1414,18 +1533,37 @@ func (m *MediaType) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
+	delete(x.Extensions, "$ref")
+	delete(x.Extensions, "summary")
+	delete(x.Extensions, "description")
 	delete(x.Extensions, "schema")
+	delete(x.Extensions, "itemSchema")
 	delete(x.Extensions, "example")
 	delete(x.Extensions, "examples")
 	delete(x.Extensions, "encoding")
+	delete(x.Extensions, "prefixEncoding")
+	delete(x.Extensions, "itemEncoding")
 	*m = MediaType(x)
 	return
 }
 
 func (m *MediaType) Validate(openapi *OpenAPI) error {
+	if m.Ref != "" {
+		if err := validatorRef(m.Ref, "mediaType", openapi); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if m.Schema != nil {
 		if err := m.Schema.Validate(openapi); err != nil {
 			return verifyError("schema", err)
+		}
+	}
+
+	if m.ItemSchema != nil {
+		if err := m.ItemSchema.Validate(openapi); err != nil {
+			return verifyError("itemSchema", err)
 		}
 	}
 
@@ -1443,6 +1581,22 @@ func (m *MediaType) Validate(openapi *OpenAPI) error {
 		if err := v.Validate(openapi); err != nil {
 			return verifyError(fmt.Sprintf("encoding[%v]", k), err)
 		}
+	}
+
+	for k, v := range m.PrefixEncoding {
+		if err := v.Validate(openapi); err != nil {
+			return verifyError(fmt.Sprintf("prefixEncoding[%v]", k), err)
+		}
+	}
+
+	if m.ItemEncoding != nil {
+		if err := m.ItemEncoding.Validate(openapi); err != nil {
+			return verifyError("itemEncoding", err)
+		}
+	}
+
+	if m.Encoding != nil && (m.PrefixEncoding != nil || m.ItemEncoding != nil) {
+		return fmt.Errorf("field encoding is mutually exclusive of fields prefixEncoding and itemEncoding")
 	}
 
 	if m.Extensions != nil {
@@ -1487,6 +1641,15 @@ type Encoding struct {
 	// application/x-www-form-urlencoded multipart/form-data
 	AllowReserved bool `json:"allowReserved"`
 
+	// Nested encoding information by name.
+	Encoding map[string]*Encoding `json:"encoding"`
+
+	// Positional nested encoding information for a prefix of items.
+	PrefixEncoding []*Encoding `json:"prefixEncoding"`
+
+	// Nested encoding information for multiple array items.
+	ItemEncoding *Encoding `json:"itemEncoding"`
+
 	// This object MAY be extended with Specification Extensions.
 	Extensions map[string]any
 }
@@ -1498,6 +1661,9 @@ func (e *Encoding) marshalField() []marshalField {
 		{"style", e.Style, e.Style == ""},
 		{"explode", e.Explode, e.Explode == false},
 		{"allowReserved", e.AllowReserved, e.AllowReserved == false},
+		{"encoding", e.Encoding, e.Encoding == nil},
+		{"prefixEncoding", e.PrefixEncoding, e.PrefixEncoding == nil},
+		{"itemEncoding", e.ItemEncoding, e.ItemEncoding == nil},
 	}
 }
 
@@ -1516,6 +1682,9 @@ func (e *Encoding) UnmarshalJSON(buf []byte) (err error) {
 	delete(x.Extensions, "style")
 	delete(x.Extensions, "explode")
 	delete(x.Extensions, "allowReserved")
+	delete(x.Extensions, "encoding")
+	delete(x.Extensions, "prefixEncoding")
+	delete(x.Extensions, "itemEncoding")
 	*e = Encoding(x)
 	return
 }
@@ -1525,6 +1694,28 @@ func (e *Encoding) Validate(openapi *OpenAPI) error {
 		if err := v.Validate(openapi); err != nil {
 			return verifyError(fmt.Sprintf("headers[%v]", k), err)
 		}
+	}
+
+	for k, v := range e.Encoding {
+		if err := v.Validate(openapi); err != nil {
+			return verifyError(fmt.Sprintf("encoding[%v]", k), err)
+		}
+	}
+
+	for k, v := range e.PrefixEncoding {
+		if err := v.Validate(openapi); err != nil {
+			return verifyError(fmt.Sprintf("prefixEncoding[%v]", k), err)
+		}
+	}
+
+	if e.ItemEncoding != nil {
+		if err := e.ItemEncoding.Validate(openapi); err != nil {
+			return verifyError("itemEncoding", err)
+		}
+	}
+
+	if e.Encoding != nil && (e.PrefixEncoding != nil || e.ItemEncoding != nil) {
+		return fmt.Errorf("field encoding is mutually exclusive of fields prefixEncoding and itemEncoding")
 	}
 
 	if e.Extensions != nil {
@@ -1571,6 +1762,9 @@ func (r *Responses) UnmarshalJSON(buf []byte) (err error) {
 		Extensions: map[string]any{},
 	}
 	for k, v := range m {
+		if k == "$ref" {
+			continue
+		}
 		if strings.HasPrefix(k, "x-") {
 			x.Extensions[k] = v
 			continue
@@ -1594,6 +1788,10 @@ func (r *Responses) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (r *Responses) Validate(openapi *OpenAPI) error {
+	if r.Default == nil && len(r.m) == 0 {
+		return fmt.Errorf("must contain at least one response")
+	}
+
 	if r.Default != nil {
 		if err := r.Default.Validate(openapi); err != nil {
 			return verifyError("default", err)
@@ -1601,6 +1799,9 @@ func (r *Responses) Validate(openapi *OpenAPI) error {
 	}
 
 	for k, v := range r.m {
+		if !regexp.MustCompile(`^[1-5]([0-9]{2}|XX)$`).MatchString(k) {
+			return verifyError(k, fmt.Errorf("must be an HTTP status code or range"))
+		}
 		if err := v.Validate(openapi); err != nil {
 			return verifyError(k, err)
 		}
@@ -1645,7 +1846,10 @@ func (r *Responses) Responses() map[string]*Response {
 type Response struct {
 	Ref string `json:"$ref"`
 
-	// REQUIRED. A description of the response. CommonMark syntax MAY be used for rich text representation.
+	// A short summary of the response.
+	Summary string `json:"summary"`
+
+	// A description of the response. CommonMark syntax MAY be used for rich text representation.
 	Description string `json:"description"`
 
 	// Maps a header name to its definition. RFC7230 states header names are case insensitive.
@@ -1669,10 +1873,12 @@ func (r *Response) marshalField() []marshalField {
 	if r.Ref != "" {
 		return []marshalField{
 			{"$ref", r.Ref, false},
+			{"summary", r.Summary, r.Summary == ""},
 			{"description", r.Description, r.Description == ""},
 		}
 	}
 	return []marshalField{
+		{"summary", r.Summary, r.Summary == ""},
 		{"description", r.Description, r.Description == ""},
 		{"headers", r.Headers, r.Headers == nil},
 		{"content", r.Content, r.Content == nil},
@@ -1691,6 +1897,7 @@ func (r *Response) UnmarshalJSON(buf []byte) (err error) {
 		return
 	}
 	delete(x.Extensions, "$ref")
+	delete(x.Extensions, "summary")
 	delete(x.Extensions, "description")
 	delete(x.Extensions, "headers")
 	delete(x.Extensions, "content")
@@ -1705,10 +1912,6 @@ func (r *Response) Validate(openapi *OpenAPI) error {
 			return err
 		}
 		return nil
-	}
-
-	if r.Description == "" {
-		return verifyError("description", fmt.Errorf("must be a non empty string"))
 	}
 
 	for k, v := range r.Headers {
@@ -1801,15 +2004,21 @@ func (r *Response) Validate(openapi *OpenAPI) error {
 //	      '200':
 //	        description: callback successfully processed
 type Callback struct {
-	Ref string `json:"$ref"`
-	m   map[string]*PathItem
+	Ref         string `json:"$ref"`
+	Summary     string `json:"summary"`
+	Description string `json:"description"`
+	m           map[string]*PathItem
 
 	Extensions map[string]any
 }
 
 func (c *Callback) marshalField() []marshalField {
 	if c.Ref != "" {
-		return []marshalField{{"$ref", c.Ref, false}}
+		return []marshalField{
+			{"$ref", c.Ref, false},
+			{"summary", c.Summary, c.Summary == ""},
+			{"description", c.Description, c.Description == ""},
+		}
 	}
 	var list []marshalField
 	for k, v := range c.m {
@@ -1829,12 +2038,19 @@ func (c *Callback) UnmarshalJSON(buf []byte) (err error) {
 		return
 	}
 	ref, _ := m["$ref"].(string)
+	summary, _ := m["summary"].(string)
+	description, _ := m["description"].(string)
 	x := alias{
-		Ref:        ref,
-		m:          map[string]*PathItem{},
-		Extensions: map[string]any{},
+		Ref:         ref,
+		Summary:     summary,
+		Description: description,
+		m:           map[string]*PathItem{},
+		Extensions:  map[string]any{},
 	}
 	for k, v := range m {
+		if ref != "" && (k == "$ref" || k == "summary" || k == "description") {
+			continue
+		}
 		if strings.HasPrefix(k, "x-") {
 			x.Extensions[k] = v
 			continue
@@ -1897,6 +2113,12 @@ type Example struct {
 	// Long description for the example. CommonMark syntax MAY be used for rich text representation.
 	Description string `json:"description"`
 
+	// Example value in the data model before serialization.
+	DataValue any `json:"dataValue"`
+
+	// Example value after serialization.
+	SerializedValue string `json:"serializedValue"`
+
 	// Embedded literal example. The field and field are mutually exclusive. To represent examples of media
 	// types that cannot naturally represented in JSON or YAML, use a string value to contain the example,
 	// escaping where necessary. value externalValue
@@ -1922,6 +2144,8 @@ func (e *Example) marshalField() []marshalField {
 	return []marshalField{
 		{"summary", e.Summary, e.Summary == ""},
 		{"description", e.Description, e.Description == ""},
+		{"dataValue", e.DataValue, e.DataValue == nil},
+		{"serializedValue", e.SerializedValue, e.SerializedValue == ""},
 		{"value", e.Value, e.Value == nil},
 		{"externalValue", e.ExternalValue, e.ExternalValue == ""},
 	}
@@ -1940,6 +2164,8 @@ func (e *Example) UnmarshalJSON(buf []byte) (err error) {
 	delete(x.Extensions, "$ref")
 	delete(x.Extensions, "summary")
 	delete(x.Extensions, "description")
+	delete(x.Extensions, "dataValue")
+	delete(x.Extensions, "serializedValue")
 	delete(x.Extensions, "value")
 	delete(x.Extensions, "externalValue")
 	*e = Example(x)
@@ -1954,6 +2180,22 @@ func (e *Example) Validate(openapi *OpenAPI) error {
 		return nil
 	}
 
+	if e.Value != nil && e.ExternalValue != "" {
+		return fmt.Errorf("fields value and externalValue are mutually exclusive")
+	}
+
+	if e.Value != nil && e.DataValue != nil {
+		return fmt.Errorf("fields value and dataValue are mutually exclusive")
+	}
+
+	if e.Value != nil && e.SerializedValue != "" {
+		return fmt.Errorf("fields value and serializedValue are mutually exclusive")
+	}
+
+	if e.SerializedValue != "" && e.ExternalValue != "" {
+		return fmt.Errorf("fields serializedValue and externalValue are mutually exclusive")
+	}
+
 	if e.Extensions != nil {
 		if err := validatorExtensions(e.Extensions); err != nil {
 			return verifyError("extensions", err)
@@ -1964,6 +2206,9 @@ func (e *Example) Validate(openapi *OpenAPI) error {
 
 type Link struct {
 	Ref string `json:"$ref"`
+
+	// A short summary which SHOULD override that of the referenced component.
+	Summary string `json:"summary"`
 
 	// A relative or absolute URI reference to an OAS operation. This field is mutually exclusive of
 	// the field, and MUST point to an Operation Object. Relative values MAY be used to locate an
@@ -1998,6 +2243,7 @@ func (l *Link) marshalField() []marshalField {
 	if l.Ref != "" {
 		return []marshalField{
 			{"$ref", l.Ref, false},
+			{"summary", l.Summary, l.Summary == ""},
 			{"description", l.Description, l.Description == ""},
 		}
 	}
@@ -2022,6 +2268,7 @@ func (l *Link) UnmarshalJSON(buf []byte) (err error) {
 		return
 	}
 	delete(x.Extensions, "$ref")
+	delete(x.Extensions, "summary")
 	delete(x.Extensions, "operationRef")
 	delete(x.Extensions, "operationId")
 	delete(x.Extensions, "parameters")
@@ -2044,8 +2291,12 @@ func (l *Link) Validate(openapi *OpenAPI) error {
 		return fmt.Errorf("fields operationRef and operationId are mutually exclusive")
 	}
 
+	if l.OperationRef == "" && l.OperationId == "" {
+		return fmt.Errorf("one of fields operationRef and operationId must be specified")
+	}
+
 	if l.OperationRef != "" {
-		if err := validatorRef(l.Ref, "operation", openapi); err != nil {
+		if err := validatorRef(l.OperationRef, "operation", openapi); err != nil {
 			return err
 		}
 		return nil
@@ -2076,6 +2327,7 @@ func (h *Header) marshalField() []marshalField {
 	if h.Ref != "" {
 		return []marshalField{
 			{"$ref", h.Ref, false},
+			{"summary", h.Summary, h.Summary == ""},
 			{"description", h.Description, h.Description == ""},
 		}
 	}
@@ -2105,6 +2357,7 @@ func (h *Header) UnmarshalJSON(buf []byte) (err error) {
 		return
 	}
 	delete(x.Extensions, "$ref")
+	delete(x.Extensions, "summary")
 	delete(x.Extensions, "description")
 	delete(x.Extensions, "required")
 	delete(x.Extensions, "deprecated")
@@ -2142,6 +2395,14 @@ func (h *Header) Validate(openapi *OpenAPI) error {
 		}
 	}
 
+	if h.Schema != nil && h.Content != nil {
+		return fmt.Errorf("fields schema and content are mutually exclusive")
+	}
+
+	if h.Schema == nil && h.Content == nil {
+		return fmt.Errorf("one of fields schema and content must be specified")
+	}
+
 	if h.Example != nil && h.Examples != nil {
 		return fmt.Errorf("fields example and examples are mutually exclusive")
 	}
@@ -2157,6 +2418,12 @@ func (h *Header) Validate(openapi *OpenAPI) error {
 			return verifyError(fmt.Sprintf("content[%v]", k), err)
 		}
 	}
+	if h.Content != nil && len(h.Content) == 0 {
+		return verifyError("content", fmt.Errorf("must be a non empty object"))
+	}
+	if len(h.Content) > 1 {
+		return verifyError("content", fmt.Errorf("must only contain one entry"))
+	}
 
 	if h.Extensions != nil {
 		if err := validatorExtensions(h.Extensions); err != nil {
@@ -2170,11 +2437,20 @@ type Tag struct {
 	// REQUIRED. The name of the tag.
 	Name string `json:"name"`
 
+	// A short summary of the tag.
+	Summary string `json:"summary"`
+
 	// A description for the tag. CommonMark syntax MAY be used for rich text representation.
 	Description string `json:"description"`
 
 	// Additional external documentation for this tag.
 	ExternalDocs *ExternalDocumentation `json:"externalDocs"`
+
+	// The name of a tag that this tag is nested under.
+	Parent string `json:"parent"`
+
+	// A machine-readable string that categorizes what sort of tag it is.
+	Kind string `json:"kind"`
 
 	// This object MAY be extended with Specification Extensions.
 	Extensions map[string]any
@@ -2183,8 +2459,11 @@ type Tag struct {
 func (t *Tag) marshalField() []marshalField {
 	return []marshalField{
 		{"name", t.Name, t.Name == ""},
+		{"summary", t.Summary, t.Summary == ""},
 		{"description", t.Description, t.Description == ""},
 		{"externalDocs", t.ExternalDocs, t.ExternalDocs == nil},
+		{"parent", t.Parent, t.Parent == ""},
+		{"kind", t.Kind, t.Kind == ""},
 	}
 }
 
@@ -2199,8 +2478,11 @@ func (t *Tag) UnmarshalJSON(buf []byte) (err error) {
 		return
 	}
 	delete(x.Extensions, "name")
+	delete(x.Extensions, "summary")
 	delete(x.Extensions, "description")
 	delete(x.Extensions, "externalDocs")
+	delete(x.Extensions, "parent")
+	delete(x.Extensions, "kind")
 	*t = Tag(x)
 	return
 }
@@ -2227,10 +2509,11 @@ func (t *Tag) Validate() error {
 type Schema struct {
 	Ref string `json:"$ref"`
 	// json schema
-	Type   string `json:"type"` // Value MUST be a string. Multiple types via an array are not supported.
-	Format string `json:"format"`
-	Enum   []any  `json:"enum"`
-	Const  any    `json:"const"` // Use of this keyword is functionally equivalent to an "enum"
+	Type   string   `json:"-"` // Use for a single JSON Schema type.
+	Types  []string `json:"-"` // Use for multiple JSON Schema types, for example ["string", "null"].
+	Format string   `json:"format"`
+	Enum   []any    `json:"enum"`
+	Const  any      `json:"const"` // Use of this keyword is functionally equivalent to an "enum"
 	// basic
 	Title       string `json:"title"`
 	Description string `json:"description"`
@@ -2307,7 +2590,7 @@ func (s *Schema) marshalField() []marshalField {
 		}
 	}
 	return []marshalField{
-		{"type", s.Type, s.Type == ""},
+		{"type", schemaTypeValue(s), schemaTypeEmpty(s)},
 		{"format", s.Format, s.Format == ""},
 		{"enum", s.Enum, s.Enum == nil},
 		{"const", s.Const, s.Const == nil},
@@ -2360,6 +2643,9 @@ func (s *Schema) UnmarshalJSON(buf []byte) (err error) {
 	type alias Schema
 	var x alias
 	if err = json.Unmarshal(buf, &x); err != nil {
+		return
+	}
+	if err = unmarshalSchemaType(buf, (*Schema)(&x)); err != nil {
 		return
 	}
 	delete(x.Extensions, "$ref")
@@ -2417,16 +2703,19 @@ func (s *Schema) Validate(openapi *OpenAPI) error {
 		return nil
 	}
 
+	if s.Type != "" && len(s.Types) > 0 {
+		return verifyError("type", fmt.Errorf("fields Type and Types are mutually exclusive"))
+	}
+
 	if s.Type != "" {
-		switch s.Type {
-		case "integer", "number":
-		case "string":
-		case "boolean":
-		case "array":
-		case "object":
-		default:
-			return verifyError("type", fmt.Errorf("must be within "+
-				"\"integer\", \"number\", \"string\", \"boolean\", \"array\", \"object\""))
+		if err := validateSchemaType(s.Type); err != nil {
+			return verifyError("type", err)
+		}
+	}
+
+	for k, v := range s.Types {
+		if err := validateSchemaType(v); err != nil {
+			return verifyError(fmt.Sprintf("type[%v]", k), err)
 		}
 	}
 
@@ -2490,11 +2779,6 @@ func (s *Schema) Validate(openapi *OpenAPI) error {
 		}
 	}
 
-	if s.Extensions != nil {
-		if err := validatorExtensions(s.Extensions); err != nil {
-			return verifyError("extensions", err)
-		}
-	}
 	return nil
 }
 
@@ -2505,6 +2789,10 @@ type Discriminator struct {
 	// An object to hold mappings between payload values and schema names or references.
 	Mapping map[string]string `json:"mapping"`
 
+	// A schema name or URI reference to use when the discriminating property is not present
+	// or has no explicit or implicit mapping.
+	DefaultMapping string `json:"defaultMapping"`
+
 	// This object MAY be extended with Specification Extensions.
 	Extensions map[string]any
 }
@@ -2513,6 +2801,7 @@ func (d *Discriminator) marshalField() []marshalField {
 	return []marshalField{
 		{"propertyName", d.PropertyName, d.PropertyName == ""},
 		{"mapping", d.Mapping, d.Mapping == nil},
+		{"defaultMapping", d.DefaultMapping, d.DefaultMapping == ""},
 	}
 }
 
@@ -2528,6 +2817,7 @@ func (d *Discriminator) UnmarshalJSON(buf []byte) (err error) {
 	}
 	delete(x.Extensions, "propertyName")
 	delete(x.Extensions, "mapping")
+	delete(x.Extensions, "defaultMapping")
 	*d = Discriminator(x)
 	return
 }
@@ -2546,6 +2836,9 @@ func (d *Discriminator) Validate() error {
 }
 
 type XML struct {
+	// One of "element", "attribute", "text", "cdata", or "none".
+	NodeType string `json:"nodeType"`
+
 	// Replaces the name of the element/attribute used for the described schema property. When defined
 	// within , it will affect the name of the individual XML elements within the list. When defined
 	// alongside being (outside the ), it will affect the wrapping element and only if is . If is , it
@@ -2573,6 +2866,7 @@ type XML struct {
 
 func (x *XML) marshalField() []marshalField {
 	return []marshalField{
+		{"nodeType", x.NodeType, x.NodeType == ""},
 		{"name", x.Name, x.Name == ""},
 		{"namespace", x.Namespace, x.Namespace == ""},
 		{"prefix", x.Prefix, x.Prefix == ""},
@@ -2591,6 +2885,7 @@ func (x *XML) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x1); err != nil {
 		return
 	}
+	delete(x1.Extensions, "nodeType")
 	delete(x1.Extensions, "name")
 	delete(x1.Extensions, "namespace")
 	delete(x1.Extensions, "prefix")
@@ -2601,6 +2896,22 @@ func (x *XML) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (x *XML) Validate() error {
+	if x.NodeType != "" {
+		switch x.NodeType {
+		case "element", "attribute", "text", "cdata", "none":
+		default:
+			return verifyError("nodeType", fmt.Errorf("must be within \"element\", \"attribute\", \"text\", \"cdata\", \"none\""))
+		}
+	}
+
+	if x.NodeType != "" && x.Attribute {
+		return verifyError("attribute", fmt.Errorf("must not be specified when nodeType is present"))
+	}
+
+	if x.NodeType != "" && x.Wrapped {
+		return verifyError("wrapped", fmt.Errorf("must not be specified when nodeType is present"))
+	}
+
 	if x.Extensions != nil {
 		if err := validatorExtensions(x.Extensions); err != nil {
 			return verifyError("extensions", err)
@@ -2612,11 +2923,17 @@ func (x *XML) Validate() error {
 type SecurityScheme struct {
 	Ref string `json:"$ref"`
 
+	// A short summary which SHOULD override that of the referenced component.
+	Summary string `json:"summary"`
+
 	// REQUIRED. The type of the security scheme. Valid values are "apiKey" "http" "mutualTLS" "oauth2" "openIdConnect"
 	Type string `json:"type"`
 
 	// A description for security scheme. CommonMark syntax MAY be used for rich text representation.
 	Description string `json:"description"`
+
+	// Specifies that a security scheme is deprecated and SHOULD be transitioned out of usage.
+	Deprecated bool `json:"deprecated"`
 
 	// REQUIRED. The name of the header, query or cookie parameter to be used.
 	Name string `json:"name"`
@@ -2635,6 +2952,9 @@ type SecurityScheme struct {
 	// REQUIRED. An object containing configuration information for the flow types supported.
 	Flows *OAuthFlows `json:"flows"`
 
+	// A URI for OAuth 2.0 Authorization Server Metadata.
+	OAuth2MetadataUrl string `json:"oauth2MetadataUrl"`
+
 	// REQUIRED. OpenId Connect URL to discover OAuth2 configuration values. This MUST be in the
 	// form of a URL. The OpenID Connect standard requires the use of TLS.
 	OpenIdConnectUrl string `json:"openIdConnectUrl"`
@@ -2647,17 +2967,20 @@ func (s *SecurityScheme) marshalField() []marshalField {
 	if s.Ref != "" {
 		return []marshalField{
 			{"$ref", s.Ref, false},
+			{"summary", s.Summary, s.Summary == ""},
 			{"description", s.Description, s.Description == ""},
 		}
 	}
 	return []marshalField{
 		{"type", s.Type, s.Type == ""},
 		{"description", s.Description, s.Description == ""},
+		{"deprecated", s.Deprecated, s.Deprecated == false},
 		{"name", s.Name, s.Name == ""},
 		{"in", s.In, s.In == ""},
 		{"scheme", s.Scheme, s.Scheme == ""},
 		{"bearerFormat", s.BearerFormat, s.BearerFormat == ""},
 		{"flows", s.Flows, s.Flows == nil},
+		{"oauth2MetadataUrl", s.OAuth2MetadataUrl, s.OAuth2MetadataUrl == ""},
 		{"openIdConnectUrl", s.OpenIdConnectUrl, s.OpenIdConnectUrl == ""},
 	}
 }
@@ -2673,13 +2996,16 @@ func (s *SecurityScheme) UnmarshalJSON(buf []byte) (err error) {
 		return
 	}
 	delete(x.Extensions, "$ref")
+	delete(x.Extensions, "summary")
 	delete(x.Extensions, "type")
 	delete(x.Extensions, "description")
+	delete(x.Extensions, "deprecated")
 	delete(x.Extensions, "name")
 	delete(x.Extensions, "in")
 	delete(x.Extensions, "scheme")
 	delete(x.Extensions, "bearerFormat")
 	delete(x.Extensions, "flows")
+	delete(x.Extensions, "oauth2MetadataUrl")
 	delete(x.Extensions, "openIdConnectUrl")
 	*s = SecurityScheme(x)
 	return
@@ -2753,6 +3079,9 @@ type OAuthFlows struct {
 	// Configuration for the OAuth Authorization Code flow. Previously called in OpenAPI 2.0. accessCode
 	AuthorizationCode *OAuthFlow `json:"authorizationCode"`
 
+	// Configuration for the OAuth Device Authorization flow.
+	DeviceAuthorization *OAuthFlow `json:"deviceAuthorization"`
+
 	// This object MAY be extended with Specification Extensions.
 	Extensions map[string]any
 }
@@ -2763,6 +3092,7 @@ func (o *OAuthFlows) marshalField() []marshalField {
 		{"password", o.Password, o.Password == nil},
 		{"clientCredentials", o.ClientCredentials, o.ClientCredentials == nil},
 		{"authorizationCode", o.AuthorizationCode, o.AuthorizationCode == nil},
+		{"deviceAuthorization", o.DeviceAuthorization, o.DeviceAuthorization == nil},
 	}
 }
 
@@ -2780,6 +3110,7 @@ func (o *OAuthFlows) UnmarshalJSON(buf []byte) (err error) {
 	delete(x.Extensions, "password")
 	delete(x.Extensions, "clientCredentials")
 	delete(x.Extensions, "authorizationCode")
+	delete(x.Extensions, "deviceAuthorization")
 	*o = OAuthFlows(x)
 	return
 }
@@ -2809,6 +3140,12 @@ func (o *OAuthFlows) Validate() error {
 		}
 	}
 
+	if o.DeviceAuthorization != nil {
+		if err := o.DeviceAuthorization.Validate("deviceAuthorization"); err != nil {
+			return verifyError("deviceAuthorization", err)
+		}
+	}
+
 	if o.Extensions != nil {
 		if err := validatorExtensions(o.Extensions); err != nil {
 			return verifyError("extensions", err)
@@ -2821,6 +3158,10 @@ type OAuthFlow struct {
 	// REQUIRED. The authorization URL to be used for this flow. This MUST be in the form of a URL.
 	// The OAuth2 standard requires the use of TLS.
 	AuthorizationUrl string `json:"authorizationUrl"`
+
+	// REQUIRED. The device authorization URL to be used for this flow. This MUST be in the form of a URL.
+	// The OAuth2 standard requires the use of TLS.
+	DeviceAuthorizationUrl string `json:"deviceAuthorizationUrl"`
 
 	// REQUIRED. The token URL to be used for this flow. This MUST be in the form of a URL. The OAuth2
 	// standard requires the use of TLS.
@@ -2841,6 +3182,7 @@ type OAuthFlow struct {
 func (o *OAuthFlow) marshalField() []marshalField {
 	return []marshalField{
 		{"authorizationUrl", o.AuthorizationUrl, o.AuthorizationUrl == ""},
+		{"deviceAuthorizationUrl", o.DeviceAuthorizationUrl, o.DeviceAuthorizationUrl == ""},
 		{"tokenUrl", o.TokenUrl, o.TokenUrl == ""},
 		{"refreshUrl", o.RefreshUrl, o.RefreshUrl == ""},
 		{"scopes", o.Scopes, o.Scopes == nil},
@@ -2858,6 +3200,7 @@ func (o *OAuthFlow) UnmarshalJSON(buf []byte) (err error) {
 		return
 	}
 	delete(x.Extensions, "authorizationUrl")
+	delete(x.Extensions, "deviceAuthorizationUrl")
 	delete(x.Extensions, "tokenUrl")
 	delete(x.Extensions, "refreshUrl")
 	delete(x.Extensions, "scopes")
@@ -2891,6 +3234,15 @@ func (o *OAuthFlow) Validate(applyTo string) error {
 			return verifyError("tokenUrl", fmt.Errorf("must be a non empty string "+
 				"when the object is %v", applyTo))
 		}
+	case "deviceAuthorization":
+		if o.DeviceAuthorizationUrl == "" {
+			return verifyError("deviceAuthorizationUrl", fmt.Errorf("must be a non empty string "+
+				"when the object is %v", applyTo))
+		}
+		if o.TokenUrl == "" {
+			return verifyError("tokenUrl", fmt.Errorf("must be a non empty string "+
+				"when the object is %v", applyTo))
+		}
 	}
 	if o.Scopes == nil {
 		return verifyError("scopes", fmt.Errorf("must be a non empty object"))
@@ -2905,6 +3257,194 @@ func (o *OAuthFlow) Validate(applyTo string) error {
 }
 
 type SecurityRequirement map[string][]string
+
+func schemaTypeEmpty(s *Schema) bool {
+	return s.Type == "" && len(s.Types) == 0
+}
+
+func schemaTypeValue(s *Schema) any {
+	if len(s.Types) > 0 {
+		return s.Types
+	}
+	return s.Type
+}
+
+func unmarshalSchemaType(buf []byte, s *Schema) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(buf, &raw); err != nil {
+		return err
+	}
+	rawType, ok := raw["type"]
+	if !ok {
+		return nil
+	}
+	var single string
+	if err := json.Unmarshal(rawType, &single); err == nil {
+		s.Type = single
+		return nil
+	}
+	var multiple []string
+	if err := json.Unmarshal(rawType, &multiple); err == nil {
+		s.Types = multiple
+		return nil
+	}
+	return fmt.Errorf("type must be a string or an array of strings")
+}
+
+func validateSchemaType(schemaType string) error {
+	switch schemaType {
+	case "integer", "number":
+	case "string":
+	case "boolean":
+	case "array":
+	case "object":
+	case "null":
+	default:
+		return fmt.Errorf("must be within \"integer\", \"number\", \"string\", \"boolean\", \"array\", \"object\", \"null\"")
+	}
+	return nil
+}
+
+func validateParameterList(parameters []*Parameter) error {
+	seen := map[string]bool{}
+	for _, p := range parameters {
+		if p == nil || p.Ref != "" {
+			continue
+		}
+		key := p.In + "\x00" + p.Name
+		if seen[key] {
+			return fmt.Errorf("parameter %q in %q must not be duplicated", p.Name, p.In)
+		}
+		seen[key] = true
+	}
+	return validateQuerystringParameters(parameters)
+}
+
+func validateQuerystringParameters(parameters []*Parameter) error {
+	queryCount := 0
+	querystringCount := 0
+	for _, p := range parameters {
+		if p == nil || p.Ref != "" {
+			continue
+		}
+		switch p.In {
+		case "query":
+			queryCount++
+		case "querystring":
+			querystringCount++
+		}
+	}
+	if querystringCount > 1 {
+		return fmt.Errorf("in \"querystring\" parameter must not appear more than once")
+	}
+	if querystringCount > 0 && queryCount > 0 {
+		return fmt.Errorf("in \"query\" and in \"querystring\" parameters are mutually exclusive")
+	}
+	return nil
+}
+
+func pathParameterNames(path string) []string {
+	matches := regexp.MustCompile(`\{([^{}]+)\}`).FindAllStringSubmatch(path, -1)
+	var names []string
+	for _, m := range matches {
+		names = append(names, m[1])
+	}
+	return names
+}
+
+func collectOperationIds(openapi *OpenAPI) map[string]int {
+	idMap := map[string]int{}
+	if openapi == nil {
+		return idMap
+	}
+	if openapi.Paths != nil {
+		for _, v := range openapi.Paths.m {
+			collectPathItemOperationIds(idMap, v)
+		}
+	}
+	for _, v := range openapi.Webhooks {
+		collectPathItemOperationIds(idMap, v)
+	}
+	if openapi.Components != nil {
+		for _, v := range openapi.Components.PathItems {
+			collectPathItemOperationIds(idMap, v)
+		}
+	}
+	return idMap
+}
+
+func collectPathItemOperationIds(idMap map[string]int, item *PathItem) {
+	if item == nil || item.Ref != "" {
+		return
+	}
+	collectOperationIdsFromOperation(idMap, item.Get)
+	collectOperationIdsFromOperation(idMap, item.Put)
+	collectOperationIdsFromOperation(idMap, item.Post)
+	collectOperationIdsFromOperation(idMap, item.Delete)
+	collectOperationIdsFromOperation(idMap, item.Options)
+	collectOperationIdsFromOperation(idMap, item.Head)
+	collectOperationIdsFromOperation(idMap, item.Patch)
+	collectOperationIdsFromOperation(idMap, item.Trace)
+	collectOperationIdsFromOperation(idMap, item.Query)
+	for _, v := range item.AdditionalOperations {
+		collectOperationIdsFromOperation(idMap, v)
+	}
+}
+
+func collectOperationIdsFromOperation(idMap map[string]int, operation *Operation) {
+	addOperationId(idMap, operation)
+	if operation == nil {
+		return
+	}
+	for _, callback := range operation.Callbacks {
+		if callback == nil || callback.Ref != "" {
+			continue
+		}
+		for _, item := range callback.m {
+			collectPathItemOperationIds(idMap, item)
+		}
+	}
+}
+
+func addOperationId(idMap map[string]int, operation *Operation) {
+	if operation != nil && operation.OperationId != "" {
+		idMap[operation.OperationId]++
+	}
+}
+
+func validateTags(tags []*Tag) error {
+	names := map[string]*Tag{}
+	for _, t := range tags {
+		if t == nil {
+			continue
+		}
+		if names[t.Name] != nil {
+			return fmt.Errorf("tag name %q must be unique", t.Name)
+		}
+		names[t.Name] = t
+	}
+	for _, t := range tags {
+		if t == nil || t.Parent == "" {
+			continue
+		}
+		if names[t.Parent] == nil {
+			return fmt.Errorf("parent %q of tag %q must exist", t.Parent, t.Name)
+		}
+		seen := map[string]bool{t.Name: true}
+		parent := t.Parent
+		for parent != "" {
+			if seen[parent] {
+				return fmt.Errorf("tag parent relationship for %q must not be circular", t.Name)
+			}
+			if names[parent] == nil {
+				return fmt.Errorf("parent %q of tag %q must exist", parent, t.Name)
+			}
+			seen[parent] = true
+			parent = names[parent].Parent
+		}
+	}
+	return nil
+}
 
 type marshalField struct {
 	key       string
@@ -3048,6 +3588,10 @@ func validatorRef(ref, refType string, openapi *OpenAPI) error {
 				api = val.Patch
 			case "trace":
 				api = val.Trace
+			case "query":
+				api = val.Query
+			case "additionalOperations":
+				api = val.AdditionalOperations
 			case "parameters":
 				api = val.Parameters
 			default:
@@ -3082,10 +3626,16 @@ func validatorRef(ref, refType string, openapi *OpenAPI) error {
 			switch refName {
 			case "schema":
 				api = val.Schema
+			case "itemSchema":
+				api = val.ItemSchema
 			case "examples":
 				api = val.Examples
 			case "encoding":
 				api = val.Encoding
+			case "prefixEncoding":
+				api = val.PrefixEncoding
+			case "itemEncoding":
+				api = val.ItemEncoding
 			default:
 				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
 			}
@@ -3116,6 +3666,9 @@ func validatorRef(ref, refType string, openapi *OpenAPI) error {
 			if err != nil {
 				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
 			}
+			if num < 0 || num >= len(val) {
+				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
+			}
 			if val[num] == nil {
 				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
 			}
@@ -3130,10 +3683,28 @@ func validatorRef(ref, refType string, openapi *OpenAPI) error {
 				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
 			}
 			api = val[refName]
+		case []*Encoding:
+			num, err := strconv.Atoi(refName)
+			if err != nil {
+				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
+			}
+			if num < 0 || num >= len(val) {
+				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
+			}
+			if val[num] == nil {
+				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
+			}
+			api = val[num]
 		case *Encoding:
 			switch refName {
 			case "headers":
 				api = val.Headers
+			case "encoding":
+				api = val.Encoding
+			case "prefixEncoding":
+				api = val.PrefixEncoding
+			case "itemEncoding":
+				api = val.ItemEncoding
 			default:
 				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
 			}
@@ -3193,6 +3764,9 @@ func validatorRef(ref, refType string, openapi *OpenAPI) error {
 			if err != nil {
 				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
 			}
+			if num < 0 || num >= len(val) {
+				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
+			}
 			if val[num] == nil {
 				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
 			}
@@ -3235,6 +3809,8 @@ func validatorRef(ref, refType string, openapi *OpenAPI) error {
 				api = val.Callbacks
 			case "pathItems":
 				api = val.PathItems
+			case "mediaTypes":
+				api = val.MediaTypes
 			default:
 				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
 			}
@@ -3254,6 +3830,11 @@ func validatorRef(ref, refType string, openapi *OpenAPI) error {
 			}
 			api = val[refName]
 		case map[string]*SecurityScheme:
+			if val[refName] == nil {
+				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
+			}
+			api = val[refName]
+		case map[string]*Operation:
 			if val[refName] == nil {
 				return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
 			}
@@ -3306,6 +3887,10 @@ func validatorRef(ref, refType string, openapi *OpenAPI) error {
 	case "operation":
 		if _, ok := api.(*Operation); !ok {
 			return verifyError("operationRef", fmt.Errorf("%q found unresolved", ref))
+		}
+	case "mediaType":
+		if _, ok := api.(*MediaType); !ok {
+			return verifyError("ref", fmt.Errorf("%q found unresolved", ref))
 		}
 	}
 	return nil
