@@ -77,6 +77,18 @@ func (s *SSEWriter) Write(data SSEData) (err error) {
 	return
 }
 
+func (s *SSEWriter) WriteComment(comment string) (err error) {
+	var buf bytes.Buffer
+	buf.WriteByte(':')
+	if len(comment) > 0 {
+		buf.WriteString(comment)
+	}
+	buf.WriteByte('\n')
+	buf.WriteByte('\n')
+	_, err = s.w.Write(buf.Bytes())
+	return
+}
+
 type SSEData struct {
 	Event string
 	Data  string
