@@ -24,6 +24,9 @@ type Config struct {
 
 	// whether to display the extension
 	ShowExtensions bool
+
+	// Persistent authorization ensures that the authorization does not disappear when refreshing or closing the page
+	PersistAuthorization bool
 }
 
 type Swagger struct {
@@ -91,7 +94,7 @@ func GetSwagger(path, title string, openapiJsonBody []byte, config Config) (rout
 				if handleCache(writer, request) {
 					return
 				}
-				_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, config.DocExpansion, config.DeepLinking)))
+				_, _ = writer.Write([]byte(fmt.Sprintf(jsSwaggerInitializer, config.DocExpansion, config.DeepLinking, config.PersistAuthorization)))
 			case jsSwaggerUiBundlePath:
 				writer.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 				if handleCache(writer, request) {

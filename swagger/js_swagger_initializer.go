@@ -13,6 +13,7 @@ const jsSwaggerInitializer = `window.onload = function() {
     dom_id: '#swagger-ui',
 	docExpansion: '%s',
     deepLinking: %v,
+    persistAuthorization: %v,
     showExtensions: true,
     presets: [
       SwaggerUIBundle.presets.apis,
