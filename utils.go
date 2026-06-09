@@ -62,7 +62,7 @@ func addStrings(vals ...string) string {
 
 func allMethods() []string {
 	return []string{
-		http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete, http.MethodOptions, http.MethodHead,
+		http.MethodGet, MethodQuery, http.MethodPut, http.MethodPost, http.MethodDelete, http.MethodOptions, http.MethodHead,
 		http.MethodPatch, http.MethodTrace,
 	}
 }

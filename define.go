@@ -12,6 +12,10 @@ import (
 	"sync"
 )
 
+const (
+	MethodQuery = "QUERY"
+)
+
 type InType string
 
 func (InType) List() []InType {

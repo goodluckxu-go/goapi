@@ -22,6 +22,7 @@ const jsSwaggerInitializer = `window.onload = function() {
     plugins: [
       SwaggerUIBundle.plugins.DownloadUrl
     ],
+    supportedSubmitMethods: ['get','query', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'],
     layout: "BaseLayout"
   });
 

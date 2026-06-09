@@ -409,6 +409,13 @@ func (h *handlerOpenAPI) handlePath(path *pathInfo) {
 				pathItem.Patch = operation
 			case http.MethodTrace:
 				pathItem.Trace = operation
+			case MethodQuery:
+				pathItem.Query = operation
+			default:
+				if pathItem.AdditionalOperations == nil {
+					pathItem.AdditionalOperations = map[string]*openapi.Operation{}
+				}
+				pathItem.AdditionalOperations[method] = operation
 			}
 			operation.OperationId = fmt.Sprintf("%v%v", strings.ToLower(method), strings.ReplaceAll(setPath, "/", "_"))
 			h.handleOperation(operation, path, setPath, pathName, isMatchAll)
