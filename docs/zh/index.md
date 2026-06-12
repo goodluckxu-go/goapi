@@ -6,7 +6,7 @@
 
 ## 功能
 - 实现了http服务，路由使用gin路由模式的前缀树方式实现
-- 集成swagger+openapi3.1.0文档的访问
+- 集成swagger+openapi3.2.0文档的访问，兼容QUERY方法
 - 实现了openapi中验证和goapi程序验证的同步
 - 实现了自定义中间件
 - 实现了鉴权认证

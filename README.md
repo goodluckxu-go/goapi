@@ -2,7 +2,8 @@
 
 <img align="right" width="159px" src="logo.png">
 
-使用OpenAPI3.1文档的HTTP框架
+使用OpenAPI3.2文档的HTTP框架，以接口的方式实现了返回值重定义，类型重定义，验证功能，即保证了性能又兼顾了快速开发
+
 使用说明:
 - [中文文档](docs/zh/index.md)
 ## 用法
@@ -11,7 +12,7 @@ go get github.com/goodluckxu-go/goapi/v2
 ~~~
 ## 功能
 - 实现了http服务，路由使用gin路由模式的前缀树方式实现
-- 集成swagger+openapi3.1.0文档的访问
+- 集成swagger+openapi3.2.0文档的访问，兼容QUERY方法
 - 实现了openapi中验证和goapi程序验证的同步
 - 实现了自定义中间件
 - 实现了鉴权认证
