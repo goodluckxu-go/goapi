@@ -92,7 +92,11 @@ func debugPrintMethod(log Logger, methods []string, countRouter, totalLen int) {
 		val = method
 		methodCount++
 	}
-	log.Debug(spanFill("| ", 2, leftLen) + spanFill(val, len(val), rightLen) + " |")
+	if methodCount == 0 {
+		log.Debug("| MethodCount: " + spanFill(val, len(val), rightLen) + " |")
+	} else {
+		log.Debug(spanFill("| ", 2, leftLen) + spanFill(val, len(val), rightLen) + " |")
+	}
 	routerCount := strconv.Itoa(countRouter)
 	log.Debug("| RouterCount: " + spanFill(routerCount, len(routerCount), rightLen) + " |")
 	log.Debug(strings.Repeat("-", totalLen))
