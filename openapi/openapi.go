@@ -125,10 +125,6 @@ func (o *OpenAPI) Validate() error {
 		return verifyError("info", fmt.Errorf("must be a non empty object"))
 	}
 
-	if o.Components == nil && o.Paths == nil && o.Webhooks == nil {
-		return fmt.Errorf("at least one of components, paths, or webhooks must be present")
-	}
-
 	for k, v := range o.Servers {
 		if err := v.Validate(); err != nil {
 			return verifyError(fmt.Sprintf("servers[%v]", k), err)
