@@ -157,6 +157,7 @@ func (h *handlerServer) handleRouter(path *pathInfo) HandleFunc {
 		ctx.path = path
 		ctx.Extensions = path.extensions
 		ctx.ChildPath = path.childPath
+		ctx.RouterSummary = path.summary
 		h.handleLogger(ctx)
 		ctx.handlers = path.handlersWithExec
 		ctx.Next()

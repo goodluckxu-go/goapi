@@ -11,24 +11,25 @@ import (
 )
 
 type Context struct {
-	Request      *http.Request
-	Writer       ResponseWriter
-	writermem    responseWriter
-	Values       map[string]any
-	log          Logger
-	mux          sync.RWMutex
-	handlers     []HandleFunc
-	Params       *Params
-	skippedNodes *[]skippedNode
-	index        int
-	fullPath     string
-	path         *pathInfo
-	queryCache   url.Values
-	ChildPath    string
-	RequestID    string
-	handleError  func(ctx *Context, err error)
-	isRedirect   bool
-	langInfo     Lang
+	Request       *http.Request
+	Writer        ResponseWriter
+	writermem     responseWriter
+	Values        map[string]any
+	log           Logger
+	mux           sync.RWMutex
+	handlers      []HandleFunc
+	Params        *Params
+	skippedNodes  *[]skippedNode
+	index         int
+	fullPath      string
+	path          *pathInfo
+	queryCache    url.Values
+	ChildPath     string
+	RequestID     string
+	RouterSummary string
+	handleError   func(ctx *Context, err error)
+	isRedirect    bool
+	langInfo      Lang
 	// prefix has 'x-'
 	Extensions Extensions
 }
@@ -48,6 +49,7 @@ func (c *Context) reset() {
 	c.fullPath = ""
 	c.queryCache = nil
 	c.ChildPath = ""
+	c.RouterSummary = ""
 	c.RequestID = ""
 	c.isRedirect = false
 }
