@@ -93,17 +93,10 @@ func (o *OpenAPI) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "openapi")
-	delete(x.Extensions, "$self")
-	delete(x.Extensions, "info")
-	delete(x.Extensions, "jsonSchemaDialect")
-	delete(x.Extensions, "servers")
-	delete(x.Extensions, "paths")
-	delete(x.Extensions, "webhooks")
-	delete(x.Extensions, "components")
-	delete(x.Extensions, "security")
-	delete(x.Extensions, "tags")
-	delete(x.Extensions, "externalDocs")
+	if x.Extensions, err = unmarshalExtensions(buf, "openapi", "$self", "info", "jsonSchemaDialect",
+		"servers", "paths", "webhooks", "components", "security", "tags", "externalDocs"); err != nil {
+		return
+	}
 	*o = OpenAPI(x)
 	return
 }
@@ -221,13 +214,10 @@ func (i *Info) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "title")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "termsOfService")
-	delete(x.Extensions, "contact")
-	delete(x.Extensions, "license")
-	delete(x.Extensions, "version")
+	if x.Extensions, err = unmarshalExtensions(buf, "title", "summary", "description", "termsOfService",
+		"contact", "license", "version"); err != nil {
+		return
+	}
 	*i = Info(x)
 	return
 }
@@ -293,9 +283,9 @@ func (c *Contact) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "name")
-	delete(x.Extensions, "url")
-	delete(x.Extensions, "email")
+	if x.Extensions, err = unmarshalExtensions(buf, "name", "url", "email"); err != nil {
+		return
+	}
 	*c = Contact(x)
 	return
 }
@@ -342,9 +332,9 @@ func (l *License) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "name")
-	delete(x.Extensions, "identifier")
-	delete(x.Extensions, "url")
+	if x.Extensions, err = unmarshalExtensions(buf, "name", "identifier", "url"); err != nil {
+		return
+	}
 	*l = License(x)
 	return
 }
@@ -405,10 +395,9 @@ func (s *Server) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "url")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "name")
-	delete(x.Extensions, "variables")
+	if x.Extensions, err = unmarshalExtensions(buf, "url", "description", "name", "variables"); err != nil {
+		return
+	}
 	*s = Server(x)
 	return
 }
@@ -468,9 +457,9 @@ func (s *ServerVariable) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "enum")
-	delete(x.Extensions, "default")
-	delete(x.Extensions, "description")
+	if x.Extensions, err = unmarshalExtensions(buf, "enum", "default", "description"); err != nil {
+		return
+	}
 	*s = ServerVariable(x)
 	return
 }
@@ -552,17 +541,10 @@ func (c *Components) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "schemas")
-	delete(x.Extensions, "responses")
-	delete(x.Extensions, "parameters")
-	delete(x.Extensions, "examples")
-	delete(x.Extensions, "requestBodies")
-	delete(x.Extensions, "headers")
-	delete(x.Extensions, "securitySchemes")
-	delete(x.Extensions, "links")
-	delete(x.Extensions, "callbacks")
-	delete(x.Extensions, "pathItems")
-	delete(x.Extensions, "mediaTypes")
+	if x.Extensions, err = unmarshalExtensions(buf, "schemas", "responses", "parameters", "examples",
+		"requestBodies", "headers", "securitySchemes", "links", "callbacks", "pathItems", "mediaTypes"); err != nil {
+		return
+	}
 	*c = Components(x)
 	return
 }
@@ -822,21 +804,11 @@ func (p *PathItem) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "$ref")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "get")
-	delete(x.Extensions, "put")
-	delete(x.Extensions, "post")
-	delete(x.Extensions, "delete")
-	delete(x.Extensions, "options")
-	delete(x.Extensions, "head")
-	delete(x.Extensions, "patch")
-	delete(x.Extensions, "trace")
-	delete(x.Extensions, "query")
-	delete(x.Extensions, "additionalOperations")
-	delete(x.Extensions, "servers")
-	delete(x.Extensions, "parameters")
+	if x.Extensions, err = unmarshalExtensions(buf, "$ref", "summary", "description", "get", "put", "post",
+		"delete", "options", "head", "patch", "trace", "query", "additionalOperations", "servers",
+		"parameters"); err != nil {
+		return
+	}
 	*p = PathItem(x)
 	return
 }
@@ -1023,18 +995,11 @@ func (o *Operation) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "tags")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "externalDocs")
-	delete(x.Extensions, "operationId")
-	delete(x.Extensions, "parameters")
-	delete(x.Extensions, "requestBody")
-	delete(x.Extensions, "responses")
-	delete(x.Extensions, "callbacks")
-	delete(x.Extensions, "deprecated")
-	delete(x.Extensions, "security")
-	delete(x.Extensions, "servers")
+	if x.Extensions, err = unmarshalExtensions(buf, "tags", "summary", "description", "externalDocs",
+		"operationId", "parameters", "requestBody", "responses", "callbacks", "deprecated", "security",
+		"servers"); err != nil {
+		return
+	}
 	*o = Operation(x)
 	return
 }
@@ -1143,8 +1108,9 @@ func (e *ExternalDocumentation) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "url")
+	if x.Extensions, err = unmarshalExtensions(buf, "description", "url"); err != nil {
+		return
+	}
 	*e = ExternalDocumentation(x)
 	return
 }
@@ -1273,21 +1239,11 @@ func (p *Parameter) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "$ref")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "name")
-	delete(x.Extensions, "in")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "required")
-	delete(x.Extensions, "deprecated")
-	delete(x.Extensions, "allowEmptyValue")
-	delete(x.Extensions, "style")
-	delete(x.Extensions, "explode")
-	delete(x.Extensions, "allowReserved")
-	delete(x.Extensions, "schema")
-	delete(x.Extensions, "example")
-	delete(x.Extensions, "examples")
-	delete(x.Extensions, "content")
+	if x.Extensions, err = unmarshalExtensions(buf, "$ref", "summary", "name", "in", "description",
+		"required", "deprecated", "allowEmptyValue", "style", "explode", "allowReserved", "schema",
+		"example", "examples", "content"); err != nil {
+		return
+	}
 	*p = Parameter(x)
 	return
 }
@@ -1424,11 +1380,9 @@ func (r *RequestBody) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "$ref")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "content")
-	delete(x.Extensions, "required")
+	if x.Extensions, err = unmarshalExtensions(buf, "$ref", "summary", "description", "content", "required"); err != nil {
+		return
+	}
 	*r = RequestBody(x)
 	return
 }
@@ -1529,16 +1483,10 @@ func (m *MediaType) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "$ref")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "schema")
-	delete(x.Extensions, "itemSchema")
-	delete(x.Extensions, "example")
-	delete(x.Extensions, "examples")
-	delete(x.Extensions, "encoding")
-	delete(x.Extensions, "prefixEncoding")
-	delete(x.Extensions, "itemEncoding")
+	if x.Extensions, err = unmarshalExtensions(buf, "$ref", "summary", "description", "schema", "itemSchema",
+		"example", "examples", "encoding", "prefixEncoding", "itemEncoding"); err != nil {
+		return
+	}
 	*m = MediaType(x)
 	return
 }
@@ -1673,14 +1621,10 @@ func (e *Encoding) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "contentType")
-	delete(x.Extensions, "headers")
-	delete(x.Extensions, "style")
-	delete(x.Extensions, "explode")
-	delete(x.Extensions, "allowReserved")
-	delete(x.Extensions, "encoding")
-	delete(x.Extensions, "prefixEncoding")
-	delete(x.Extensions, "itemEncoding")
+	if x.Extensions, err = unmarshalExtensions(buf, "contentType", "headers", "style", "explode",
+		"allowReserved", "encoding", "prefixEncoding", "itemEncoding"); err != nil {
+		return
+	}
 	*e = Encoding(x)
 	return
 }
@@ -1892,12 +1836,10 @@ func (r *Response) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "$ref")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "headers")
-	delete(x.Extensions, "content")
-	delete(x.Extensions, "links")
+	if x.Extensions, err = unmarshalExtensions(buf, "$ref", "summary", "description", "headers", "content",
+		"links"); err != nil {
+		return
+	}
 	*r = Response(x)
 	return
 }
@@ -2157,13 +2099,10 @@ func (e *Example) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "$ref")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "dataValue")
-	delete(x.Extensions, "serializedValue")
-	delete(x.Extensions, "value")
-	delete(x.Extensions, "externalValue")
+	if x.Extensions, err = unmarshalExtensions(buf, "$ref", "summary", "description", "dataValue",
+		"serializedValue", "value", "externalValue"); err != nil {
+		return
+	}
 	*e = Example(x)
 	return
 }
@@ -2263,14 +2202,10 @@ func (l *Link) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "$ref")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "operationRef")
-	delete(x.Extensions, "operationId")
-	delete(x.Extensions, "parameters")
-	delete(x.Extensions, "requestBody")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "server")
+	if x.Extensions, err = unmarshalExtensions(buf, "$ref", "summary", "operationRef", "operationId",
+		"parameters", "requestBody", "description", "server"); err != nil {
+		return
+	}
 	*l = Link(x)
 	return
 }
@@ -2352,19 +2287,11 @@ func (h *Header) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "$ref")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "required")
-	delete(x.Extensions, "deprecated")
-	delete(x.Extensions, "allowEmptyValue")
-	delete(x.Extensions, "style")
-	delete(x.Extensions, "explode")
-	delete(x.Extensions, "allowReserved")
-	delete(x.Extensions, "schema")
-	delete(x.Extensions, "example")
-	delete(x.Extensions, "examples")
-	delete(x.Extensions, "content")
+	if x.Extensions, err = unmarshalExtensions(buf, "$ref", "summary", "description", "required",
+		"deprecated", "allowEmptyValue", "style", "explode", "allowReserved", "schema", "example",
+		"examples", "content"); err != nil {
+		return
+	}
 	*h = Header(x)
 	return
 }
@@ -2473,12 +2400,10 @@ func (t *Tag) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "name")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "externalDocs")
-	delete(x.Extensions, "parent")
-	delete(x.Extensions, "kind")
+	if x.Extensions, err = unmarshalExtensions(buf, "name", "summary", "description", "externalDocs",
+		"parent", "kind"); err != nil {
+		return
+	}
 	*t = Tag(x)
 	return
 }
@@ -2644,49 +2569,15 @@ func (s *Schema) UnmarshalJSON(buf []byte) (err error) {
 	if err = unmarshalSchemaType(buf, (*Schema)(&x)); err != nil {
 		return
 	}
-	delete(x.Extensions, "$ref")
-	delete(x.Extensions, "type")
-	delete(x.Extensions, "format")
-	delete(x.Extensions, "enum")
-	delete(x.Extensions, "const")
-	delete(x.Extensions, "title")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "default")
-	delete(x.Extensions, "deprecated")
-	delete(x.Extensions, "readOnly")
-	delete(x.Extensions, "writeOnly")
-	delete(x.Extensions, "examples")
-	delete(x.Extensions, "multipleOf")
-	delete(x.Extensions, "maximum")
-	delete(x.Extensions, "exclusiveMaximum")
-	delete(x.Extensions, "minimum")
-	delete(x.Extensions, "exclusiveMinimum")
-	delete(x.Extensions, "maxLength")
-	delete(x.Extensions, "minLength")
-	delete(x.Extensions, "pattern")
-	delete(x.Extensions, "contentEncoding")
-	delete(x.Extensions, "contentMediaType")
-	delete(x.Extensions, "contentSchema")
-	delete(x.Extensions, "items")
-	delete(x.Extensions, "maxItems")
-	delete(x.Extensions, "minItems")
-	delete(x.Extensions, "uniqueItems")
-	delete(x.Extensions, "maxContains")
-	delete(x.Extensions, "minContains")
-	delete(x.Extensions, "properties")
-	delete(x.Extensions, "maxProperties")
-	delete(x.Extensions, "minProperties")
-	delete(x.Extensions, "required")
-	delete(x.Extensions, "dependentRequired")
-	delete(x.Extensions, "propertyNames")
-	delete(x.Extensions, "oneOf")
-	delete(x.Extensions, "anyOf")
-	delete(x.Extensions, "allOf")
-	delete(x.Extensions, "not")
-	delete(x.Extensions, "discriminator")
-	delete(x.Extensions, "xml")
-	delete(x.Extensions, "externalDocs")
-	delete(x.Extensions, "example")
+	if x.Extensions, err = unmarshalExtensions(buf, "$ref", "type", "format", "enum", "const", "title",
+		"description", "default", "deprecated", "readOnly", "writeOnly", "examples", "multipleOf",
+		"maximum", "exclusiveMaximum", "minimum", "exclusiveMinimum", "maxLength", "minLength",
+		"pattern", "contentEncoding", "contentMediaType", "contentSchema", "items", "maxItems",
+		"minItems", "uniqueItems", "maxContains", "minContains", "properties", "maxProperties",
+		"minProperties", "required", "dependentRequired", "propertyNames", "oneOf", "anyOf",
+		"allOf", "not", "discriminator", "xml", "externalDocs", "example"); err != nil {
+		return
+	}
 	*s = Schema(x)
 	return
 }
@@ -2811,9 +2702,9 @@ func (d *Discriminator) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "propertyName")
-	delete(x.Extensions, "mapping")
-	delete(x.Extensions, "defaultMapping")
+	if x.Extensions, err = unmarshalExtensions(buf, "propertyName", "mapping", "defaultMapping"); err != nil {
+		return
+	}
 	*d = Discriminator(x)
 	return
 }
@@ -2881,12 +2772,10 @@ func (x *XML) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x1); err != nil {
 		return
 	}
-	delete(x1.Extensions, "nodeType")
-	delete(x1.Extensions, "name")
-	delete(x1.Extensions, "namespace")
-	delete(x1.Extensions, "prefix")
-	delete(x1.Extensions, "attribute")
-	delete(x1.Extensions, "wrapped")
+	if x1.Extensions, err = unmarshalExtensions(buf, "nodeType", "name", "namespace", "prefix",
+		"attribute", "wrapped"); err != nil {
+		return
+	}
 	*x = XML(x1)
 	return
 }
@@ -2991,18 +2880,10 @@ func (s *SecurityScheme) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "$ref")
-	delete(x.Extensions, "summary")
-	delete(x.Extensions, "type")
-	delete(x.Extensions, "description")
-	delete(x.Extensions, "deprecated")
-	delete(x.Extensions, "name")
-	delete(x.Extensions, "in")
-	delete(x.Extensions, "scheme")
-	delete(x.Extensions, "bearerFormat")
-	delete(x.Extensions, "flows")
-	delete(x.Extensions, "oauth2MetadataUrl")
-	delete(x.Extensions, "openIdConnectUrl")
+	if x.Extensions, err = unmarshalExtensions(buf, "$ref", "summary", "type", "description", "deprecated",
+		"name", "in", "scheme", "bearerFormat", "flows", "oauth2MetadataUrl", "openIdConnectUrl"); err != nil {
+		return
+	}
 	*s = SecurityScheme(x)
 	return
 }
@@ -3102,11 +2983,10 @@ func (o *OAuthFlows) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "implicit")
-	delete(x.Extensions, "password")
-	delete(x.Extensions, "clientCredentials")
-	delete(x.Extensions, "authorizationCode")
-	delete(x.Extensions, "deviceAuthorization")
+	if x.Extensions, err = unmarshalExtensions(buf, "implicit", "password", "clientCredentials",
+		"authorizationCode", "deviceAuthorization"); err != nil {
+		return
+	}
 	*o = OAuthFlows(x)
 	return
 }
@@ -3195,11 +3075,10 @@ func (o *OAuthFlow) UnmarshalJSON(buf []byte) (err error) {
 	if err = json.Unmarshal(buf, &x); err != nil {
 		return
 	}
-	delete(x.Extensions, "authorizationUrl")
-	delete(x.Extensions, "deviceAuthorizationUrl")
-	delete(x.Extensions, "tokenUrl")
-	delete(x.Extensions, "refreshUrl")
-	delete(x.Extensions, "scopes")
+	if x.Extensions, err = unmarshalExtensions(buf, "authorizationUrl", "deviceAuthorizationUrl", "tokenUrl",
+		"refreshUrl", "scopes"); err != nil {
+		return
+	}
 	*o = OAuthFlow(x)
 	return
 }
@@ -3464,6 +3343,20 @@ func marshalJson(list []marshalField, extensions ...map[string]any) ([]byte, err
 		m[v.key] = v.value
 	}
 	return packageJsonByMap(m)
+}
+
+func unmarshalExtensions(buf []byte, knownFields ...string) (map[string]any, error) {
+	var extensions map[string]any
+	if err := json.Unmarshal(buf, &extensions); err != nil {
+		return nil, err
+	}
+	for _, field := range knownFields {
+		delete(extensions, field)
+	}
+	if len(extensions) == 0 {
+		return nil, nil
+	}
+	return extensions, nil
 }
 
 func packageJsonByMap(m map[string]any) (buf []byte, err error) {

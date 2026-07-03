@@ -36,6 +36,27 @@ func TestValidator(t *testing.T) {
 	assert.Equal(t, openapi.Validate(), nil)
 }
 
+func TestUnmarshalJSONExtensions(t *testing.T) {
+	jsonWithExtensions := `{"components":{"schemas":{"User":{"type":"object","x-schema":"user"}},"x-components":"components"},"info":{"title":"GoAPI","version":"1.0.0","x-info":{"enabled":true}},"openapi":"3.2.0","paths":{"/ping":{"get":{"responses":{"default":{"description":"ok","x-response":"pong"}},"x-operation":"ping"},"x-path":"path"}},"x-root":"root"}`
+
+	api := &OpenAPI{}
+	assert.NoError(t, json.Unmarshal([]byte(jsonWithExtensions), api))
+	assert.Equal(t, "root", api.Extensions["x-root"])
+	assert.Equal(t, "components", api.Components.Extensions["x-components"])
+	assert.Equal(t, "user", api.Components.Schemas["User"].Extensions["x-schema"])
+	infoExtensions, ok := api.Info.Extensions["x-info"].(map[string]any)
+	assert.True(t, ok)
+	assert.Equal(t, true, infoExtensions["enabled"])
+	pathItem := api.Paths.Value("/ping")
+	assert.Equal(t, "path", pathItem.Extensions["x-path"])
+	assert.Equal(t, "ping", pathItem.Get.Extensions["x-operation"])
+	assert.Equal(t, "pong", pathItem.Get.Responses.Default.Extensions["x-response"])
+
+	buf, err := json.Marshal(api)
+	assert.NoError(t, err)
+	assert.JSONEq(t, jsonWithExtensions, string(buf))
+}
+
 func TestMarshalJSON(t *testing.T) {
 	callback := &Callback{}
 	callback.Set("{$request.query.callbackUrl}", &PathItem{
