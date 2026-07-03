@@ -10,7 +10,7 @@ var jsonStr = `{"components":{"securitySchemes":{"httpBasic":{"scheme":"basic","
 
 func TestValidator(t *testing.T) {
 	openapi := &OpenAPI{
-		OpenAPI: "3.1.0",
+		OpenAPI: "3.2.0",
 		Info: &Info{
 			Title:   "GoAPI",
 			Version: "1.0.0",
