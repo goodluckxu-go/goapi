@@ -63,6 +63,9 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 
 // Flush implements the http.Flusher interface.
 func (w *responseWriter) Flush() {
+	if !w.written {
+		w.written = true
+	}
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}

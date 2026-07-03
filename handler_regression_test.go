@@ -3,6 +3,7 @@ package goapi
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -158,5 +159,129 @@ func TestResponseWriterKeepsFirstStatus(t *testing.T) {
 	}
 	if rec.Code != http.StatusOK {
 		t.Fatalf("recorder code after Write: got %d want %d", rec.Code, http.StatusOK)
+	}
+}
+
+func TestResponseWriterFlushCommitsStatus(t *testing.T) {
+	rec := httptest.NewRecorder()
+	writer := &responseWriter{}
+	writer.reset(rec)
+
+	writer.Flush()
+	writer.WriteHeader(http.StatusInternalServerError)
+
+	if writer.Status() != http.StatusOK {
+		t.Fatalf("Status() after Flush then WriteHeader: got %d want %d", writer.Status(), http.StatusOK)
+	}
+	if rec.Code != http.StatusOK {
+		t.Fatalf("recorder code after Flush: got %d want %d", rec.Code, http.StatusOK)
+	}
+}
+
+type failingHTTPWriter struct {
+	header http.Header
+	err    error
+}
+
+func (w *failingHTTPWriter) Header() http.Header {
+	if w.header == nil {
+		w.header = http.Header{}
+	}
+	return w.header
+}
+
+func (w *failingHTTPWriter) Write([]byte) (int, error) { return 0, w.err }
+func (w *failingHTTPWriter) WriteHeader(int)           {}
+
+func TestCopyReaderReturnsWriteError(t *testing.T) {
+	writeErr := errors.New("write failed")
+	writer := &responseWriter{}
+	writer.reset(&failingHTTPWriter{err: writeErr})
+
+	err := (&handlerServer{}).copyReader(writer, io.NopCloser(strings.NewReader("payload")))
+	if !errors.Is(err, writeErr) {
+		t.Fatalf("copyReader error: got %v want %v", err, writeErr)
+	}
+}
+
+func TestNotFindMethodAllowedDoesNotReuseParamsFromFailedMatch(t *testing.T) {
+	getRoot := &node{}
+	if err := getRoot.addRoute("/users/{id}/details", fakeHandler); err != nil {
+		t.Fatal(err)
+	}
+	postRoot := &node{}
+	if err := postRoot.addRoute("/users/{id}", fakeHandler); err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	ctx := &Context{
+		Request:      httptest.NewRequest(http.MethodGet, "/users/42", nil),
+		log:          nopLogger{},
+		Params:       &Params{},
+		skippedNodes: &[]skippedNode{},
+		index:        -1,
+	}
+	ctx.writermem.reset(rec)
+	ctx.Writer = &ctx.writermem
+
+	server := &handlerServer{
+		trees: methodTrees{
+			{method: http.MethodGet, root: getRoot},
+			{method: http.MethodPost, root: postRoot},
+		},
+		handle: &handler{
+			childMap: map[string]returnObjChild{
+				"": {
+					handleMethodNotAllowed: true,
+					noMethod: func(ctx *Context) {
+						ctx.Writer.WriteHeader(http.StatusMethodNotAllowed)
+					},
+					noRoute: func(ctx *Context) {
+						ctx.Writer.WriteHeader(http.StatusNotFound)
+					},
+				},
+			},
+			publicGroupMiddlewares: map[string][]HandleFunc{},
+		},
+	}
+
+	server.handleHTTPRequest(ctx)
+
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status code: got %d want %d", rec.Code, http.StatusMethodNotAllowed)
+	}
+	if allow := rec.Header().Get("Allow"); allow != http.MethodPost {
+		t.Fatalf("Allow header: got %q want %q", allow, http.MethodPost)
+	}
+	if len(*ctx.Params) != 0 {
+		t.Fatalf("method probing should not leave params on context, got %v", *ctx.Params)
+	}
+}
+
+func TestRedirectPreservesRawQuery(t *testing.T) {
+	rec := httptest.NewRecorder()
+	ctx := &Context{
+		Request:      httptest.NewRequest(http.MethodGet, "/users/?page=1&sort=name", nil),
+		log:          nopLogger{},
+		Params:       &Params{},
+		skippedNodes: &[]skippedNode{},
+		index:        -1,
+	}
+	ctx.writermem.reset(rec)
+	ctx.Writer = &ctx.writermem
+
+	server := &handlerServer{
+		handle: &handler{
+			publicGroupMiddlewares: map[string][]HandleFunc{},
+		},
+	}
+	server.redirect(ctx)
+
+	if rec.Code != http.StatusMovedPermanently {
+		t.Fatalf("status code: got %d want %d", rec.Code, http.StatusMovedPermanently)
+	}
+	if loc := rec.Header().Get("Location"); loc != "/users?page=1&sort=name" {
+		t.Fatalf("Location header: got %q want %q", loc, "/users?page=1&sort=name")
 	}
 }

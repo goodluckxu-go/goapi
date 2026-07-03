@@ -91,9 +91,11 @@ func TestContext_reset(t *testing.T) {
 	ctx.handlers = []HandleFunc{fakeHandler}
 	ctx.index = 3
 	ctx.fullPath = "/old"
+	ctx.path = &pathInfo{}
 	ctx.queryCache = url.Values{"q": {"1"}}
 	ctx.ChildPath = "child"
 	ctx.RequestID = "rid"
+	ctx.Extensions = Extensions{"x-test": {"old"}}
 
 	ctx.reset()
 
@@ -115,11 +117,17 @@ func TestContext_reset(t *testing.T) {
 	if ctx.fullPath != "" {
 		t.Fatalf("reset: fullPath want empty, got %q", ctx.fullPath)
 	}
+	if ctx.path != nil {
+		t.Fatal("reset: path should be nil")
+	}
 	if ctx.queryCache != nil {
 		t.Fatal("reset: queryCache should be nil")
 	}
 	if ctx.ChildPath != "" || ctx.RequestID != "" {
 		t.Fatalf("reset: ChildPath/RequestID should be empty, got %q / %q", ctx.ChildPath, ctx.RequestID)
+	}
+	if ctx.Extensions != nil {
+		t.Fatalf("reset: Extensions should be nil, got %v", ctx.Extensions)
 	}
 }
 

@@ -282,10 +282,15 @@ func (h *handlerServer) copyReader(w ResponseWriter, r io.ReadCloser) error {
 	for {
 		n, err := r.Read(buf)
 		if n > 0 {
-			_, _ = w.Write(buf[:n])
+			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
+				return writeErr
+			}
 			w.Flush()
 		}
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
 			return err
 		}
 	}
@@ -1038,7 +1043,9 @@ func (h *handlerServer) notFind(ctx *Context) {
 				if tree.method == ctx.Request.Method {
 					continue
 				}
-				if val := tree.root.getValue(ctx.Request.URL.Path, ctx.Params, ctx.skippedNodes); val.handler != nil {
+				params := make(Params, 0, h.maxParams)
+				skippedNodes := make([]skippedNode, 0, h.maxSkippedNodes)
+				if val := tree.root.getValue(ctx.Request.URL.Path, &params, &skippedNodes); val.handler != nil {
 					allowed = append(allowed, tree.method)
 				}
 			}
@@ -1057,6 +1064,9 @@ func (h *handlerServer) redirect(ctx *Context) {
 	ctx.handlers = h.getMiddlewares(ctx.Request.URL.Path)
 	ctx.handlers = append(ctx.handlers, func(ctx *Context) {
 		tsrPath := h.handleTsrPath(ctx.Request.URL.Path)
+		if ctx.Request.URL.RawQuery != "" {
+			tsrPath += "?" + ctx.Request.URL.RawQuery
+		}
 		code := http.StatusMovedPermanently
 		if ctx.Request.Method != http.MethodGet {
 			code = http.StatusTemporaryRedirect
@@ -1190,6 +1200,8 @@ func (h *handlerServer) handleHTTPRequest(ctx *Context) {
 		value.handler(ctx)
 		return
 	}
+	*ctx.Params = (*ctx.Params)[:0]
+	*ctx.skippedNodes = (*ctx.skippedNodes)[:0]
 	ctx.ChildPath = h.getChildPath(ctx.Request.URL.Path)
 	h.handleLogger(ctx)
 	if value.tsr {

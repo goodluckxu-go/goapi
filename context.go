@@ -47,11 +47,13 @@ func (c *Context) reset() {
 	c.handlers = c.handlers[0:0]
 	c.index = -1
 	c.fullPath = ""
+	c.path = nil
 	c.queryCache = nil
 	c.ChildPath = ""
 	c.RouterSummary = ""
 	c.RequestID = ""
 	c.isRedirect = false
+	c.Extensions = nil
 }
 
 func (c *Context) Deadline() (deadline time.Time, ok bool) {
