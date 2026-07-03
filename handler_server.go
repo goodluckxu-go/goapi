@@ -241,7 +241,7 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 		mediaType = h.getResponseMediaType(ctx)
 		ctx.Writer.Header().Add("Content-Type", string(mediaType))
 	} else {
-		mediaType = MediaType(contentType)
+		mediaType = MediaType(contentType).MediaType()
 	}
 	if fn, ok := resp.(ResponseStatus); ok {
 		ctx.Writer.WriteHeader(fn.GetStatus())
