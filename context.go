@@ -117,7 +117,9 @@ func (c *Context) FullPath() string {
 func (c *Context) Next() {
 	defer func() {
 		if err := recover(); err != nil {
-			c.Logger().Fatal("panic: %v [recovered]\n%v", err, string(debug.Stack()))
+			if c.Logger() != nil {
+				c.Logger().Fatal("panic: %v [recovered]\n%v", err, string(debug.Stack()))
+			}
 			c.handleError(c, NewHTTPError(http.StatusInternalServerError, toString(err)))
 		}
 	}()
