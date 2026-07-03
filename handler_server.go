@@ -1103,7 +1103,8 @@ func (h *handlerServer) copyStruct(dst, src reflect.Value) {
 	if dst.Type() != src.Type() || src.IsZero() {
 		return
 	}
-	switch src.Kind() {
+	kind := src.Kind()
+	switch kind {
 	case reflect.Ptr:
 		h.copyStruct(dst.Elem(), src.Elem())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
@@ -1111,11 +1112,18 @@ func (h *handlerServer) copyStruct(dst, src reflect.Value) {
 		reflect.Float32, reflect.Float64, reflect.String, reflect.Bool:
 		dst.Set(src)
 	case reflect.Slice, reflect.Array:
-		for i := 0; i < src.Len(); i++ {
+		arrLen := src.Len()
+		if !src.IsNil() && kind == reflect.Slice {
+			dst.Set(reflect.MakeSlice(dst.Type(), arrLen, arrLen))
+		}
+		for i := 0; i < arrLen; i++ {
 			h.copyStruct(dst.Index(i), src.Index(i))
 		}
 	case reflect.Map:
 		keys := src.MapKeys()
+		if !src.IsNil() {
+			dst.Set(reflect.MakeMap(dst.Type()))
+		}
 		for _, key := range keys {
 			dst.SetMapIndex(key, src.MapIndex(key))
 		}
