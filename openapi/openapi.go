@@ -102,6 +102,9 @@ func (o *OpenAPI) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (o *OpenAPI) Validate() error {
+	if o == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if !regexp.MustCompile(`^3\.2(\.\d+)*$`).MatchString(o.OpenAPI) {
 		return verifyError("openapi", fmt.Errorf("must be 3.2 or 3.2.*"))
 	}
@@ -223,6 +226,9 @@ func (i *Info) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (i *Info) Validate() error {
+	if i == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if i.Title == "" {
 		return verifyError("title", fmt.Errorf("must be a non empty string"))
 	}
@@ -291,6 +297,9 @@ func (c *Contact) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (c *Contact) Validate() error {
+	if c == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if c.Extensions != nil {
 		if err := validatorExtensions(c.Extensions); err != nil {
 			return verifyError("extensions", err)
@@ -340,6 +349,9 @@ func (l *License) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (l *License) Validate() error {
+	if l == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if l.Name == "" {
 		return verifyError("name", fmt.Errorf("must be a non empty string"))
 	}
@@ -403,6 +415,9 @@ func (s *Server) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (s *Server) Validate() error {
+	if s == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if s.URL == "" {
 		return verifyError("url", fmt.Errorf("must be a non empty string"))
 	}
@@ -465,6 +480,9 @@ func (s *ServerVariable) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (s *ServerVariable) Validate() error {
+	if s == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if s.Default == "" {
 		return verifyError("default", fmt.Errorf("must be a non empty string"))
 	}
@@ -550,6 +568,9 @@ func (c *Components) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (c *Components) Validate(openapi *OpenAPI) error {
+	if c == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	for k, v := range c.Schemas {
 		if err := v.Validate(openapi); err != nil {
 			return verifyError(fmt.Sprintf("schemas[%v]", k), err)
@@ -660,17 +681,20 @@ func (p *Paths) UnmarshalJSON(buf []byte) (err error) {
 		if b, err = json.Marshal(v); err != nil {
 			return
 		}
-		var pathItem PathItem
+		var pathItem *PathItem
 		if err = json.Unmarshal(b, &pathItem); err != nil {
 			return
 		}
-		x.m[k] = &pathItem
+		x.m[k] = pathItem
 	}
 	*p = Paths(x)
 	return
 }
 
 func (p *Paths) Validate(openapi *OpenAPI) error {
+	if p == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	handlePaths := map[string]bool{}
 	for k, v := range p.m {
 		if k[0] != '/' {
@@ -814,6 +838,9 @@ func (p *PathItem) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (p *PathItem) Validate(openapi *OpenAPI, path string) error {
+	if p == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if p.Ref != "" {
 		if err := validatorRef(p.Ref, "pathItem", openapi); err != nil {
 			return err
@@ -1005,6 +1032,9 @@ func (o *Operation) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (o *Operation) Validate(openapi *OpenAPI, path string, pathParameters ...[]*Parameter) error {
+	if o == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if o.ExternalDocs != nil {
 		if err := o.ExternalDocs.Validate(); err != nil {
 			return verifyError("externalDocs", err)
@@ -1116,6 +1146,9 @@ func (e *ExternalDocumentation) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (e *ExternalDocumentation) Validate() error {
+	if e == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if e.URL == "" {
 		return verifyError("url", fmt.Errorf("must be a non empty string"))
 	}
@@ -1249,6 +1282,9 @@ func (p *Parameter) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (p *Parameter) Validate(openapi *OpenAPI, path string) error {
+	if p == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if p.Ref != "" {
 		if err := validatorRef(p.Ref, "parameter", openapi); err != nil {
 			return err
@@ -1388,6 +1424,9 @@ func (r *RequestBody) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (r *RequestBody) Validate(openapi *OpenAPI) error {
+	if r == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if r.Ref != "" {
 		if err := validatorRef(r.Ref, "requestBody", openapi); err != nil {
 			return err
@@ -1492,6 +1531,9 @@ func (m *MediaType) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (m *MediaType) Validate(openapi *OpenAPI) error {
+	if m == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if m.Ref != "" {
 		if err := validatorRef(m.Ref, "mediaType", openapi); err != nil {
 			return err
@@ -1630,6 +1672,9 @@ func (e *Encoding) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (e *Encoding) Validate(openapi *OpenAPI) error {
+	if e == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	for k, v := range e.Headers {
 		if err := v.Validate(openapi); err != nil {
 			return verifyError(fmt.Sprintf("headers[%v]", k), err)
@@ -1713,21 +1758,24 @@ func (r *Responses) UnmarshalJSON(buf []byte) (err error) {
 		if b, err = json.Marshal(v); err != nil {
 			return
 		}
-		var response Response
+		var response *Response
 		if err = json.Unmarshal(b, &response); err != nil {
 			return
 		}
 		if k == "default" {
-			x.Default = &response
+			x.Default = response
 			continue
 		}
-		x.m[k] = &response
+		x.m[k] = response
 	}
 	*r = Responses(x)
 	return
 }
 
 func (r *Responses) Validate(openapi *OpenAPI) error {
+	if r == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if r.Default == nil && len(r.m) == 0 {
 		return fmt.Errorf("must contain at least one response")
 	}
@@ -1845,6 +1893,9 @@ func (r *Response) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (r *Response) Validate(openapi *OpenAPI) error {
+	if r == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if r.Ref != "" {
 		if err := validatorRef(r.Ref, "response", openapi); err != nil {
 			return err
@@ -1997,17 +2048,20 @@ func (c *Callback) UnmarshalJSON(buf []byte) (err error) {
 		if b, err = json.Marshal(v); err != nil {
 			return
 		}
-		var pathItem PathItem
+		var pathItem *PathItem
 		if err = json.Unmarshal(b, &pathItem); err != nil {
 			return
 		}
-		x.m[k] = &pathItem
+		x.m[k] = pathItem
 	}
 	*c = Callback(x)
 	return
 }
 
 func (c *Callback) Validate(openapi *OpenAPI) error {
+	if c == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if c.Ref != "" {
 		if err := validatorRef(c.Ref, "callback", openapi); err != nil {
 			return err
@@ -2108,6 +2162,9 @@ func (e *Example) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (e *Example) Validate(openapi *OpenAPI) error {
+	if e == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if e.Ref != "" {
 		if err := validatorRef(e.Ref, "example", openapi); err != nil {
 			return err
@@ -2211,6 +2268,9 @@ func (l *Link) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (l *Link) Validate(openapi *OpenAPI) error {
+	if l == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if l.Ref != "" {
 		if err := validatorRef(l.Ref, "link", openapi); err != nil {
 			return err
@@ -2297,6 +2357,9 @@ func (h *Header) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (h *Header) Validate(openapi *OpenAPI) error {
+	if h == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if h.Ref != "" {
 		if err := validatorRef(h.Ref, "header", openapi); err != nil {
 			return err
@@ -2409,6 +2472,9 @@ func (t *Tag) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (t *Tag) Validate() error {
+	if t == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if t.Name == "" {
 		return verifyError("name", fmt.Errorf("must be a non empty string"))
 	}
@@ -2583,6 +2649,9 @@ func (s *Schema) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (s *Schema) Validate(openapi *OpenAPI) error {
+	if s == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if s.Ref != "" {
 		if err := validatorRef(s.Ref, "schema", openapi); err != nil {
 			return err
@@ -2710,6 +2779,9 @@ func (d *Discriminator) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (d *Discriminator) Validate() error {
+	if d == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if d.PropertyName == "" {
 		return verifyError("propertyName", fmt.Errorf("must be a non empty string"))
 	}
@@ -2781,6 +2853,9 @@ func (x *XML) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (x *XML) Validate() error {
+	if x == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if x.NodeType != "" {
 		switch x.NodeType {
 		case "element", "attribute", "text", "cdata", "none":
@@ -2889,6 +2964,9 @@ func (s *SecurityScheme) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (s *SecurityScheme) Validate(openapi *OpenAPI) error {
+	if s == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if s.Ref != "" {
 		if err := validatorRef(s.Ref, "securityScheme", openapi); err != nil {
 			return err
@@ -2992,6 +3070,9 @@ func (o *OAuthFlows) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (o *OAuthFlows) Validate() error {
+	if o == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	if o.Implicit != nil {
 		if err := o.Implicit.Validate("implicit"); err != nil {
 			return verifyError("implicit", err)
@@ -3084,6 +3165,9 @@ func (o *OAuthFlow) UnmarshalJSON(buf []byte) (err error) {
 }
 
 func (o *OAuthFlow) Validate(applyTo string) error {
+	if o == nil {
+		return fmt.Errorf("must be a non empty object")
+	}
 	switch applyTo {
 	case "implicit":
 		if o.AuthorizationUrl == "" {
@@ -3329,11 +3413,9 @@ type marshalField struct {
 
 func marshalJson(list []marshalField, extensions ...map[string]any) ([]byte, error) {
 	m := map[string]any{}
-	if !(len(list) > 0 && list[0].key == "$ref") {
-		for _, val := range extensions {
-			for k, v := range val {
-				m[k] = v
-			}
+	for _, val := range extensions {
+		for k, v := range val {
+			m[k] = v
 		}
 	}
 	for _, v := range list {
@@ -3367,9 +3449,13 @@ func packageJsonByMap(m map[string]any) (buf []byte, err error) {
 	sort.Strings(keys)
 	str := "{"
 	for _, k := range keys {
-		str += `"` + k + `":`
+		keyBuf, err := json.Marshal(k)
+		if err != nil {
+			return nil, err
+		}
+		str += string(keyBuf) + ":"
 		val := reflect.ValueOf(m[k])
-		if val.Kind() == reflect.Map {
+		if val.IsValid() && val.Kind() == reflect.Map && val.Type().Key().Kind() == reflect.String {
 			childM := map[string]any{}
 			for _, key := range val.MapKeys() {
 				childM[key.String()] = val.MapIndex(key).Interface()

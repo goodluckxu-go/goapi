@@ -19,11 +19,15 @@ type ResponseWriter interface {
 
 type responseWriter struct {
 	http.ResponseWriter
-	status int
-	size   int
+	status  int
+	size    int
+	written bool
 }
 
 func (w *responseWriter) Write(b []byte) (int, error) {
+	if !w.written {
+		w.written = true
+	}
 	n, err := w.ResponseWriter.Write(b)
 	if err != nil {
 		return n, err
@@ -32,8 +36,12 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 	return n, err
 }
 func (w *responseWriter) WriteHeader(statusCode int) {
+	if w.written {
+		return
+	}
 	w.ResponseWriter.WriteHeader(statusCode)
 	w.status = statusCode
+	w.written = true
 }
 
 // Hijack implements the http.Hijacker interface.
@@ -72,4 +80,5 @@ func (w *responseWriter) reset(writer http.ResponseWriter) {
 	w.ResponseWriter = writer
 	w.size = 0
 	w.status = http.StatusOK
+	w.written = false
 }

@@ -57,6 +57,53 @@ func TestUnmarshalJSONExtensions(t *testing.T) {
 	assert.JSONEq(t, jsonWithExtensions, string(buf))
 }
 
+func TestValidateJSONNullObjects(t *testing.T) {
+	tests := []string{
+		`{"info":{"title":"GoAPI","version":"1.0.0"},"openapi":"3.2.0","servers":[null]}`,
+		`{"components":{"schemas":{"User":null}},"info":{"title":"GoAPI","version":"1.0.0"},"openapi":"3.2.0"}`,
+		`{"info":{"title":"GoAPI","version":"1.0.0"},"openapi":"3.2.0","paths":{"/ping":null}}`,
+		`{"info":{"title":"GoAPI","version":"1.0.0"},"openapi":"3.2.0","paths":{"/ping":{"get":{"parameters":[null],"responses":{"default":{"description":"ok"}}}}}}`,
+	}
+	for _, tt := range tests {
+		api := &OpenAPI{}
+		assert.NoError(t, json.Unmarshal([]byte(tt), api))
+		assert.NotPanics(t, func() {
+			assert.Error(t, api.Validate())
+		})
+	}
+}
+
+func TestMarshalJSONRefExtensions(t *testing.T) {
+	schema := &Schema{
+		Ref: "#/components/schemas/User",
+		Extensions: map[string]any{
+			"x-ref": "keep",
+		},
+	}
+	buf, err := json.Marshal(schema)
+	assert.NoError(t, err)
+	assert.JSONEq(t, `{"$ref":"#/components/schemas/User","x-ref":"keep"}`, string(buf))
+}
+
+func TestMarshalJSONEscapesMapKeys(t *testing.T) {
+	paths := &Paths{}
+	paths.Set(`/quote"path`, &PathItem{
+		Extensions: map[string]any{
+			`x-quote"key`: "ok",
+			"x-null":      nil,
+		},
+	})
+
+	buf, err := json.Marshal(paths)
+	assert.NoError(t, err)
+	assert.True(t, json.Valid(buf), string(buf))
+
+	var got map[string]map[string]any
+	assert.NoError(t, json.Unmarshal(buf, &got))
+	assert.Equal(t, "ok", got[`/quote"path`][`x-quote"key`])
+	assert.Contains(t, got[`/quote"path`], "x-null")
+}
+
 func TestMarshalJSON(t *testing.T) {
 	callback := &Callback{}
 	callback.Set("{$request.query.callbackUrl}", &PathItem{

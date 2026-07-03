@@ -227,6 +227,7 @@ func (h *handlerServer) execRouter(ctx *Context) {
 
 func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	var contentType string
+	var addContentType bool
 	if fn, ok := resp.(ResponseHeader); ok {
 		header := fn.GetHeader()
 		for key, vals := range header {
@@ -239,17 +240,24 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	var mediaType MediaType
 	if contentType == "" {
 		mediaType = h.getResponseMediaType(ctx)
-		ctx.Writer.Header().Add("Content-Type", string(mediaType))
+		addContentType = true
 	} else {
 		mediaType = MediaType(contentType).MediaType()
 	}
+	status := 0
 	if fn, ok := resp.(ResponseStatus); ok {
-		ctx.Writer.WriteHeader(fn.GetStatus())
+		status = fn.GetStatus()
 	}
 	if fn, ok := resp.(ResponseBody); ok {
 		resp = fn.GetBody()
 	}
 	if r, ok := getFnByCovertInterface[io.ReadCloser](resp); ok {
+		if addContentType {
+			ctx.Writer.Header().Add("Content-Type", string(mediaType))
+		}
+		if status != 0 {
+			ctx.Writer.WriteHeader(status)
+		}
 		_ = h.copyReader(ctx.Writer, r)
 		return
 	}
@@ -258,6 +266,12 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 	if body, err = mediaType.Marshaler(resp); err != nil {
 		h.handleError(ctx, NewHTTPError(validErrorCode, err.Error()))
 		return
+	}
+	if addContentType {
+		ctx.Writer.Header().Add("Content-Type", string(mediaType))
+	}
+	if status != 0 {
+		ctx.Writer.WriteHeader(status)
 	}
 	_, _ = ctx.Writer.Write(body)
 }
@@ -1100,29 +1114,56 @@ func (h *handlerServer) copyLogger(log Logger) Logger {
 }
 
 func (h *handlerServer) copyStruct(dst, src reflect.Value) {
-	if dst.Type() != src.Type() || src.IsZero() {
+	if !dst.IsValid() || !src.IsValid() || dst.Type() != src.Type() || src.IsZero() {
 		return
 	}
 	kind := src.Kind()
 	switch kind {
 	case reflect.Ptr:
+		if src.IsNil() {
+			return
+		}
+		if dst.IsNil() {
+			if !dst.CanSet() {
+				return
+			}
+			dst.Set(reflect.New(dst.Type().Elem()))
+		}
 		h.copyStruct(dst.Elem(), src.Elem())
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64, reflect.String, reflect.Bool:
-		dst.Set(src)
-	case reflect.Slice, reflect.Array:
+		reflect.Float32, reflect.Float64, reflect.String, reflect.Bool, reflect.Interface:
+		if dst.CanSet() {
+			dst.Set(src)
+		}
+	case reflect.Slice:
+		if src.IsNil() {
+			return
+		}
 		arrLen := src.Len()
-		if !src.IsNil() && kind == reflect.Slice {
+		if dst.CanSet() {
 			dst.Set(reflect.MakeSlice(dst.Type(), arrLen, arrLen))
+		}
+		if dst.IsNil() {
+			return
 		}
 		for i := 0; i < arrLen; i++ {
 			h.copyStruct(dst.Index(i), src.Index(i))
 		}
+	case reflect.Array:
+		for i := 0; i < src.Len(); i++ {
+			h.copyStruct(dst.Index(i), src.Index(i))
+		}
 	case reflect.Map:
+		if src.IsNil() {
+			return
+		}
 		keys := src.MapKeys()
-		if !src.IsNil() {
-			dst.Set(reflect.MakeMap(dst.Type()))
+		if dst.CanSet() {
+			dst.Set(reflect.MakeMapWithSize(dst.Type(), len(keys)))
+		}
+		if dst.IsNil() {
+			return
 		}
 		for _, key := range keys {
 			dst.SetMapIndex(key, src.MapIndex(key))

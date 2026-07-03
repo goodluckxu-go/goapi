@@ -322,16 +322,20 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 		exampleVal := reflect.ValueOf(example)
 		for exampleVal.Kind() == reflect.Ptr {
 			if exampleVal.IsNil() {
-				continue
+				exampleVal = reflect.Value{}
+				isNoSupport = true
+				break
 			}
 			exampleVal = exampleVal.Elem()
 		}
-		if !isNormalType(exampleVal.Type()) {
-			isNoSupport = true
-		}
-		if exampleVal.Type().ConvertibleTo(val.Type()) {
-			val.Set(exampleVal.Convert(val.Type()))
-			onlyFind = true
+		if exampleVal.IsValid() {
+			if !isNormalType(exampleVal.Type()) {
+				isNoSupport = true
+			}
+			if exampleVal.Type().ConvertibleTo(val.Type()) {
+				val.Set(exampleVal.Convert(val.Type()))
+				onlyFind = true
+			}
 		}
 	}
 	if field.isTextType {
