@@ -2,9 +2,12 @@ package goapi
 
 import (
 	"bufio"
+	"errors"
 	"net"
 	"net/http"
 )
+
+var errHijackAlreadyWritten = errors.New("goapi: response body already written")
 
 type ResponseWriter interface {
 	http.ResponseWriter
@@ -35,12 +38,26 @@ func (w *responseWriter) WriteHeader(statusCode int) {
 
 // Hijack implements the http.Hijacker interface.
 func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	return w.ResponseWriter.(http.Hijacker).Hijack()
+	// Allow hijacking before any data is written (size == -1) or after headers are written (size == 0),
+	// but not after body data is written (size > 0). For compatibility with websocket libraries (e.g., github.com/coder/websocket)
+	if w.size > 0 {
+		return nil, nil, errHijackAlreadyWritten
+	}
+	hijacker, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, http.ErrNotSupported
+	}
+	if w.size < 0 {
+		w.size = 0
+	}
+	return hijacker.Hijack()
 }
 
 // Flush implements the http.Flusher interface.
 func (w *responseWriter) Flush() {
-	w.ResponseWriter.(http.Flusher).Flush()
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
 }
 
 func (w *responseWriter) Status() int {
