@@ -50,6 +50,8 @@ func (c *CustomLog) SetContext(ctx *Context) {
 func main() {
 	api := goapi.Default(true)
 	api.GenerateRequestID = true // 生成每次请求的ID
+	api.UseXRequestIDHeader = true // 优先使用请求头X-Request-ID，并写回响应头
 	api.SetLogger(&CustomLog{})
 }
 ~~~
+开启`UseXRequestIDHeader`后，如果请求头中存在`X-Request-ID`，会优先作为`ctx.RequestID`使用；如果不存在，则自动生成新的请求ID，并通过响应头`X-Request-ID`返回。

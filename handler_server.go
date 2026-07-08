@@ -1093,7 +1093,7 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlerServer) generateRequestID(ctx *Context) {
 	if h.handle.api.GenerateRequestID {
-		if h.handle.api.EnableXRequestID && ctx.Request != nil {
+		if h.handle.api.UseXRequestIDHeader && ctx.Request != nil {
 			if requestID := strings.TrimSpace(ctx.Request.Header.Get("X-Request-ID")); requestID != "" {
 				ctx.RequestID = requestID
 				h.setXRequestIDHeader(ctx)
@@ -1107,7 +1107,7 @@ func (h *handlerServer) generateRequestID(ctx *Context) {
 }
 
 func (h *handlerServer) setXRequestIDHeader(ctx *Context) {
-	if !h.handle.api.EnableXRequestID || ctx.Writer == nil || ctx.RequestID == "" {
+	if !h.handle.api.UseXRequestIDHeader || ctx.Writer == nil || ctx.RequestID == "" {
 		return
 	}
 	ctx.Writer.Header().Set("X-Request-ID", ctx.RequestID)

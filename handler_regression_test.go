@@ -178,7 +178,7 @@ func TestResponseWriterFlushCommitsStatus(t *testing.T) {
 	}
 }
 
-func TestGenerateRequestIDPrefersXRequestIDWhenEnabled(t *testing.T) {
+func TestGenerateRequestIDPrefersXRequestIDHeaderWhenEnabled(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("X-Request-ID", "req-from-upstream")
 	ctx := &Context{Request: req}
@@ -188,8 +188,8 @@ func TestGenerateRequestIDPrefersXRequestIDWhenEnabled(t *testing.T) {
 	server := &handlerServer{
 		handle: &handler{
 			api: &API{
-				GenerateRequestID: true,
-				EnableXRequestID:  true,
+				GenerateRequestID:   true,
+				UseXRequestIDHeader: true,
 			},
 		},
 	}
@@ -204,7 +204,7 @@ func TestGenerateRequestIDPrefersXRequestIDWhenEnabled(t *testing.T) {
 	}
 }
 
-func TestGenerateRequestIDWritesGeneratedXRequestIDWhenEnabled(t *testing.T) {
+func TestGenerateRequestIDWritesGeneratedXRequestIDHeaderWhenEnabled(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	ctx := &Context{Request: req}
 	rec := httptest.NewRecorder()
@@ -213,8 +213,8 @@ func TestGenerateRequestIDWritesGeneratedXRequestIDWhenEnabled(t *testing.T) {
 	server := &handlerServer{
 		handle: &handler{
 			api: &API{
-				GenerateRequestID: true,
-				EnableXRequestID:  true,
+				GenerateRequestID:   true,
+				UseXRequestIDHeader: true,
 			},
 		},
 	}
@@ -250,7 +250,7 @@ func TestGenerateRequestIDIgnoresXRequestIDWhenDisabled(t *testing.T) {
 		t.Fatal("RequestID should be generated")
 	}
 	if ctx.RequestID == "req-from-upstream" {
-		t.Fatal("RequestID should not use X-Request-ID when EnableXRequestID is false")
+		t.Fatal("RequestID should not use X-Request-ID when UseXRequestIDHeader is false")
 	}
 	if got := rec.Header().Get("X-Request-ID"); got != "" {
 		t.Fatalf("X-Request-ID response header should be empty, got %q", got)
