@@ -160,11 +160,14 @@ func (c *Context) Copy() *Context {
 	}
 	c.mux.RUnlock()
 
-	if c.Params != nil && len(*c.Params) > 0 {
+	if c.Params != nil {
 		cParams := make([]Param, len(*c.Params))
 		copy(cParams, *c.Params)
 		params := Params(cParams)
 		cp.Params = &params
+	} else {
+		cParams := Params{}
+		cp.Params = &cParams
 	}
 
 	return &cp
