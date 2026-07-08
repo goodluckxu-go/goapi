@@ -31,14 +31,14 @@ child.AddMiddleware()
 ~~~
 
 ### 使用内置中间件
-内置中间件位于 `github.com/goodluckxu-go/goapi/v2/middlewares` 包中。
+内置中间件位于 `github.com/goodluckxu-go/goapi/v2/middleware` 包中。
 
 ~~~go
 import (
 	"time"
 
 	"github.com/goodluckxu-go/goapi/v2"
-	"github.com/goodluckxu-go/goapi/v2/middlewares"
+	"github.com/goodluckxu-go/goapi/v2/middleware"
 )
 ~~~
 
@@ -46,13 +46,13 @@ import (
 使用默认跨域配置：
 
 ~~~go
-api.AddMiddleware(middlewares.CORSMiddleware())
+api.AddMiddleware(middleware.CORSMiddleware())
 ~~~
 
 自定义跨域配置：
 
 ~~~go
-api.AddMiddleware(middlewares.CORSMiddlewareWithConfig(middlewares.CORSConfig{
+api.AddMiddleware(middleware.CORSMiddlewareWithConfig(middleware.CORSConfig{
 	AllowOrigins:     []string{"https://example.com"},
 	AllowMethods:     []string{"GET", "POST", "OPTIONS"},
 	AllowHeaders:     []string{"Content-Type", "Authorization"},
@@ -68,13 +68,13 @@ api.AddMiddleware(middlewares.CORSMiddlewareWithConfig(middlewares.CORSConfig{
 限制同一个客户端在指定时间窗口内的请求次数：
 
 ~~~go
-api.AddMiddleware(middlewares.RateLimitMiddleware(100, time.Minute))
+api.AddMiddleware(middleware.RateLimitMiddleware(100, time.Minute))
 ~~~
 
 自定义限流配置：
 
 ~~~go
-api.AddMiddleware(middlewares.RateLimitMiddlewareWithConfig(middlewares.RateLimitConfig{
+api.AddMiddleware(middleware.RateLimitMiddlewareWithConfig(middleware.RateLimitConfig{
 	Limit:  100,
 	Window: time.Minute,
 	Burst:  20,
@@ -93,13 +93,13 @@ api.AddMiddleware(middlewares.RateLimitMiddlewareWithConfig(middlewares.RateLimi
 限制请求体最大字节数：
 
 ~~~go
-api.AddMiddleware(middlewares.BodyLimitMiddleware(10 << 20)) // 10MB
+api.AddMiddleware(middleware.BodyLimitMiddleware(10 << 20)) // 10MB
 ~~~
 
 自定义请求体限制配置：
 
 ~~~go
-api.AddMiddleware(middlewares.BodyLimitMiddlewareWithConfig(middlewares.BodyLimitConfig{
+api.AddMiddleware(middleware.BodyLimitMiddlewareWithConfig(middleware.BodyLimitConfig{
 	Limit:   10 << 20,
 	Message: "request body too large",
 }))
