@@ -364,3 +364,47 @@ func TestRedirectPreservesRawQuery(t *testing.T) {
 		t.Fatalf("Location header: got %q want %q", loc, "/users?page=1&sort=name")
 	}
 }
+
+type bodyMediaTypeRegressionRouter struct{}
+
+type bodyMediaTypeRegressionReq struct {
+	Name string `json:"name" xml:"name"`
+}
+
+func (*bodyMediaTypeRegressionRouter) Create(input struct {
+	router Router                     `paths:"/body" methods:"POST"`
+	Body   bodyMediaTypeRegressionReq `body:"json"`
+}) map[string]string {
+	return map[string]string{"name": input.Body.Name}
+}
+
+func TestBodyMediaTypeMustMatchDeclaredContentType(t *testing.T) {
+	api := New(false)
+	api.SetLogger(nil)
+	api.IncludeRouter(&bodyMediaTypeRegressionRouter{}, "", true)
+	handler := api.Handler()
+
+	t.Run("allows declared JSON with parameters", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/body", strings.NewReader(`{"name":"alice"}`))
+		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status code: got %d want %d, body=%s", rec.Code, http.StatusOK, rec.Body.String())
+		}
+	})
+
+	t.Run("rejects undeclared XML", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/body", strings.NewReader(`<bodyMediaTypeRegressionReq><name>alice</name></bodyMediaTypeRegressionReq>`))
+		req.Header.Set("Content-Type", "application/xml")
+		rec := httptest.NewRecorder()
+
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnsupportedMediaType {
+			t.Fatalf("status code: got %d want %d, body=%s", rec.Code, http.StatusUnsupportedMediaType, rec.Body.String())
+		}
+	})
+}

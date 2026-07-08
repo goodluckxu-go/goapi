@@ -376,6 +376,10 @@ func (h *handlerServer) handleInParamToValue(ctx *Context, ctxVal reflect.Value,
 			}
 		case inTypeBody:
 			mediaType := h.getRequestMediaType(ctx)
+			if !h.isBodyMediaTypeAllowed(mediaType, in.values) {
+				err = NewHTTPError(http.StatusUnsupportedMediaType, http.StatusText(http.StatusUnsupportedMediaType))
+				return
+			}
 			err = h.setBody(inValue, ctx.Request.Body, mediaType)
 			if err != nil {
 				return
@@ -1012,6 +1016,16 @@ func (h *handlerServer) setBody(value reflect.Value, reader io.ReadCloser, media
 	}
 	value.Set(newValue.Elem())
 	return
+}
+
+func (h *handlerServer) isBodyMediaTypeAllowed(mediaType MediaType, allowed paramFieldNames) bool {
+	mediaType = mediaType.MediaType()
+	for _, item := range allowed {
+		if mediaType == item.mediaType.MediaType() {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *handlerServer) getMiddlewares(path string) (rs []HandleFunc) {
