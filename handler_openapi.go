@@ -391,6 +391,7 @@ func (h *handlerOpenAPI) handlePath(path *pathInfo) {
 			pathItem = &openapi.PathItem{}
 		}
 		for _, method := range path.methods {
+			lowerMethod := strings.ToLower(method)
 			operation := &openapi.Operation{}
 			switch method {
 			case http.MethodGet:
@@ -415,9 +416,9 @@ func (h *handlerOpenAPI) handlePath(path *pathInfo) {
 				if pathItem.AdditionalOperations == nil {
 					pathItem.AdditionalOperations = map[string]*openapi.Operation{}
 				}
-				pathItem.AdditionalOperations[method] = operation
+				pathItem.AdditionalOperations[lowerMethod] = operation
 			}
-			operation.OperationId = fmt.Sprintf("%v%v", strings.ToLower(method), strings.ReplaceAll(setPath, "/", "_"))
+			operation.OperationId = fmt.Sprintf("%v%v", lowerMethod, strings.ReplaceAll(setPath, "/", "_"))
 			h.handleOperation(operation, path, setPath, pathName, isMatchAll)
 		}
 		openAPI.Paths.Set(setPath, pathItem)
