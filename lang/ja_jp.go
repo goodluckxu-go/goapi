@@ -66,7 +66,7 @@ func (j *JaJp) Enum(field string, val []any) string {
 func (j *JaJp) JwtTranslate(msg string) string {
 	list := strings.Split(msg, ": ")
 	for _, v := range jwtErrors {
-		if list[0] == v || list[1] == v {
+		if list[0] == v || (len(list) > 1 && list[1] == v) {
 			msg = v
 			break
 		}

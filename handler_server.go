@@ -558,6 +558,11 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 		}
 	case reflect.String:
 		valStr := ""
+		var enum []any
+		if field.meta.enum != nil {
+			enum = make([]any, len(field.meta.enum))
+			copy(enum, field.meta.enum)
+		}
 		if field.isTextType {
 			if fn, ok := getFnByCovertInterface[encoding.TextMarshaler](value); ok {
 				var txt []byte
@@ -565,11 +570,11 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 					valStr = string(txt)
 				}
 			}
-			for k, v := range field.meta.enum {
+			for k, v := range enum {
 				if fn, ok := getFnByCovertInterface[encoding.TextMarshaler](v); ok {
 					var txt []byte
 					if txt, err = fn.MarshalText(); err == nil {
-						field.meta.enum[k] = string(txt)
+						enum[k] = string(txt)
 					}
 				}
 			}
@@ -587,8 +592,8 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 				return errors.New(ctx.lang().Regexp(desc, field.meta.regexp))
 			}
 		}
-		if field.meta.enum != nil && !inArrayAny(any(valStr), field.meta.enum) {
-			return errors.New(ctx.lang().Enum(desc, field.meta.enum))
+		if enum != nil && !inArrayAny(any(valStr), enum) {
+			return errors.New(ctx.lang().Enum(desc, enum))
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		vFloat := float64(value.Int())
@@ -747,17 +752,22 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 				return errors.New(ctx.lang().Regexp(desc, field.meta.regexp))
 			}
 		}
+		var enum []any
+		if field.meta.enum != nil {
+			enum = make([]any, len(field.meta.enum))
+			copy(enum, field.meta.enum)
+		}
 		if field.isTextType {
-			for k, v := range field.meta.enum {
+			for k, v := range enum {
 				if fn, ok := getFnByCovertInterface[encoding.TextMarshaler](v); ok {
 					var txt []byte
 					if txt, err = fn.MarshalText(); err == nil {
-						field.meta.enum[k] = string(txt)
+						enum[k] = string(txt)
 					}
 				}
 			}
 		}
-		if field.meta.enum != nil && !inArrayAny(any(val), field.meta.enum) {
+		if enum != nil && !inArrayAny(any(val), enum) {
 			return errors.New(ctx.lang().Enum(desc, field.meta.enum))
 		}
 		if field.isTextType {

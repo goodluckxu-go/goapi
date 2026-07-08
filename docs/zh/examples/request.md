@@ -1,4 +1,7 @@
 ## [<<](examples.md) 如何定义请求值
+### 小技巧
+- 参数可以放在结构体中合并使用，不同的参数类型放同一结构体中
+- 如果需要字段必填，字段值可以零值，需要定义类型为指针
 ### 使用上下文获取参数
 ~~~go
 func (*Index) Param(ctx *goapi.Context, input struct {
@@ -62,7 +65,7 @@ func (*Index) Form(input struct {
 ~~~go
 func (*Index) File(input struct {
 	input goapi.Router            `paths:"/file" methods:"POST" summary:"file请求"`
-	File  *multipart.FileHeader   `form:"file" desc:"文件"`
+	File  *multipart.FileHeader   `file:"file" desc:"文件"`
 	Files []*multipart.FileHeader `file:"files" desc:"文件列表"`
 }) {
 

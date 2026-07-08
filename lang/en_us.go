@@ -66,7 +66,7 @@ func (e *EnUs) Enum(field string, val []any) string {
 func (e *EnUs) JwtTranslate(msg string) string {
 	list := strings.Split(msg, ": ")
 	for _, v := range jwtErrors {
-		if list[0] == v || list[1] == v {
+		if list[0] == v || (len(list) > 1 && list[1] == v) {
 			msg = strings.ToUpper(v[0:1]) + v[1:]
 			break
 		}

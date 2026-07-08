@@ -378,7 +378,7 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 	case reflect.Map:
 		isNoSupport = true
 		mapVal := reflect.New(val.Type().Elem()).Elem()
-		isChildNoSupport := h.setExample(mapVal, field.fields[0], onlyFind, useStructMap)
+		isChildNoSupport := h.setExample(mapVal, field.fields[1], onlyFind, useStructMap)
 		if isChildNoSupport {
 			isNoSupport = true
 		}
@@ -408,7 +408,6 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 			} else {
 				valFloat = toPtr(*field.meta.gte)
 			}
-			return
 		} else if field.meta.gt != nil {
 			valFloat = toPtr(*field.meta.gt + 1)
 		} else if field.meta.gte != nil {
