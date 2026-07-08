@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"encoding"
+	"errors"
 	"fmt"
 	"net/http"
 	"path"
@@ -454,6 +455,10 @@ func getHTTPError(err error, defaultCode int) error {
 	switch val := err.(type) {
 	case *HTTPError:
 		return val
+	}
+	var maxBytesErr *http.MaxBytesError
+	if errors.As(err, &maxBytesErr) {
+		return NewHTTPError(http.StatusRequestEntityTooLarge, err.Error())
 	}
 	return NewHTTPError(defaultCode, err.Error())
 }
