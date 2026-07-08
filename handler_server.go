@@ -1093,9 +1093,24 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlerServer) generateRequestID(ctx *Context) {
 	if h.handle.api.GenerateRequestID {
+		if h.handle.api.EnableXRequestID && ctx.Request != nil {
+			if requestID := strings.TrimSpace(ctx.Request.Header.Get("X-Request-ID")); requestID != "" {
+				ctx.RequestID = requestID
+				h.setXRequestIDHeader(ctx)
+				return
+			}
+		}
 		pk, _ := uuid.NewV4()
 		ctx.RequestID = pk.String()
+		h.setXRequestIDHeader(ctx)
 	}
+}
+
+func (h *handlerServer) setXRequestIDHeader(ctx *Context) {
+	if !h.handle.api.EnableXRequestID || ctx.Writer == nil || ctx.RequestID == "" {
+		return
+	}
+	ctx.Writer.Header().Set("X-Request-ID", ctx.RequestID)
 }
 
 func (h *handlerServer) handleLogger(ctx *Context) {

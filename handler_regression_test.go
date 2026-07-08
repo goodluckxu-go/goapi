@@ -178,6 +178,85 @@ func TestResponseWriterFlushCommitsStatus(t *testing.T) {
 	}
 }
 
+func TestGenerateRequestIDPrefersXRequestIDWhenEnabled(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Request-ID", "req-from-upstream")
+	ctx := &Context{Request: req}
+	rec := httptest.NewRecorder()
+	ctx.writermem.reset(rec)
+	ctx.Writer = &ctx.writermem
+	server := &handlerServer{
+		handle: &handler{
+			api: &API{
+				GenerateRequestID: true,
+				EnableXRequestID:  true,
+			},
+		},
+	}
+
+	server.generateRequestID(ctx)
+
+	if ctx.RequestID != "req-from-upstream" {
+		t.Fatalf("RequestID: got %q want %q", ctx.RequestID, "req-from-upstream")
+	}
+	if got := rec.Header().Get("X-Request-ID"); got != "req-from-upstream" {
+		t.Fatalf("X-Request-ID response header: got %q want %q", got, "req-from-upstream")
+	}
+}
+
+func TestGenerateRequestIDWritesGeneratedXRequestIDWhenEnabled(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	ctx := &Context{Request: req}
+	rec := httptest.NewRecorder()
+	ctx.writermem.reset(rec)
+	ctx.Writer = &ctx.writermem
+	server := &handlerServer{
+		handle: &handler{
+			api: &API{
+				GenerateRequestID: true,
+				EnableXRequestID:  true,
+			},
+		},
+	}
+
+	server.generateRequestID(ctx)
+
+	if ctx.RequestID == "" {
+		t.Fatal("RequestID should be generated")
+	}
+	if got := rec.Header().Get("X-Request-ID"); got != ctx.RequestID {
+		t.Fatalf("X-Request-ID response header: got %q want %q", got, ctx.RequestID)
+	}
+}
+
+func TestGenerateRequestIDIgnoresXRequestIDWhenDisabled(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Request-ID", "req-from-upstream")
+	ctx := &Context{Request: req}
+	rec := httptest.NewRecorder()
+	ctx.writermem.reset(rec)
+	ctx.Writer = &ctx.writermem
+	server := &handlerServer{
+		handle: &handler{
+			api: &API{
+				GenerateRequestID: true,
+			},
+		},
+	}
+
+	server.generateRequestID(ctx)
+
+	if ctx.RequestID == "" {
+		t.Fatal("RequestID should be generated")
+	}
+	if ctx.RequestID == "req-from-upstream" {
+		t.Fatal("RequestID should not use X-Request-ID when EnableXRequestID is false")
+	}
+	if got := rec.Header().Get("X-Request-ID"); got != "" {
+		t.Fatalf("X-Request-ID response header should be empty, got %q", got)
+	}
+}
+
 type failingHTTPWriter struct {
 	header http.Header
 	err    error

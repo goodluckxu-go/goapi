@@ -41,6 +41,7 @@ type API struct {
 	addr                 string
 	structTagVariableMap map[string]any
 	GenerateRequestID    bool // '*Context' can obtain the value of RequestID
+	EnableXRequestID     bool // when GenerateRequestID is true, prefer the incoming 'X-Request-ID' header
 }
 
 // SetLang It is to set the validation language function
