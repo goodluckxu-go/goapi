@@ -74,14 +74,23 @@ type JWT struct {
 }
 
 func (j *JWT) GetExpirationTime() (*jwt.NumericDate, error) {
+	if j.ExpiresAt.IsZero() {
+		return nil, nil
+	}
 	return &jwt.NumericDate{Time: j.ExpiresAt}, nil
 }
 
 func (j *JWT) GetIssuedAt() (*jwt.NumericDate, error) {
+	if j.IssuedAt.IsZero() {
+		return nil, nil
+	}
 	return &jwt.NumericDate{Time: j.IssuedAt}, nil
 }
 
 func (j *JWT) GetNotBefore() (*jwt.NumericDate, error) {
+	if j.NotBefore.IsZero() {
+		return nil, nil
+	}
 	return &jwt.NumericDate{Time: j.NotBefore}, nil
 }
 

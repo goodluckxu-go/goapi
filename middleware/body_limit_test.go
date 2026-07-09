@@ -167,6 +167,10 @@ func (w *bodyLimitTestWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 
 func (w *bodyLimitTestWriter) Flush() {}
 
+func (w *bodyLimitTestWriter) Push(target string, opts *http.PushOptions) error {
+	return http.ErrNotSupported
+}
+
 func (w *bodyLimitTestWriter) Status() int {
 	return w.status
 }

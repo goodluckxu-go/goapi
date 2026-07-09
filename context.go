@@ -142,7 +142,6 @@ func (c *Context) Copy() *Context {
 		Request:     c.Request,
 		log:         c.log,
 		fullPath:    c.fullPath,
-		queryCache:  c.queryCache,
 		ChildPath:   c.ChildPath,
 		RequestID:   c.RequestID,
 		handleError: c.handleError,
@@ -153,10 +152,16 @@ func (c *Context) Copy() *Context {
 	cp.writermem.ResponseWriter = nil
 	cp.Writer = &cp.writermem
 
-	cp.Values = make(map[string]any, len(c.Values))
 	c.mux.RLock()
+	cp.Values = make(map[string]any, len(c.Values))
 	for k, v := range c.Values {
 		cp.Values[k] = v
+	}
+	if c.queryCache != nil {
+		cp.queryCache = make(url.Values, len(c.queryCache))
+		for k, v := range c.queryCache {
+			cp.queryCache[k] = append([]string{}, v...)
+		}
 	}
 	c.mux.RUnlock()
 
@@ -198,14 +203,14 @@ func (c *Context) ClientIP() string {
 	if xForwardedFor := c.Request.Header.Get("X-Forwarded-For"); xForwardedFor != "" {
 		xForwardedFor, _, _ = strings.Cut(xForwardedFor, ",")
 		ip := net.ParseIP(xForwardedFor)
-		if ip != nil && ip.To4() != nil {
+		if ip != nil {
 			return ip.String()
 		}
 	}
 	if xRealIP := c.Request.Header.Get("X-Real-IP"); xRealIP != "" {
 		xRealIP, _, _ = strings.Cut(xRealIP, ",")
 		ip := net.ParseIP(xRealIP)
-		if ip != nil && ip.To4() != nil {
+		if ip != nil {
 			return ip.String()
 		}
 	}

@@ -13,6 +13,7 @@ type ResponseWriter interface {
 	http.ResponseWriter
 	http.Hijacker
 	http.Flusher
+	http.Pusher
 	Status() int
 	Size() int
 }
@@ -22,6 +23,10 @@ type responseWriter struct {
 	status  int
 	size    int
 	written bool
+}
+
+func (w *responseWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
 }
 
 func (w *responseWriter) Write(b []byte) (int, error) {
@@ -69,6 +74,13 @@ func (w *responseWriter) Flush() {
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
+}
+
+func (w *responseWriter) Push(target string, opts *http.PushOptions) error {
+	if ps, ok := w.ResponseWriter.(http.Pusher); ok {
+		return ps.Push(target, opts)
+	}
+	return http.ErrNotSupported
 }
 
 func (w *responseWriter) Status() int {

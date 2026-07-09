@@ -2,6 +2,7 @@ package goapi
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -160,6 +161,12 @@ func (n *node) addChild(child *node) {
 
 // addRoute adds a node with the given handle to the path.
 func (n *node) addRoute(path string, handler HandleFunc) (err error) {
+	if path == "" {
+		return errors.New("path can not be empty")
+	}
+	if path[0] != '/' {
+		return fmt.Errorf("path '%s' must start with '/'", path)
+	}
 	fullPath := path
 	params := make([]string, 0, countParams(path))
 	n.priority++
@@ -359,7 +366,7 @@ func (n *node) incrementChildPrio(pos int) int {
 	// Build new index char string
 	if newPos != pos {
 		n.indices = n.addBytes(n.indices[:newPos], // Unchanged prefix, might be empty
-			n.indices[pos:pos+1], // The index char we move
+			n.indices[pos:pos+1],                     // The index char we move
 			n.indices[newPos:pos], n.indices[pos+1:]) // Rest without char at 'pos'
 	}
 

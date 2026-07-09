@@ -154,7 +154,7 @@ func (r *RouterGroup) IncludeRouter(router any, prefix string, isDocs bool, midd
 }
 
 // StaticFile registers a single route in order to serve a single file of the local filesystem.
-// router.StaticFile("favicon.ico", "./resources/favicon.ico")
+// router.StaticFile("/favicon.ico", "./resources/favicon.ico")
 func (r *RouterGroup) StaticFile(path, root string) {
 	r.handlers = append(r.handlers, &staticInfo{
 		path:        path,

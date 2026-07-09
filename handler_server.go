@@ -122,6 +122,9 @@ func (h *handlerServer) handleStaticPath(path string) string {
 	end := len(path) - 1
 	for ; end >= 0 && path[end] != '/'; end-- {
 	}
+	if end == -1 {
+		return ""
+	}
 	return path[:end]
 }
 
@@ -258,7 +261,9 @@ func (h *handlerServer) handleResponse(ctx *Context, resp any) {
 		if status != 0 {
 			ctx.Writer.WriteHeader(status)
 		}
-		_ = h.copyReader(ctx.Writer, r)
+		if err := h.copyReader(ctx.Writer, r); err != nil && ctx.Logger() != nil {
+			ctx.Logger().Error("copy response body failed: %v", err)
+		}
 		return
 	}
 	var body []byte
@@ -534,10 +539,15 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 		if field.meta.unique {
 			m := map[any]struct{}{}
 			for i := 0; i < value.Len(); i++ {
-				if _, ok := m[value.Index(i).Interface()]; ok {
+				itemVal := value.Index(i)
+				if !itemVal.Comparable() {
+					continue
+				}
+				item := itemVal.Interface()
+				if _, ok := m[item]; ok {
 					return errors.New(ctx.lang().Unique(desc))
 				}
-				m[value.Index(i).Interface()] = struct{}{}
+				m[item] = struct{}{}
 			}
 		}
 		for i := 0; i < value.Len(); i++ {
@@ -792,6 +802,7 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 		if err != nil {
 			return
 		}
+		// When using required keys and zero values, please use Pointers
 		if valInt == 0 {
 			if name.required {
 				return errors.New(ctx.lang().Required(desc))
@@ -811,6 +822,7 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 		if err != nil {
 			return
 		}
+		// When using required keys and zero values, please use Pointers
 		if valUint == 0 {
 			if name.required {
 				return errors.New(ctx.lang().Required(desc))
@@ -830,6 +842,7 @@ func (h *handlerServer) handleParamByString(ctx *Context, value reflect.Value, f
 		if err != nil {
 			return
 		}
+		// When using required keys and zero values, please use Pointers
 		if valFloat == 0 {
 			if name.required {
 				return errors.New(ctx.lang().Required(desc))

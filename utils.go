@@ -293,7 +293,7 @@ func mergeOpenAPITags(tags []*openapi.Tag, args []*openapi.Tag) (list []*openapi
 func decryptJWT(j *JWT, jwtStr string, bearerJWT HTTPBearerJWT) error {
 	pToken, err := jwt.Parse(jwtStr, func(token *jwt.Token) (interface{}, error) {
 		return bearerJWT.DecryptKey()
-	})
+	}, jwt.WithValidMethods([]string{bearerJWT.SigningMethod().Alg()}))
 	if err != nil {
 		return err
 	}

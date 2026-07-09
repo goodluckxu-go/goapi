@@ -242,6 +242,43 @@ func TestContext_Query(t *testing.T) {
 	}
 }
 
+func TestContextCopyQueryCache(t *testing.T) {
+	t.Run("lazy query cache stays lazy", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/search?q=hello&tag=go", nil)
+		ctx := newTestContext(t, req)
+
+		cp := ctx.Copy()
+		if cp.queryCache != nil {
+			t.Fatalf("Copy: queryCache should stay nil before Query, got %v", cp.queryCache)
+		}
+
+		q := cp.Query()
+		if q.Get("q") != "hello" || q.Get("tag") != "go" {
+			t.Fatalf("Copy Query: unexpected values: %v", q)
+		}
+		if ctx.queryCache != nil {
+			t.Fatalf("Copy Query should not initialize source queryCache, got %v", ctx.queryCache)
+		}
+	})
+
+	t.Run("initialized query cache is deep copied", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/search?q=hello&tag=go&tag=api", nil)
+		ctx := newTestContext(t, req)
+		_ = ctx.Query()
+
+		cp := ctx.Copy()
+		cp.Query().Set("q", "changed")
+		cp.Query()["tag"][0] = "changed"
+
+		if got := ctx.Query().Get("q"); got != "hello" {
+			t.Fatalf("source q mutated: got %q want hello", got)
+		}
+		if got := ctx.Query()["tag"][0]; got != "go" {
+			t.Fatalf("source tag mutated: got %q want go", got)
+		}
+	})
+}
+
 func TestContext_RequestContext(t *testing.T) {
 	t.Run("Deadline Done Err with background context", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
