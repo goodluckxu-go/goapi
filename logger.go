@@ -14,8 +14,8 @@ type Logger interface {
 	Fatal(format string, a ...any)
 }
 
-type LoggerContext interface {
-	SetContext(ctx *Context)
+type LoggerWithContext interface {
+	WithContext(ctx *Context) Logger
 }
 
 type DefaultLogger struct {

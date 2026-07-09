@@ -1154,87 +1154,8 @@ func (h *handlerServer) handleLogger(ctx *Context) {
 	if ctx.log == nil {
 		return
 	}
-	if _, ok := getFnByCovertInterface[LoggerContext](ctx.log); ok {
-		newLog := h.copyLogger(ctx.log)
-		if fn, fnOk := newLog.(LoggerContext); fnOk {
-			fn.SetContext(ctx)
-		}
-		ctx.log = newLog
-	}
-}
-
-func (h *handlerServer) copyLogger(log Logger) Logger {
-	val := reflect.ValueOf(log)
-	var newVal reflect.Value
-	if val.Kind() == reflect.Ptr {
-		newVal = reflect.New(val.Type().Elem())
-	} else {
-		newVal = reflect.New(val.Type()).Elem()
-	}
-	h.copyStruct(newVal, val)
-	return newVal.Interface().(Logger)
-}
-
-func (h *handlerServer) copyStruct(dst, src reflect.Value) {
-	if !dst.IsValid() || !src.IsValid() || dst.Type() != src.Type() || src.IsZero() {
-		return
-	}
-	kind := src.Kind()
-	switch kind {
-	case reflect.Ptr:
-		if src.IsNil() {
-			return
-		}
-		if dst.IsNil() {
-			if !dst.CanSet() {
-				return
-			}
-			dst.Set(reflect.New(dst.Type().Elem()))
-		}
-		h.copyStruct(dst.Elem(), src.Elem())
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64, reflect.String, reflect.Bool, reflect.Interface:
-		if dst.CanSet() {
-			dst.Set(src)
-		}
-	case reflect.Slice:
-		if src.IsNil() {
-			return
-		}
-		arrLen := src.Len()
-		if dst.CanSet() {
-			dst.Set(reflect.MakeSlice(dst.Type(), arrLen, arrLen))
-		}
-		if dst.IsNil() {
-			return
-		}
-		for i := 0; i < arrLen; i++ {
-			h.copyStruct(dst.Index(i), src.Index(i))
-		}
-	case reflect.Array:
-		for i := 0; i < src.Len(); i++ {
-			h.copyStruct(dst.Index(i), src.Index(i))
-		}
-	case reflect.Map:
-		if src.IsNil() {
-			return
-		}
-		keys := src.MapKeys()
-		if dst.CanSet() {
-			dst.Set(reflect.MakeMapWithSize(dst.Type(), len(keys)))
-		}
-		if dst.IsNil() {
-			return
-		}
-		for _, key := range keys {
-			dst.SetMapIndex(key, src.MapIndex(key))
-		}
-	case reflect.Struct:
-		for i := 0; i < src.NumField(); i++ {
-			h.copyStruct(dst.Field(i), src.Field(i))
-		}
-	default:
+	if fn, ok := getFnByCovertInterface[LoggerWithContext](ctx.log); ok {
+		ctx.log = fn.WithContext(ctx)
 	}
 }
 

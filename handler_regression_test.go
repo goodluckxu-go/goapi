@@ -34,45 +34,43 @@ func TestSetExampleNilPointerDoesNotLoop(t *testing.T) {
 	}
 }
 
-type copyLoggerRegression struct {
-	Values [2]int
-	Items  []string
-	Labels map[string]int
-	ctx    *Context
+type contextLoggerRegression struct {
+	ctx   *Context
+	calls int
 }
 
-func (l *copyLoggerRegression) Debug(format string, a ...any)   {}
-func (l *copyLoggerRegression) Info(format string, a ...any)    {}
-func (l *copyLoggerRegression) Warning(format string, a ...any) {}
-func (l *copyLoggerRegression) Error(format string, a ...any)   {}
-func (l *copyLoggerRegression) Fatal(format string, a ...any)   {}
-func (l *copyLoggerRegression) SetContext(ctx *Context)         { l.ctx = ctx }
+func (l *contextLoggerRegression) Debug(format string, a ...any)   {}
+func (l *contextLoggerRegression) Info(format string, a ...any)    {}
+func (l *contextLoggerRegression) Warning(format string, a ...any) {}
+func (l *contextLoggerRegression) Error(format string, a ...any)   {}
+func (l *contextLoggerRegression) Fatal(format string, a ...any)   {}
 
-func TestCopyLoggerCompositeFields(t *testing.T) {
-	src := &copyLoggerRegression{
-		Values: [2]int{1, 2},
-		Items:  []string{"a", "b"},
-		Labels: map[string]int{"a": 1},
-	}
+func (l *contextLoggerRegression) WithContext(ctx *Context) Logger {
+	l.calls++
+	return &contextLoggerRegression{ctx: ctx}
+}
 
-	got := (&handlerServer{}).copyLogger(src).(*copyLoggerRegression)
-	if got.Values != src.Values {
-		t.Fatalf("array field was not copied: got %v want %v", got.Values, src.Values)
-	}
-	if !reflect.DeepEqual(got.Items, src.Items) {
-		t.Fatalf("slice field was not copied: got %v want %v", got.Items, src.Items)
-	}
-	if !reflect.DeepEqual(got.Labels, src.Labels) {
-		t.Fatalf("map field was not copied: got %v want %v", got.Labels, src.Labels)
-	}
+func TestHandleLoggerUsesLoggerWithContext(t *testing.T) {
+	base := &contextLoggerRegression{}
+	ctx := &Context{log: base}
 
-	got.Items[0] = "changed"
-	if src.Items[0] == "changed" {
-		t.Fatal("slice field should be copied into a new slice")
+	(&handlerServer{}).handleLogger(ctx)
+
+	got, ok := ctx.log.(*contextLoggerRegression)
+	if !ok {
+		t.Fatalf("logger type = %T, want *contextLoggerRegression", ctx.log)
 	}
-	got.Labels["a"] = 2
-	if src.Labels["a"] == 2 {
-		t.Fatal("map field should be copied into a new map")
+	if got == base {
+		t.Fatal("handleLogger should use the logger returned by WithContext")
+	}
+	if got.ctx != ctx {
+		t.Fatal("WithContext logger should receive the request context")
+	}
+	if base.ctx != nil {
+		t.Fatal("base logger should not be mutated with request context")
+	}
+	if base.calls != 1 {
+		t.Fatalf("WithContext calls = %d, want 1", base.calls)
 	}
 }
 

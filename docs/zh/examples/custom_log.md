@@ -10,14 +10,19 @@ type Logger interface {
 	Fatal(format string, a ...any)
 }
 
-type CustomLog struct{}
+type CustomLog struct {
+	ctx *Context
+}
 
 func (*CustomLog) Debug(format string, a ...any) {
 	
 }
 
-func (*CustomLog) Info(format string, a ...any) {
-
+func (c *CustomLog) Info(format string, a ...any) {
+	if c.ctx != nil {
+		_ = c.ctx.RequestID // 可获取每次请求的ID
+		_ = c.ctx.ChildPath // 可获取每次请求的程序定义请求前缀
+	}
 }
 
 func (*CustomLog) Warning(format string, a ...any) {
@@ -35,14 +40,13 @@ func (*CustomLog) Fatal(format string, a ...any) {
 ### 日志写入传入上下文判断
 ~~~go
 // 实现接口
-type LoggerContext interface {
-	SetContext(ctx *Context)
+type LoggerWithContext interface {
+	WithContext(ctx *Context) Logger
 }
 
 // 实现接口
-func (c *CustomLog) SetContext(ctx *Context) {
-    _ = ctx.RequestID // 可获取每次请求的ID
-    _ = ctx.ChildPath // 可获取每次请求的程序定义请求前缀
+func (c *CustomLog) WithContext(ctx *Context) Logger {
+	return &CustomLog{ctx: ctx}
 }
 ~~~
 ### 使用日志
