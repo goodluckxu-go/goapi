@@ -169,3 +169,8 @@ type HTTPError struct {
 func (h *HTTPError) Error() string {
 	return h.Message
 }
+
+type LogField struct {
+	Key   string
+	Value any
+}

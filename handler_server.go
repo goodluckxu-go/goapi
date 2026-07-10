@@ -1115,6 +1115,7 @@ func (h *handlerServer) redirect(ctx *Context) {
 
 func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := h.pool.Get().(*Context)
+	ctx.baseLog = h.log
 	ctx.log = h.log
 	ctx.writermem.reset(w)
 	ctx.reset()
@@ -1151,11 +1152,18 @@ func (h *handlerServer) setXRequestIDHeader(ctx *Context) {
 }
 
 func (h *handlerServer) handleLogger(ctx *Context) {
-	if ctx.log == nil {
+	baseLog := ctx.baseLog
+	if baseLog == nil {
+		baseLog = ctx.log
+	}
+	if baseLog == nil {
 		return
 	}
-	if fn, ok := getFnByCovertInterface[LoggerWithContext](ctx.log); ok {
-		ctx.log = fn.WithContext(ctx)
+	ctx.log = baseLog
+	if fn, ok := getFnByCovertInterface[LoggerWithContext](baseLog); ok {
+		if logger := fn.WithContext(ctx); logger != nil {
+			ctx.log = logger
+		}
 	}
 }
 

@@ -16,6 +16,7 @@ type Context struct {
 	writermem     responseWriter
 	Values        map[string]any
 	log           Logger
+	baseLog       Logger // Always save the original logger on the API/handler
 	mux           sync.RWMutex
 	handlers      []HandleFunc
 	Params        *Params
@@ -141,6 +142,7 @@ func (c *Context) Copy() *Context {
 	cp := Context{
 		Request:     c.Request,
 		log:         c.log,
+		baseLog:     c.baseLog,
 		fullPath:    c.fullPath,
 		ChildPath:   c.ChildPath,
 		RequestID:   c.RequestID,
@@ -173,6 +175,15 @@ func (c *Context) Copy() *Context {
 	} else {
 		cParams := Params{}
 		cp.Params = &cParams
+	}
+
+	if cp.baseLog != nil {
+		cp.log = cp.baseLog
+		if fn, ok := getFnByCovertInterface[LoggerWithContext](cp.baseLog); ok {
+			if logger := fn.WithContext(&cp); logger != nil {
+				cp.log = logger
+			}
+		}
 	}
 
 	return &cp

@@ -17,6 +17,9 @@ func (nopLogger) Info(format string, a ...any)    {}
 func (nopLogger) Warning(format string, a ...any) {}
 func (nopLogger) Error(format string, a ...any)   {}
 func (nopLogger) Fatal(format string, a ...any)   {}
+func (n nopLogger) WithFields(keysAndValues ...any) Logger {
+	return n
+}
 
 // newTestContext builds a Context wired like production (recorder + request).
 func newTestContext(t *testing.T, req *http.Request) *Context {

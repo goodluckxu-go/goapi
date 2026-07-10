@@ -44,6 +44,9 @@ func (l *contextLoggerRegression) Info(format string, a ...any)    {}
 func (l *contextLoggerRegression) Warning(format string, a ...any) {}
 func (l *contextLoggerRegression) Error(format string, a ...any)   {}
 func (l *contextLoggerRegression) Fatal(format string, a ...any)   {}
+func (l *contextLoggerRegression) WithFields(keysAndValues ...any) Logger {
+	return l
+}
 
 func (l *contextLoggerRegression) WithContext(ctx *Context) Logger {
 	l.calls++
@@ -72,6 +75,92 @@ func TestHandleLoggerUsesLoggerWithContext(t *testing.T) {
 	if base.calls != 1 {
 		t.Fatalf("WithContext calls = %d, want 1", base.calls)
 	}
+}
+
+func TestContextCopyRebindsLoggerWithContext(t *testing.T) {
+	base := &contextLoggerRegression{}
+	ctx := &Context{
+		Request: httptest.NewRequest(http.MethodGet, "/", nil),
+		log:     base,
+		baseLog: base,
+	}
+
+	(&handlerServer{}).handleLogger(ctx)
+	original, ok := ctx.log.(*contextLoggerRegression)
+	if !ok {
+		t.Fatalf("logger type = %T, want *contextLoggerRegression", ctx.log)
+	}
+	if original.ctx != ctx {
+		t.Fatal("request logger should be bound to the original context")
+	}
+
+	cp := ctx.Copy()
+	got, ok := cp.log.(*contextLoggerRegression)
+	if !ok {
+		t.Fatalf("copy logger type = %T, want *contextLoggerRegression", cp.log)
+	}
+	if cp.baseLog != base {
+		t.Fatal("Copy should preserve the base logger")
+	}
+	if got == original {
+		t.Fatal("Copy should not reuse the request-scoped logger")
+	}
+	if got.ctx != cp {
+		t.Fatal("Copy should bind LoggerWithContext to the copied context")
+	}
+	if original.ctx != ctx {
+		t.Fatal("Copy should not mutate the original request logger")
+	}
+	if base.calls != 2 {
+		t.Fatalf("WithContext calls = %d, want 2", base.calls)
+	}
+}
+
+type nilContextLoggerRegression struct {
+	nopLogger
+	calls int
+}
+
+func (l *nilContextLoggerRegression) WithContext(ctx *Context) Logger {
+	l.calls++
+	return nil
+}
+
+func TestLoggerWithContextNilKeepsBaseLogger(t *testing.T) {
+	t.Run("request context", func(t *testing.T) {
+		base := &nilContextLoggerRegression{}
+		ctx := &Context{log: base}
+
+		(&handlerServer{}).handleLogger(ctx)
+
+		if ctx.log != base {
+			t.Fatalf("logger = %T, want base logger", ctx.log)
+		}
+		if base.calls != 1 {
+			t.Fatalf("WithContext calls = %d, want 1", base.calls)
+		}
+	})
+
+	t.Run("copied context", func(t *testing.T) {
+		base := &nilContextLoggerRegression{}
+		ctx := &Context{
+			Request: httptest.NewRequest(http.MethodGet, "/", nil),
+			log:     base,
+			baseLog: base,
+		}
+
+		cp := ctx.Copy()
+
+		if cp.log != base {
+			t.Fatalf("copy logger = %T, want base logger", cp.log)
+		}
+		if cp.baseLog != base {
+			t.Fatal("Copy should preserve the base logger")
+		}
+		if base.calls != 1 {
+			t.Fatalf("WithContext calls = %d, want 1", base.calls)
+		}
+	})
 }
 
 type marshalErrorResponse struct{}
