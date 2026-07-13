@@ -14,8 +14,8 @@ type Logger interface {
 	// Info writes normal runtime information.
 	Info(format string, a ...any)
 
-	// Warning writes a warning that does not stop request handling.
-	Warning(format string, a ...any)
+	// Warn writes a warning that does not stop request handling.
+	Warn(format string, a ...any)
 
 	// Error writes an error message for failed operations.
 	Error(format string, a ...any)
@@ -43,7 +43,7 @@ func (d *DefaultLogger) Info(format string, a ...any) {
 	d.print(ColorInfo, "INFO", format, a...)
 }
 
-func (d *DefaultLogger) Warning(format string, a ...any) {
+func (d *DefaultLogger) Warn(format string, a ...any) {
 	d.print(ColorWarning, "WARNING", format, a...)
 }
 

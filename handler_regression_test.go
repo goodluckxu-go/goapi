@@ -39,11 +39,11 @@ type contextLoggerRegression struct {
 	calls int
 }
 
-func (l *contextLoggerRegression) Debug(format string, a ...any)   {}
-func (l *contextLoggerRegression) Info(format string, a ...any)    {}
-func (l *contextLoggerRegression) Warning(format string, a ...any) {}
-func (l *contextLoggerRegression) Error(format string, a ...any)   {}
-func (l *contextLoggerRegression) Fatal(format string, a ...any)   {}
+func (l *contextLoggerRegression) Debug(format string, a ...any) {}
+func (l *contextLoggerRegression) Info(format string, a ...any)  {}
+func (l *contextLoggerRegression) Warn(format string, a ...any)  {}
+func (l *contextLoggerRegression) Error(format string, a ...any) {}
+func (l *contextLoggerRegression) Fatal(format string, a ...any) {}
 func (l *contextLoggerRegression) WithFields(keysAndValues ...any) Logger {
 	return l
 }

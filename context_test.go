@@ -12,11 +12,11 @@ import (
 // nopLogger is a silent Logger implementation for tests.
 type nopLogger struct{}
 
-func (nopLogger) Debug(format string, a ...any)   {}
-func (nopLogger) Info(format string, a ...any)    {}
-func (nopLogger) Warning(format string, a ...any) {}
-func (nopLogger) Error(format string, a ...any)   {}
-func (nopLogger) Fatal(format string, a ...any)   {}
+func (nopLogger) Debug(format string, a ...any) {}
+func (nopLogger) Info(format string, a ...any)  {}
+func (nopLogger) Warn(format string, a ...any)  {}
+func (nopLogger) Error(format string, a ...any) {}
+func (nopLogger) Fatal(format string, a ...any) {}
 func (n nopLogger) WithFields(keysAndValues ...any) Logger {
 	return n
 }

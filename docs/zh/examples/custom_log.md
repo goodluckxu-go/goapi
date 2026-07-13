@@ -7,8 +7,8 @@ type Logger interface {
 	Debug(format string, a ...any)
 	// Info 输出普通运行日志。
 	Info(format string, a ...any)
-	// Warning 输出警告日志，不会中断请求处理。
-	Warning(format string, a ...any)
+	// Warn 输出警告日志，不会中断请求处理。
+	Warn(format string, a ...any)
 	// Error 输出错误日志，用于记录失败操作。
 	Error(format string, a ...any)
 	// Fatal 输出严重级别日志，但不能调用 os.Exit、panic 或让程序退出。
@@ -38,8 +38,8 @@ func (c *CustomLog) Info(format string, a ...any) {
 	c.defaultLogger().Info(format, a...)
 }
 
-func (c *CustomLog) Warning(format string, a ...any) {
-	c.defaultLogger().Warning(format, a...)
+func (c *CustomLog) Warn(format string, a ...any) {
+	c.defaultLogger().Warn(format, a...)
 }
 
 func (c *CustomLog) Error(format string, a ...any) {
