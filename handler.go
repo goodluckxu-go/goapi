@@ -161,7 +161,7 @@ func (h *handler) Handle() {
 					}
 				} else {
 					// no stream
-					field, err = h.handleField(in.structField, -1)
+					field, err = h.handleField(in.structField, -1, true)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -203,7 +203,7 @@ func (h *handler) Handle() {
 			h.handleOutParam(path.outParam)
 			if _, ok := getTypeByCovertInterface[io.ReadCloser](path.outParam.structField.Type); !ok &&
 				path.outParam.structField.Type != nil {
-				field, err = h.handleField(path.outParam.structField, -1)
+				field, err = h.handleField(path.outParam.structField, -1, true)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -228,7 +228,7 @@ func (h *handler) Handle() {
 			}
 			fType := reflect.TypeOf(errorResponse)
 			item.outParam.structField = reflect.StructField{Type: fType}
-			field, err = h.handleField(item.outParam.structField, -1)
+			field, err = h.handleField(item.outParam.structField, -1, true)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -354,7 +354,7 @@ func (h *handler) setExample(val reflect.Value, field *paramField, onlyFind bool
 			isNoSupport = true
 		}
 		fields := field.fields
-		if field.pkgName != "" {
+		if field.pkgName != "" && len(fields) == 0 {
 			stInfo := h.structs[field.pkgName]
 			fields = stInfo.fields
 		}
@@ -523,7 +523,7 @@ func (h *handler) handleParam(inType InType, field reflect.StructField, index in
 	return
 }
 
-func (h *handler) handleField(field reflect.StructField, index int, beforeStructPkgName ...string) (rs *paramField, err error) {
+func (h *handler) handleField(field reflect.StructField, index int, isRoot bool, beforeStructPkgName ...string) (rs *paramField, err error) {
 	names := h.getNames(field)
 	if len(names) == 0 {
 		return
@@ -567,7 +567,7 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 	switch eType.Kind() {
 	case reflect.Map:
 		var childKey *paramField
-		childKey, err = h.handleField(reflect.StructField{Type: eType.Key()}, -1)
+		childKey, err = h.handleField(reflect.StructField{Type: eType.Key()}, -1, false)
 		if err != nil {
 			return
 		}
@@ -575,26 +575,26 @@ func (h *handler) handleField(field reflect.StructField, index int, beforeStruct
 			err = fmt.Errorf("the key of a map must be of string type")
 			return
 		}
-		childField, err = h.handleField(reflect.StructField{Type: eType.Elem()}, -1, beforeStructPkgName...)
+		childField, err = h.handleField(reflect.StructField{Type: eType.Elem()}, -1, false, beforeStructPkgName...)
 		if err != nil {
 			return
 		}
 		rs.fields = append(rs.fields, childKey, childField)
 	case reflect.Slice, reflect.Array:
-		childField, err = h.handleField(reflect.StructField{Type: eType.Elem()}, -1, beforeStructPkgName...)
+		childField, err = h.handleField(reflect.StructField{Type: eType.Elem()}, -1, false, beforeStructPkgName...)
 		if err != nil {
 			return
 		}
 		rs.fields = append(rs.fields, childField)
 	case reflect.Struct:
-		if rs.pkgName == "" {
+		if rs.pkgName == "" || isRoot {
 			var pField *paramField
 			for i := 0; i < eType.NumField(); i++ {
 				vField := eType.Field(i)
 				if vField.Name[0] < 'A' || vField.Name[0] > 'Z' {
 					continue
 				}
-				pField, err = h.handleField(vField, i, beforeStructPkgName...)
+				pField, err = h.handleField(vField, i, false, beforeStructPkgName...)
 				if err != nil {
 					return
 				}
@@ -661,7 +661,7 @@ func (h *handler) handleStruct() (err error) {
 				if field.Name[0] < 'A' || field.Name[0] > 'Z' {
 					continue
 				}
-				pField, err = h.handleField(field, i, pkgName)
+				pField, err = h.handleField(field, i, false, pkgName)
 				if err != nil {
 					return
 				}
