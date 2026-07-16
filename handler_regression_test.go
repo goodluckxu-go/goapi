@@ -495,3 +495,37 @@ func TestBodyMediaTypeMustMatchDeclaredContentType(t *testing.T) {
 		}
 	})
 }
+
+type streamStringRegressionRouter struct{}
+
+func (*streamStringRegressionRouter) Echo(input struct {
+	router Router `paths:"/stream-string" methods:"POST"`
+	Body   string `body:"text/plain"`
+}) map[string]string {
+	return map[string]string{"body": input.Body}
+}
+
+func TestRawStreamBodySupportsString(t *testing.T) {
+	api := New(false)
+	api.SetLogger(nil)
+	api.IncludeRouter(&streamStringRegressionRouter{}, "", true)
+	handler := api.Handler()
+
+	req := httptest.NewRequest(http.MethodPost, "/stream-string", strings.NewReader("hello raw body"))
+	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status code: got %d want %d, body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+
+	var body map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response body should be JSON: %v", err)
+	}
+	if body["body"] != "hello raw body" {
+		t.Fatalf("body: got %q want %q", body["body"], "hello raw body")
+	}
+}

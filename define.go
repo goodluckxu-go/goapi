@@ -166,6 +166,10 @@ func (m MediaType) Unmarshaler(body io.ReadCloser, value reflect.Value) error {
 		}
 		return analysis.Unmarshal(buf.Bytes(), value.Interface())
 	}
+	if !value.IsValid() || value.Kind() != reflect.Ptr || value.IsNil() {
+		_ = body.Close()
+		return fmt.Errorf("MediaType: value must be a non-nil pointer")
+	}
 	value = value.Elem()
 	if value.Type().ConvertibleTo(typeBytes) {
 		defer body.Close()
@@ -174,6 +178,15 @@ func (m MediaType) Unmarshaler(body io.ReadCloser, value reflect.Value) error {
 			return err
 		}
 		value.Set(reflect.ValueOf(buf).Convert(value.Type()))
+		return nil
+	}
+	if value.Kind() == reflect.String {
+		defer body.Close()
+		buf, err := io.ReadAll(body)
+		if err != nil {
+			return err
+		}
+		value.SetString(string(buf))
 		return nil
 	}
 	if value.Type() == typeReadCloser {

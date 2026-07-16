@@ -521,8 +521,9 @@ func (h *handlerServer) validParamField(ctx *Context, value reflect.Value, field
 	case reflect.Struct:
 		fields := field.fields
 		if field.pkgName != "" {
-			sInfo := h.handle.structs[field.pkgName]
-			fields = sInfo.fields
+			if sInfo := h.handle.structs[field.pkgName]; sInfo != nil {
+				fields = sInfo.fields
+			}
 		}
 		for _, childField := range fields {
 			if err = h.validParamField(ctx, value.Field(childField.index), childField, mediaType); err != nil {
